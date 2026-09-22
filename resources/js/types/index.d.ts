@@ -1,7 +1,10 @@
+export type UserRole = 'admin' | 'front_desk' | 'owner';
+
 export interface User {
     id: number;
     name: string;
     email: string;
+    role: UserRole;
     email_verified_at?: string;
 }
 

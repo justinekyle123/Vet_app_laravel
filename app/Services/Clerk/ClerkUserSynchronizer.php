@@ -2,6 +2,8 @@
 
 namespace App\Services\Clerk;
 
+use App\Enums\UserRole;
+use App\Models\Owner;
 use App\Models\User;
 use Clerk\Backend\ClerkBackend;
 use Illuminate\Support\Facades\Log;
@@ -59,10 +61,18 @@ class ClerkUserSynchronizer
             return $user;
         }
 
-        return User::create([
+        // New Clerk identities become dog owners by default. Existing rows
+        // are left alone above so a promoted staff member keeps their role.
+        $user = new User([
             ...$attributes,
             'name' => $name ?: $email,
         ]);
+        $user->role = UserRole::Owner;
+        $user->save();
+
+        Owner::provisionFor($user);
+
+        return $user;
     }
 
     /**

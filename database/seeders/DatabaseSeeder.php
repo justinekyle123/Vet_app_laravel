@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Owner;
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
@@ -15,11 +16,28 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
+        /*
+         * Registration is open to dog owners only: it always creates an
+         * "owner" account with a matching client record. Staff accounts are
+         * provisioned here instead of through sign-up.
+         *
+         * All seeded accounts share the factory password "password" — change
+         * the staff passwords before using the app anywhere real.
+         */
+        $ownerUser = User::factory()->owner()->create([
+            'name' => 'Test Owner',
+            'email' => 'owner@example.com',
+        ]);
+        Owner::provisionFor($ownerUser);
 
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
+        User::factory()->admin()->create([
+            'name' => 'Clinic Administrator',
+            'email' => 'admin@example.com',
+        ]);
+
+        User::factory()->frontDesk()->create([
+            'name' => 'Front Desk',
+            'email' => 'frontdesk@example.com',
         ]);
     }
 }

@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers\Auth;
 
+use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
+use App\Models\Owner;
 use App\Models\User;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
@@ -37,11 +39,21 @@ class RegisteredUserController extends Controller
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 
-        $user = User::create([
+        $user = new User([
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
         ]);
+
+        // Self-service sign-ups are always dog owners; staff roles are only
+        // ever granted by an administrator. "role" is not fillable, so it is
+        // assigned explicitly here rather than passed in with the input.
+        $user->role = UserRole::Owner;
+        $user->save();
+
+        // Registration is open to dog owners only, so every new account gets a
+        // matching client record they can complete from their account page.
+        Owner::provisionFor($user);
 
         event(new Registered($user));
 
