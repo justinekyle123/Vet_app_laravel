@@ -1,0 +1,48 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    html {
+        scroll-behavior: smooth;
+        /* Keep anchored sections clear of the fixed header. */
+        scroll-padding-top: 5rem;
+    }
+
+    /* Respect users who ask the OS to reduce motion: kill the ambient
+       animations rather than leaving them running out of view. */
+    @media (prefers-reduced-motion: reduce) {
+        html {
+            scroll-behavior: auto;
+        }
+
+        *,
+        *::before,
+        *::after {
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.01ms !important;
+        }
+    }
+}
+
+@layer utilities {
+    /* Soft vertical fade so marquee content dissolves at the edges
+       instead of being cut off mid-letter. */
+    .mask-fade-x {
+        -webkit-mask-image: linear-gradient(
+            to right,
+            transparent,
+            black 12%,
+            black 88%,
+            transparent
+        );
+        mask-image: linear-gradient(
+            to right,
+            transparent,
+            black 12%,
+            black 88%,
+            transparent
+        );
+    }
+}
