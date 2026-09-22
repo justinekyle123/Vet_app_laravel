@@ -1,6 +1,6 @@
 import DashboardCard, { EmptyState } from '@/Components/DashboardCard';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
 
 const quickActions = [
     { label: 'Book an appointment', icon: 'calendar' as const },
@@ -58,6 +58,14 @@ export default function FrontDeskDashboard() {
                         <DashboardCard
                             title="Owners & pets"
                             icon="paw"
+                            action={
+                                <Link
+                                    href={route('owners.index')}
+                                    className="text-xs font-medium text-emerald-700 hover:text-emerald-800"
+                                >
+                                    Open dog owners
+                                </Link>
+                            }
                         >
                             <EmptyState message="Client records will show here once owner and pet management is live." />
                         </DashboardCard>

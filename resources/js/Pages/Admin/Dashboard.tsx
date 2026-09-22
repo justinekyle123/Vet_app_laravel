@@ -2,7 +2,7 @@ import DashboardCard, { EmptyState } from '@/Components/DashboardCard';
 import StatCard from '@/Components/StatCard';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { UserRole } from '@/types';
-import { Head } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
 
 interface Stats {
     total_users: number;
@@ -42,13 +42,29 @@ export default function AdminDashboard({
     return (
         <AuthenticatedLayout
             header={
-                <div>
-                    <h2 className="text-xl font-semibold leading-tight text-gray-800">
-                        Administrator Dashboard
-                    </h2>
-                    <p className="mt-1 text-sm text-gray-500">
-                        Clinic-wide accounts and operations at a glance.
-                    </p>
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                        <h2 className="text-xl font-semibold leading-tight text-gray-800">
+                            Administrator Dashboard
+                        </h2>
+                        <p className="mt-1 text-sm text-gray-500">
+                            Clinic-wide accounts and operations at a glance.
+                        </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <Link
+                            href={route('owners.index')}
+                            className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50"
+                        >
+                            Dog owners
+                        </Link>
+                        <Link
+                            href={route('admin.staff.index')}
+                            className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50"
+                        >
+                            Manage staff
+                        </Link>
+                    </div>
                 </div>
             }
         >

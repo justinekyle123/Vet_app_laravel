@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Owner;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Owner\UpdateOwnerAccountRequest;
 use App\Models\Owner;
+use App\Models\Pet;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -34,7 +35,22 @@ class AccountController extends Controller
             ],
             'pets' => $owner->pets()
                 ->orderBy('name')
-                ->get(['id', 'name', 'species', 'breed', 'sex', 'color', 'birth_date', 'is_active']),
+                ->get()
+                ->map(fn (Pet $pet) => [
+                    'id' => $pet->id,
+                    'name' => $pet->name,
+                    'species' => $pet->species,
+                    'breed' => $pet->breed,
+                    'sex' => $pet->sex,
+                    'color' => $pet->color,
+                    'birth_date' => $pet->birth_date?->toDateString(),
+                    'weight_kg' => $pet->weight_kg,
+                    'microchip_number' => $pet->microchip_number,
+                    'is_neutered' => $pet->is_neutered,
+                    'allergies' => $pet->allergies,
+                    'is_active' => $pet->is_active,
+                ])
+                ->all(),
         ]);
     }
 

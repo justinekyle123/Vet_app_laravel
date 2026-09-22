@@ -30,7 +30,20 @@ class Owner extends Model
         'city',
         'postal_code',
         'notes',
+        'is_active',
     ];
+
+    /**
+     * Get the attributes that should be cast.
+     *
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'is_active' => 'boolean',
+        ];
+    }
 
     /**
      * The login account this client record belongs to.

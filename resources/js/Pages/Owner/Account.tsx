@@ -2,11 +2,13 @@ import DashboardCard, { EmptyState } from '@/Components/DashboardCard';
 import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
+import SecondaryButton from '@/Components/SecondaryButton';
 import TextInput from '@/Components/TextInput';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, useForm } from '@inertiajs/react';
 import { Transition } from '@headlessui/react';
-import { FormEventHandler } from 'react';
+import { FormEventHandler, useState } from 'react';
+import PetFormModal, { PetRecord } from './Partials/PetFormModal';
 
 interface OwnerAccount {
     id: number;
@@ -20,17 +22,6 @@ interface OwnerAccount {
     postal_code: string | null;
 }
 
-interface PetRecord {
-    id: number;
-    name: string;
-    species: string;
-    breed: string | null;
-    sex: string | null;
-    color: string | null;
-    birth_date: string | null;
-    is_active: boolean;
-}
-
 export default function Account({
     owner,
     pets,
@@ -38,6 +29,19 @@ export default function Account({
     owner: OwnerAccount;
     pets: PetRecord[];
 }) {
+    const [selectedPet, setSelectedPet] = useState<PetRecord | null>(null);
+    const [petModalOpen, setPetModalOpen] = useState(false);
+
+    const openAddPet = () => {
+        setSelectedPet(null);
+        setPetModalOpen(true);
+    };
+
+    const openEditPet = (pet: PetRecord) => {
+        setSelectedPet(pet);
+        setPetModalOpen(true);
+    };
+
     const { data, setData, patch, errors, processing, recentlySuccessful } =
         useForm({
             first_name: owner.first_name ?? '',
@@ -279,15 +283,23 @@ export default function Account({
                             </form>
                         </DashboardCard>
 
-                        <DashboardCard title="My pets" icon="paw">
+                        <DashboardCard
+                            title="My pets"
+                            icon="paw"
+                            action={
+                                <SecondaryButton onClick={openAddPet}>
+                                    Add pet
+                                </SecondaryButton>
+                            }
+                        >
                             {pets.length === 0 ? (
-                                <EmptyState message="No pets are registered under your account yet." />
+                                <EmptyState message="No pets are registered under your account yet. Add your first one to get started." />
                             ) : (
                                 <ul className="divide-y divide-gray-100">
                                     {pets.map((pet) => (
                                         <li
                                             key={pet.id}
-                                            className="flex items-start justify-between gap-4 py-3 first:pt-0 last:pb-0"
+                                            className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0"
                                         >
                                             <div className="min-w-0">
                                                 <p className="truncate text-sm font-medium text-gray-900">
@@ -303,25 +315,33 @@ export default function Account({
                                                         .join(' · ')}
                                                 </p>
                                             </div>
-                                            <span
-                                                className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${
-                                                    pet.is_active
-                                                        ? 'bg-emerald-50 text-emerald-700'
-                                                        : 'bg-gray-100 text-gray-500'
-                                                }`}
-                                            >
-                                                {pet.is_active
-                                                    ? 'Active'
-                                                    : 'Inactive'}
-                                            </span>
+                                            <div className="flex shrink-0 items-center gap-3">
+                                                <span
+                                                    className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+                                                        pet.is_active
+                                                            ? 'bg-emerald-50 text-emerald-700'
+                                                            : 'bg-gray-100 text-gray-500'
+                                                    }`}
+                                                >
+                                                    {pet.is_active
+                                                        ? 'Active'
+                                                        : 'Inactive'}
+                                                </span>
+                                                <SecondaryButton
+                                                    onClick={() =>
+                                                        openEditPet(pet)
+                                                    }
+                                                >
+                                                    Edit
+                                                </SecondaryButton>
+                                            </div>
                                         </li>
                                     ))}
                                 </ul>
                             )}
 
                             <p className="mt-4 text-xs text-gray-500">
-                                Adding and editing pets is coming soon. Contact
-                                the front desk to update a pet record.{' '}
+                                Need something removed? Contact the front desk.{' '}
                                 <Link
                                     href={route('owner.dashboard')}
                                     className="font-medium text-emerald-700 hover:text-emerald-800"
@@ -333,6 +353,12 @@ export default function Account({
                     </div>
                 </div>
             </div>
+
+            <PetFormModal
+                pet={selectedPet}
+                show={petModalOpen}
+                onClose={() => setPetModalOpen(false)}
+            />
         </AuthenticatedLayout>
     );
 }
