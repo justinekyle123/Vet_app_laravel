@@ -27,6 +27,7 @@
         "vite": "^7.0.7"
     },
     "dependencies": {
-        "@clerk/clerk-react": "^5.61.10"
+        "@clerk/clerk-react": "^5.61.10",
+        "lucide-react": "^1.48.0"
     }
 }

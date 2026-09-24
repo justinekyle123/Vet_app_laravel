@@ -3,6 +3,8 @@ import Icon, { IconName } from './Icon';
 
 interface DashboardCardProps {
     title: string;
+    /** Anchor target, so a link elsewhere can deep-link to this panel. */
+    id?: string;
     icon?: IconName;
     /** Rendered top-right of the card header, e.g. a link or count. */
     action?: ReactNode;
@@ -14,12 +16,16 @@ interface DashboardCardProps {
  */
 export default function DashboardCard({
     title,
+    id,
     icon,
     action,
     children,
 }: DashboardCardProps) {
     return (
-        <section className="flex flex-col overflow-hidden bg-white shadow-sm sm:rounded-lg">
+        <section
+            id={id}
+            className="flex flex-col overflow-hidden bg-white shadow-sm sm:rounded-lg"
+        >
             <header className="flex items-center justify-between gap-3 border-b border-gray-100 px-6 py-4">
                 <h3 className="flex items-center gap-2 text-sm font-semibold text-gray-800">
                     {icon && (
