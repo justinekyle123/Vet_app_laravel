@@ -24,6 +24,7 @@ export default function OwnerDashboard() {
                 <div className="mx-auto max-w-7xl space-y-6 sm:px-6 lg:px-8">
                     <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
                         <DashboardCard
+                            id="pets"
                             title="My pets"
                             icon="paw"
                             action={
@@ -45,6 +46,7 @@ export default function OwnerDashboard() {
                             </button>
                         </DashboardCard>
                         <DashboardCard
+                            id="appointments"
                             title="Upcoming appointments"
                             icon="calendar"
                         >
