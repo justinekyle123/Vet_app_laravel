@@ -4,6 +4,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Master Switch
+    |--------------------------------------------------------------------------
+    |
+    | Set CLERK_ENABLED=false to stand the whole integration down and fall back
+    | to the password (Breeze) sign-in screens. The keys below are left in place
+    | so turning it back on is a one-line revert rather than a code change.
+    |
+    */
+
+    'enabled' => filter_var(env('CLERK_ENABLED', true), FILTER_VALIDATE_BOOL),
+
+    /*
+    |--------------------------------------------------------------------------
     | Clerk API Keys
     |--------------------------------------------------------------------------
     |

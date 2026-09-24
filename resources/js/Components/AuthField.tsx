@@ -39,14 +39,14 @@ export default function AuthField({
         <div className={className}>
             <label
                 htmlFor={fieldId}
-                className="block text-sm font-medium text-slate-700"
+                className="block text-sm font-medium text-gray-700"
             >
                 {label}
             </label>
 
             <div className="group relative mt-1.5">
                 {icon && (
-                    <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400 transition-colors duration-200 group-focus-within:text-brand-600">
+                    <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-[#1a3d1a]/40 transition-colors duration-200 group-focus-within:text-[#1a3d1a]">
                         <Icon name={icon} className="h-5 w-5" />
                     </span>
                 )}
@@ -58,12 +58,12 @@ export default function AuthField({
                     type={resolvedType}
                     aria-invalid={error ? true : undefined}
                     aria-describedby={error ? errorId : undefined}
-                    className={`block w-full rounded-xl border bg-white py-3 text-[0.95rem] text-slate-900 shadow-sm transition-[border-color,box-shadow] duration-200 placeholder:text-slate-400 focus:outline-none focus:ring-4 disabled:cursor-not-allowed disabled:bg-slate-50 ${
+                    className={`block w-full rounded-2xl border bg-white py-3 text-[0.95rem] text-[#1a3d1a] shadow-sm transition-[border-color,box-shadow] duration-200 placeholder:text-[#1a3d1a]/35 focus:outline-none focus:ring-4 disabled:cursor-not-allowed disabled:bg-[#EFFDF0] ${
                         icon ? 'pl-11' : 'pl-4'
                     } ${isPassword ? 'pr-12' : 'pr-4'} ${
                         error
                             ? 'border-red-400 focus:border-red-500 focus:ring-red-500/15'
-                            : 'border-slate-300 focus:border-brand-500 focus:ring-brand-500/15'
+                            : 'border-[#1a3d1a]/15 focus:border-[#1a3d1a] focus:ring-[#1a3d1a]/15'
                     }`}
                 />
 
@@ -73,7 +73,7 @@ export default function AuthField({
                         onClick={() => setRevealed((value) => !value)}
                         aria-pressed={revealed}
                         aria-label={revealed ? 'Hide password' : 'Show password'}
-                        className="absolute inset-y-0 right-0 flex w-12 items-center justify-center rounded-r-xl text-slate-400 transition-colors duration-200 hover:text-slate-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500"
+                        className="absolute inset-y-0 right-0 flex w-12 items-center justify-center rounded-r-2xl text-[#1a3d1a]/40 transition-colors duration-200 hover:text-[#1a3d1a] focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#1a3d1a]"
                     >
                         <Icon
                             name={revealed ? 'eyeSlash' : 'eye'}

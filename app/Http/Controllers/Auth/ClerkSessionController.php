@@ -27,6 +27,9 @@ class ClerkSessionController extends Controller
         ClerkAuthenticator $authenticator,
         ClerkUserSynchronizer $synchronizer,
     ): JsonResponse {
+        // The whole integration can be stood down with CLERK_ENABLED=false.
+        abort_unless(config('clerk.enabled'), 404);
+
         $validated = $request->validate([
             'token' => ['required', 'string'],
         ]);

@@ -34,6 +34,8 @@ export type PageProps<
     };
     /** Shared from HandleInertiaRequests; gates the Clerk sign-in buttons. */
     clerk?: {
+        /** Server master switch (CLERK_ENABLED); false hides every surface. */
+        enabled: boolean;
         configured: boolean;
     };
 };

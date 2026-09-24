@@ -10,6 +10,7 @@ export default function useClerkEnabled(): boolean {
     const { clerk } = usePage<PageProps>().props;
 
     return (
+        clerk?.enabled !== false &&
         Boolean(clerk?.configured) &&
         Boolean(import.meta.env.VITE_CLERK_PUBLISHABLE_KEY)
     );

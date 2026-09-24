@@ -13,8 +13,8 @@ const strengthColors = [
     'bg-red-500',
     'bg-red-500',
     'bg-amber-500',
-    'bg-brand-500',
-    'bg-brand-600',
+    'bg-[#E86A10]',
+    'bg-[#2a5a2a]',
 ];
 
 /**
@@ -73,7 +73,7 @@ export default function Register() {
     ];
 
     const linkClass =
-        'rounded font-semibold text-brand-700 underline-offset-4 transition-colors duration-200 hover:text-brand-800 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2';
+        'rounded font-semibold text-[#E86A10] underline-offset-4 transition-colors duration-200 hover:text-[#d45e0d] hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E86A10] focus-visible:ring-offset-2';
 
     return (
         <>
@@ -83,7 +83,7 @@ export default function Register() {
                 heading="Create your account"
                 description="It takes a minute — then booking, records and reminders all live in one place."
                 footer={
-                    <p className="text-center text-sm text-slate-600">
+                    <p className="text-center text-sm text-gray-600">
                         Already registered?{' '}
                         <Link
                             href={route(
@@ -96,29 +96,6 @@ export default function Register() {
                     </p>
                 }
             >
-                {clerkEnabled && (
-                    <>
-                        <Link
-                            href={route('clerk.signup')}
-                            className="group flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-slate-800 hover:shadow-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2"
-                        >
-                            Continue with Clerk
-                            <Icon
-                                name="arrowRight"
-                                className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5"
-                            />
-                        </Link>
-
-                        <div className="my-6 flex items-center gap-4">
-                            <span className="h-px flex-1 bg-slate-200" />
-                            <span className="text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-slate-400">
-                                or set a password
-                            </span>
-                            <span className="h-px flex-1 bg-slate-200" />
-                        </div>
-                    </>
-                )}
-
                 <form onSubmit={submit} className="space-y-5">
                     <AuthField
                         label="Full name"
@@ -173,14 +150,14 @@ export default function Register() {
                                             className={`h-1.5 flex-1 rounded-full transition-colors duration-300 ${
                                                 segment <= score
                                                     ? strengthColors[score]
-                                                    : 'bg-slate-200'
+                                                    : 'bg-[#1a3d1a]/10'
                                             }`}
                                         />
                                     ))}
                                 </div>
-                                <p className="mt-1.5 text-xs text-slate-500">
+                                <p className="mt-1.5 text-xs text-gray-500">
                                     Strength:{' '}
-                                    <span className="font-medium text-slate-700">
+                                    <span className="font-medium text-[#1a3d1a]">
                                         {strengthLabels[score - 1]}
                                     </span>
                                 </p>
@@ -191,14 +168,14 @@ export default function Register() {
                             {requirements.map((requirement) => (
                                 <li
                                     key={requirement.label}
-                                    className="flex items-center gap-2 text-xs text-slate-500"
+                                    className="flex items-center gap-2 text-xs text-gray-500"
                                 >
                                     <span
                                         aria-hidden="true"
                                         className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-colors duration-200 ${
                                             requirement.met
-                                                ? 'border-brand-600 bg-brand-600 text-white'
-                                                : 'border-slate-300'
+                                                ? 'border-[#1a3d1a] bg-[#1a3d1a] text-white'
+                                                : 'border-[#1a3d1a]/25'
                                         }`}
                                     >
                                         {requirement.met && (
@@ -235,7 +212,7 @@ export default function Register() {
                         type="submit"
                         disabled={processing}
                         aria-busy={processing}
-                        className="group flex w-full items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-brand-600/25 transition-all duration-200 hover:-translate-y-0.5 hover:bg-brand-700 hover:shadow-xl hover:shadow-brand-600/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-lg"
+                        className="group flex w-full items-center justify-center gap-2 rounded-full bg-[#E86A10] px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-[#E86A10]/25 transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#d45e0d] hover:shadow-xl hover:shadow-[#E86A10]/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E86A10] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-lg"
                     >
                         {processing ? (
                             <>
@@ -253,6 +230,31 @@ export default function Register() {
                         )}
                     </button>
                 </form>
+
+                {/* Reference order: the form and its primary action come
+                    first, the alternative method sits below the divider. */}
+                {clerkEnabled && (
+                    <>
+                        <div className="my-6 flex items-center gap-4">
+                            <span className="h-px flex-1 bg-[#1a3d1a]/10" />
+                            <span className="text-[0.68rem] font-bold uppercase tracking-[0.18em] text-[#1a3d1a]/40">
+                                OR
+                            </span>
+                            <span className="h-px flex-1 bg-[#1a3d1a]/10" />
+                        </div>
+
+                        <Link
+                            href={route('clerk.signup')}
+                            className="group flex w-full items-center justify-center gap-2 rounded-full border border-[#1a3d1a]/20 bg-white px-4 py-3 text-sm font-semibold text-[#1a3d1a] transition-colors duration-200 hover:bg-[#EFFDF0] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1a3d1a] focus-visible:ring-offset-2"
+                        >
+                            Continue with Clerk
+                            <Icon
+                                name="arrowRight"
+                                className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5"
+                            />
+                        </Link>
+                    </>
+                )}
             </AuthLayout>
         </>
     );

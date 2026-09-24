@@ -29,15 +29,26 @@ Route::post('clerk/session', [ClerkSessionController::class, 'store'])
     ->name('clerk.session');
 
 Route::middleware('guest')->group(function () {
-    Route::get('clerk/sign-in', fn () => Inertia::render('Auth/ClerkAuth', [
-        'mode' => 'sign-in',
-        'clerkConfigured' => filled(config('clerk.publishable_key')),
-    ]))->name('clerk.signin');
+    /*
+     * With CLERK_ENABLED=false these routes stand down to the password screens
+     * rather than rendering Clerk's form. They stay registered and keep
+     * redirecting because the marketing page links to them by name.
+     */
+    Route::get('clerk/sign-in', fn () => config('clerk.enabled')
+        ? Inertia::render('Auth/ClerkAuth', [
+            'mode' => 'sign-in',
+            'clerkConfigured' => filled(config('clerk.publishable_key')),
+        ])
+        : redirect()->route('login')
+    )->name('clerk.signin');
 
-    Route::get('clerk/sign-up', fn () => Inertia::render('Auth/ClerkAuth', [
-        'mode' => 'sign-up',
-        'clerkConfigured' => filled(config('clerk.publishable_key')),
-    ]))->name('clerk.signup');
+    Route::get('clerk/sign-up', fn () => config('clerk.enabled')
+        ? Inertia::render('Auth/ClerkAuth', [
+            'mode' => 'sign-up',
+            'clerkConfigured' => filled(config('clerk.publishable_key')),
+        ])
+        : redirect()->route('register')
+    )->name('clerk.signup');
 
     Route::get('register', [RegisteredUserController::class, 'create'])
         ->name('register');
