@@ -1,43 +1,20 @@
 import Icon from '@/Components/Icon';
-import Marquee from '@/Components/Marquee';
-import Reveal from '@/Components/Reveal';
 import { Link } from '@inertiajs/react';
 import { type ReactNode } from 'react';
 
 /**
  * Shell for every sign-in / sign-up screen.
  *
- * Two columns from `lg` up: a fixed-height brand panel on the left and a
- * scrollable form column on the right. Below `lg` the panel collapses into a
- * compact gradient band so the form is reachable without scrolling past a
- * full-height hero.
+ * Composition follows the reference login design: a full-bleed media panel
+ * carrying a status badge and a two-line display headline, with the form in a
+ * card that overlaps it on phones and sits beside it from `lg` up.
+ *
+ * Re-skinned to this site's own theme rather than the reference palette: mint
+ * surface, dark-green type, orange pill actions, DM Serif Display headings and
+ * Inter for UI — plus the landing page's artwork and entrance choreography.
  */
-const assurances = [
-    {
-        icon: 'calendar',
-        title: 'Booking that takes seconds',
-        description: 'Pick a slot online and get instant confirmation.',
-    },
-    {
-        icon: 'shield',
-        title: 'Records kept private',
-        description: 'Clinical notes stay between you and your veterinarian.',
-    },
-    {
-        icon: 'heart',
-        title: 'One vet who knows them',
-        description: 'The same faces at every visit, so nothing gets missed.',
-    },
-] as const;
-
-const accreditations = [
-    'AAHA Accredited',
-    'Fear-Free Certified',
-    'In-House Diagnostic Lab',
-    '24/7 Emergency Team',
-    'Digital Records',
-    'Board-Certified Surgeons',
-];
+const heroPhoto =
+    'https://polo-pecan-73837341.figma.site/_assets/v11/96745c4e72ad5c5208e53a885df797fd82cd854a.png?h=1024';
 
 interface AuthLayoutProps {
     /** Page title rendered above the form. */
@@ -45,7 +22,7 @@ interface AuthLayoutProps {
     /** Optional supporting line under the heading. */
     description?: ReactNode;
     children: ReactNode;
-    /** Links rendered in a bordered strip below the form. */
+    /** Links rendered at the foot of the card. */
     footer?: ReactNode;
 }
 
@@ -56,131 +33,90 @@ export default function AuthLayout({
     footer,
 }: AuthLayoutProps) {
     return (
-        <div className="flex min-h-screen flex-col bg-slate-50 text-slate-900 antialiased lg:grid lg:h-screen lg:grid-cols-2">
-            <aside className="relative isolate shrink-0 overflow-hidden bg-brand-950 px-6 py-6 text-white sm:px-8 lg:flex lg:h-full lg:flex-col lg:px-12 lg:py-14">
-                {/* Ambient gradient wash — purely decorative, so it stays out
-                    of the accessibility tree and behind everything else. */}
+        <div className="flex min-h-screen flex-col bg-[#EFFDF0] font-inter text-[#1a3d1a] antialiased lg:grid lg:grid-cols-2">
+            {/* ---------------------------------------------------------------
+                Media panel — brand row on top, badge and headline at the foot.
+            ---------------------------------------------------------------- */}
+            <section className="relative h-[clamp(240px,34svh,300px)] shrink-0 overflow-hidden lg:h-auto lg:min-h-screen">
+                <img
+                    src={heroPhoto}
+                    alt=""
+                    draggable={false}
+                    className="absolute inset-0 h-full w-full object-cover object-center"
+                />
+
+                {/* Scrim. The headline and brand row are white, so they need a
+                    floor of contrast whatever the photo underneath does. */}
                 <div
                     aria-hidden="true"
-                    className="pointer-events-none absolute inset-0 -z-10"
-                >
-                    <div className="absolute -left-24 -top-28 h-72 w-72 animate-blob rounded-full bg-brand-500/40 blur-3xl" />
-                    <div className="absolute -right-20 top-1/3 h-80 w-80 animate-blob-delayed rounded-full bg-teal-400/25 blur-3xl" />
-                    <div className="absolute -bottom-24 left-1/4 h-72 w-72 animate-blob rounded-full bg-cyan-400/15 blur-3xl" />
-                </div>
+                    className="absolute inset-0 bg-gradient-to-t from-[#08150c]/90 via-[#08150c]/35 to-[#08150c]/15"
+                />
 
-                <div className="flex items-center justify-between gap-4">
+                <div className="absolute inset-x-0 top-0 flex animate-fade-in items-center justify-between gap-4 p-5 anim-delay-100 sm:p-6 lg:p-10">
                     <Link
                         href="/"
-                        className="group flex items-center gap-2.5 rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-300 focus-visible:ring-offset-2 focus-visible:ring-offset-brand-950"
+                        className="group flex items-center gap-2.5 rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
                     >
-                        <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/10 text-brand-200 ring-1 ring-inset ring-white/20 transition-transform duration-300 group-hover:-rotate-6">
+                        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/15 text-white ring-1 ring-inset ring-white/25 backdrop-blur transition-colors duration-200 group-hover:bg-white/25">
                             <Icon name="paw" className="h-5 w-5" />
                         </span>
-                        <span className="text-lg font-bold tracking-tight">
-                            My<span className="text-brand-300">Vet</span>
+                        <span className="font-serif-display text-xl leading-none text-white sm:text-2xl">
+                            My<span className="text-[#E86A10]">Vet</span>
                         </span>
                     </Link>
 
                     <Link
                         href="/"
-                        className="inline-flex items-center gap-1.5 rounded-lg text-xs font-medium text-brand-100/80 transition-colors duration-200 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-300"
+                        className="inline-flex items-center gap-1.5 rounded-full border border-white/25 bg-white/15 px-3.5 py-2 text-xs font-medium text-white backdrop-blur transition-colors duration-200 hover:bg-white/25 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
                     >
                         Back to site
                         <Icon name="arrowRight" className="h-3.5 w-3.5" />
                     </Link>
                 </div>
 
-                {/* Mobile stand-in for the full panel below. */}
-                <p className="mt-4 max-w-md text-sm leading-relaxed text-brand-100/80 lg:hidden">
-                    24/7 emergency cover, an in-house lab, and records you can
-                    read the moment a visit ends.
-                </p>
+                <div className="absolute inset-x-0 bottom-0 p-5 sm:p-6 lg:p-12">
+                    <span className="inline-flex animate-fade-up items-center gap-2.5 rounded-full bg-[#1a3d1a]/85 px-4 py-2 text-xs font-medium text-white shadow-lg shadow-black/20 backdrop-blur-md anim-delay-200">
+                        <span className="relative flex h-2 w-2">
+                            <span className="absolute inline-flex h-full w-full animate-pulse-soft rounded-full bg-[#EFFDF0]" />
+                            <span className="relative inline-flex h-2 w-2 rounded-full bg-[#EFFDF0]" />
+                        </span>
+                        24/7 emergency team
+                    </span>
 
-                <div className="hidden lg:flex lg:min-h-0 lg:flex-1 lg:flex-col lg:justify-center lg:py-10">
-                    <Reveal>
-                        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-brand-300">
-                            Client portal
-                        </p>
-                        <h2 className="mt-4 text-3xl font-bold leading-[1.15] tracking-tight xl:text-4xl">
-                            Care your pet will actually remember.
-                        </h2>
-                        <p className="mt-4 max-w-md text-sm leading-relaxed text-brand-100/80">
-                            Book visits, follow lab results, and keep every
-                            vaccination on schedule — all in one place.
-                        </p>
-                    </Reveal>
-
-                    <ul className="mt-10 space-y-5">
-                        {assurances.map((item, index) => (
-                            <li key={item.title}>
-                                <Reveal delay={140 + index * 130}>
-                                    <div className="flex items-start gap-4">
-                                        <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/10 text-brand-200 ring-1 ring-inset ring-white/15">
-                                            <Icon
-                                                name={item.icon}
-                                                className="h-5 w-5"
-                                            />
-                                        </span>
-                                        <span className="min-w-0">
-                                            <span className="block text-sm font-semibold text-white">
-                                                {item.title}
-                                            </span>
-                                            <span className="mt-0.5 block text-sm leading-relaxed text-brand-100/75">
-                                                {item.description}
-                                            </span>
-                                        </span>
-                                    </div>
-                                </Reveal>
-                            </li>
-                        ))}
-                    </ul>
+                    <h2 className="mt-4 animate-fade-up font-serif-display text-[clamp(30px,4.4vw,52px)] leading-[0.98] tracking-tight text-white drop-shadow-[0_2px_14px_rgba(0,0,0,0.45)] anim-delay-300">
+                        <span className="block">Everything</span>
+                        <span className="block">Your Pets Need</span>
+                    </h2>
                 </div>
+            </section>
 
-                <div className="hidden lg:block">
-                    <div className="border-t border-white/10 pt-6">
-                        <Marquee speed={34} className="mask-fade-x">
-                            {accreditations.map((label) => (
-                                <span
-                                    key={label}
-                                    className="mx-4 flex items-center gap-2 whitespace-nowrap text-[0.68rem] font-semibold uppercase tracking-[0.18em] text-brand-100/70"
-                                >
-                                    <Icon
-                                        name="check"
-                                        className="h-3.5 w-3.5 text-brand-300"
-                                    />
-                                    {label}
-                                </span>
-                            ))}
-                        </Marquee>
-                    </div>
-                </div>
-            </aside>
+            {/* ---------------------------------------------------------------
+                Form pane. On phones the card overlaps the media panel; from
+                `lg` it is a floating card centred in its own column.
+            ---------------------------------------------------------------- */}
+            <main className="relative z-10 flex flex-1 justify-center lg:items-center lg:px-12 lg:py-16">
+                <div className="flex w-full -mt-7 animate-fade-up flex-col rounded-t-[28px] bg-white p-6 shadow-[0_-10px_28px_rgba(26,61,26,0.10)] anim-delay-200 sm:p-8 lg:mt-0 lg:max-w-[26rem] lg:flex-none lg:rounded-2xl lg:shadow-2xl lg:shadow-[#1a3d1a]/5">
+                    <h1 className="font-serif-display text-3xl tracking-tight text-[#1a3d1a] sm:text-[2.1rem]">
+                        {heading}
+                    </h1>
 
-            <main className="flex flex-1 items-center justify-center px-5 py-10 sm:px-8 lg:h-full lg:overflow-y-auto lg:px-12 lg:py-16">
-                <Reveal className="w-full max-w-[26rem]">
-                    {/* A card on small screens; flat against the panel's own
-                        whitespace at `lg`, where a nested box would be noise. */}
-                    <div className="rounded-3xl border border-slate-200/80 bg-white p-6 shadow-xl shadow-slate-900/5 sm:p-8 lg:rounded-none lg:border-0 lg:bg-transparent lg:p-0 lg:shadow-none">
-                        <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-                            {heading}
-                        </h1>
+                    {description && (
+                        <p className="mt-2 text-sm leading-relaxed text-gray-600">
+                            {description}
+                        </p>
+                    )}
 
-                        {description && (
-                            <p className="mt-2 text-sm leading-relaxed text-slate-600">
-                                {description}
-                            </p>
-                        )}
-
-                        <div className="mt-8">{children}</div>
-                    </div>
+                    {/* `flex-1` lets the form absorb the spare height on
+                        phones, where the card fills the screen, and settles
+                        the footer against the bottom edge. */}
+                    <div className="mt-8 flex-1">{children}</div>
 
                     {footer && (
-                        <div className="mt-6 border-t border-slate-200 pt-6">
+                        <div className="mt-7 border-t border-[#1a3d1a]/10 pt-6">
                             {footer}
                         </div>
                     )}
-                </Reveal>
+                </div>
             </main>
         </div>
     );
