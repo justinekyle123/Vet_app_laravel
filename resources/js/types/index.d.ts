@@ -32,10 +32,11 @@ export type PageProps<
     auth: {
         user: User;
     };
-    /** Shared from HandleInertiaRequests; gates the Clerk sign-in buttons. */
-    clerk?: {
-        /** Server master switch (CLERK_ENABLED); false hides every surface. */
+    /** Shared from HandleInertiaRequests; gates the Google sign-in button. */
+    firebase?: {
+        /** Server master switch (FIREBASE_ENABLED); false hides every surface. */
         enabled: boolean;
+        /** True when the server has a project id and the browser a web config. */
         configured: boolean;
     };
 };

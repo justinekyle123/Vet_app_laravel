@@ -1,53 +1,18 @@
 import '../css/app.css';
 import './bootstrap';
 
-import { ClerkProvider } from '@clerk/clerk-react';
 import { createInertiaApp } from '@inertiajs/react';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
-import { type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 
 /*
- * Clerk is only mounted when a publishable key was baked in at build time AND
- * the server has not switched the integration off. Without this guard,
- * installs that have not configured Clerk would crash on boot instead of
- * falling back to the Breeze sign-in screens.
+ * No auth provider is mounted here. Firebase is initialised on demand by
+ * `utils/firebase.ts`, the first time someone actually presses the Google
+ * button, which keeps its SDK out of the entry chunk and means an install with
+ * no Firebase keys never loads it at all.
  */
-const clerkPublishableKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY as
-    | string
-    | undefined;
-
-/** Minimal shape of the server config we read off the first Inertia page. */
-interface ClerkSetupProps {
-    initialPage?: { props?: unknown };
-}
-
-function withClerk(node: ReactNode, props: ClerkSetupProps): ReactNode {
-    const shared = props.initialPage?.props as
-        | { clerk?: { enabled?: boolean } }
-        | undefined;
-
-    /*
-     * The server's CLERK_ENABLED switch is honoured here as well, so a disabled
-     * install never even fetches Clerk's script instead of merely hiding the
-     * components that use it.
-     */
-    if (!clerkPublishableKey || shared?.clerk?.enabled === false) {
-        return node;
-    }
-
-    return (
-        <ClerkProvider
-            publishableKey={clerkPublishableKey}
-            afterSignOutUrl="/"
-        >
-            {node}
-        </ClerkProvider>
-    );
-}
-
 createInertiaApp({
     title: (title) => `${title} - ${appName}`,
     resolve: (name) =>
@@ -56,9 +21,7 @@ createInertiaApp({
             import.meta.glob('./Pages/**/*.tsx'),
         ),
     setup({ el, App, props }) {
-        const root = createRoot(el);
-
-        root.render(withClerk(<App {...props} />, props));
+        createRoot(el).render(<App {...props} />);
     },
     progress: {
         color: '#4B5563',

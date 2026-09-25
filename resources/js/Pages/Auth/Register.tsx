@@ -1,7 +1,7 @@
 import AuthField from '@/Components/AuthField';
+import GoogleSignInSection from '@/Components/GoogleSignInSection';
 import Icon from '@/Components/Icon';
 import Spinner from '@/Components/Spinner';
-import useClerkEnabled from '@/hooks/useClerkEnabled';
 import AuthLayout from '@/Layouts/AuthLayout';
 import { Head, Link, useForm } from '@inertiajs/react';
 import { type FormEventHandler } from 'react';
@@ -39,8 +39,6 @@ function scorePassword(value: string): number {
 }
 
 export default function Register() {
-    const clerkEnabled = useClerkEnabled();
-
     const { data, setData, post, processing, errors, reset } = useForm({
         name: '',
         email: '',
@@ -85,12 +83,7 @@ export default function Register() {
                 footer={
                     <p className="text-center text-sm text-gray-600">
                         Already registered?{' '}
-                        <Link
-                            href={route(
-                                clerkEnabled ? 'clerk.signin' : 'login',
-                            )}
-                            className={linkClass}
-                        >
+                        <Link href={route('login')} className={linkClass}>
                             Sign in
                         </Link>
                     </p>
@@ -231,30 +224,9 @@ export default function Register() {
                     </button>
                 </form>
 
-                {/* Reference order: the form and its primary action come
-                    first, the alternative method sits below the divider. */}
-                {clerkEnabled && (
-                    <>
-                        <div className="my-6 flex items-center gap-4">
-                            <span className="h-px flex-1 bg-[#1a3d1a]/10" />
-                            <span className="text-[0.68rem] font-bold uppercase tracking-[0.18em] text-[#1a3d1a]/40">
-                                OR
-                            </span>
-                            <span className="h-px flex-1 bg-[#1a3d1a]/10" />
-                        </div>
-
-                        <Link
-                            href={route('clerk.signup')}
-                            className="group flex w-full items-center justify-center gap-2 rounded-full border border-[#1a3d1a]/20 bg-white px-4 py-3 text-sm font-semibold text-[#1a3d1a] transition-colors duration-200 hover:bg-[#EFFDF0] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1a3d1a] focus-visible:ring-offset-2"
-                        >
-                            Continue with Clerk
-                            <Icon
-                                name="arrowRight"
-                                className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5"
-                            />
-                        </Link>
-                    </>
-                )}
+                {/* The password form above stays the primary path; Google is
+                    the alternative, so it sits below the divider. */}
+                <GoogleSignInSection />
             </AuthLayout>
         </>
     );
