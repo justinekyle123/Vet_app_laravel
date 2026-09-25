@@ -29,7 +29,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
-        'clerk_id',
+        'firebase_uid',
     ];
 
     /**

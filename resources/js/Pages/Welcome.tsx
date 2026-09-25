@@ -195,12 +195,12 @@ export default function Welcome({
         ? `${ownerPanelHref}#pets`
         : isSignedIn
           ? route('dashboard')
-          : route('clerk.signin');
+          : route('login');
     const appointmentsHref = isOwner
         ? `${ownerPanelHref}#appointments`
         : isSignedIn
           ? route('dashboard')
-          : route('clerk.signin');
+          : route('login');
 
     /*
      * The booking CTAs follow the same rule, so a signed-in visitor is never
@@ -211,7 +211,7 @@ export default function Welcome({
         : isSignedIn
           ? route('dashboard')
           : canRegister
-            ? route('clerk.signup')
+            ? route('register')
             : '#top';
 
     const navLinks = [
@@ -525,7 +525,7 @@ export default function Welcome({
                                             )}
                                             {canLogin && (
                                                 <a
-                                                    href={route('clerk.signin')}
+                                                    href={route('login')}
                                                     onClick={closeOverlays}
                                                     className="flex items-center justify-center rounded-xl border border-[#1a3d1a]/15 px-4 py-3 text-sm font-semibold text-[#1a3d1a] transition-colors duration-200 hover:bg-[#EFFDF0]"
                                                 >

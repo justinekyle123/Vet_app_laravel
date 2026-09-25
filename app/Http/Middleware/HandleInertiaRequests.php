@@ -35,17 +35,17 @@ class HandleInertiaRequests extends Middleware
                 'user' => $request->user(),
             ],
             /*
-             * Both halves of the Clerk credential are required before the
-             * sign-in screens can offer it: the server verifies the session
-             * token, the browser needs a publishable key to obtain one. The
-             * CLERK_ENABLED switch folds in on top of that, so standing the
-             * integration down needs no change to the keys.
+             * Both halves of the Firebase setup are required before the
+             * sign-in screens can offer Google: the server needs a project id
+             * to verify tokens against, and the browser needs a web app config
+             * to obtain one. The FIREBASE_ENABLED switch folds in on top of
+             * that, so standing the integration down needs no change to keys.
              */
-            'clerk' => [
-                'enabled' => (bool) config('clerk.enabled'),
-                'configured' => (bool) config('clerk.enabled')
-                    && filled(config('clerk.publishable_key'))
-                    && filled(config('clerk.secret_key')),
+            'firebase' => [
+                'enabled' => (bool) config('firebase.enabled'),
+                'configured' => (bool) config('firebase.enabled')
+                    && filled(config('firebase.project_id'))
+                    && filled(config('firebase.api_key')),
             ],
         ];
     }
