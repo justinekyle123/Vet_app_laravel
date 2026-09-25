@@ -1,9 +1,11 @@
-import Checkbox from '@/Components/Checkbox';
-import InputError from '@/Components/InputError';
-import InputLabel from '@/Components/InputLabel';
-import PrimaryButton from '@/Components/PrimaryButton';
-import SecondaryButton from '@/Components/SecondaryButton';
-import TextInput from '@/Components/TextInput';
+import {
+    primaryButtonClass,
+    secondaryButtonClass,
+} from '@/Components/buttonStyles';
+import Field, { TextAreaField } from '@/Components/Field';
+import { checkboxClass } from '@/Components/formStyles';
+import Icon from '@/Components/Icon';
+import Spinner from '@/Components/Spinner';
 import { Link, useForm } from '@inertiajs/react';
 import { FormEventHandler } from 'react';
 
@@ -67,149 +69,143 @@ export default function OwnerForm({ owner }: { owner?: OwnerRecord }) {
     };
 
     return (
-        <form onSubmit={submit} className="space-y-6">
+        <form onSubmit={submit} className="space-y-8">
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-                <div>
-                    <InputLabel htmlFor="first_name" value="First name" />
-                    <TextInput
-                        id="first_name"
-                        className="mt-1 block w-full"
-                        value={data.first_name}
-                        onChange={(e) => setData('first_name', e.target.value)}
-                        required
-                        isFocused
-                        autoComplete="given-name"
-                    />
-                    <InputError className="mt-2" message={errors.first_name} />
-                </div>
+                <Field
+                    label="First name"
+                    name="first_name"
+                    value={data.first_name}
+                    onChange={(e) => setData('first_name', e.target.value)}
+                    error={errors.first_name}
+                    required
+                    autoFocus
+                    autoComplete="given-name"
+                />
 
-                <div>
-                    <InputLabel htmlFor="last_name" value="Last name" />
-                    <TextInput
-                        id="last_name"
-                        className="mt-1 block w-full"
-                        value={data.last_name}
-                        onChange={(e) => setData('last_name', e.target.value)}
-                        required
-                        autoComplete="family-name"
-                    />
-                    <InputError className="mt-2" message={errors.last_name} />
-                </div>
+                <Field
+                    label="Last name"
+                    name="last_name"
+                    value={data.last_name}
+                    onChange={(e) => setData('last_name', e.target.value)}
+                    error={errors.last_name}
+                    required
+                    autoComplete="family-name"
+                />
 
-                <div>
-                    <InputLabel htmlFor="email" value="Email" />
-                    <TextInput
-                        id="email"
-                        type="email"
-                        className="mt-1 block w-full"
-                        value={data.email}
-                        onChange={(e) => setData('email', e.target.value)}
-                        autoComplete="email"
-                    />
-                    <InputError className="mt-2" message={errors.email} />
-                </div>
+                <Field
+                    label="Email"
+                    name="email"
+                    type="email"
+                    value={data.email}
+                    onChange={(e) => setData('email', e.target.value)}
+                    error={errors.email}
+                    autoComplete="email"
+                    hint="Leave blank if the client has not shared one."
+                />
 
-                <div>
-                    <InputLabel htmlFor="phone" value="Phone" />
-                    <TextInput
-                        id="phone"
-                        className="mt-1 block w-full"
-                        value={data.phone}
-                        onChange={(e) => setData('phone', e.target.value)}
-                        autoComplete="tel"
-                    />
-                    <InputError className="mt-2" message={errors.phone} />
-                </div>
+                <Field
+                    label="Phone"
+                    name="phone"
+                    type="tel"
+                    value={data.phone}
+                    onChange={(e) => setData('phone', e.target.value)}
+                    error={errors.phone}
+                    autoComplete="tel"
+                />
 
-                <div>
-                    <InputLabel
-                        htmlFor="alternate_phone"
-                        value="Alternate phone"
-                    />
-                    <TextInput
-                        id="alternate_phone"
-                        className="mt-1 block w-full"
-                        value={data.alternate_phone}
-                        onChange={(e) =>
-                            setData('alternate_phone', e.target.value)
-                        }
-                    />
-                    <InputError
-                        className="mt-2"
-                        message={errors.alternate_phone}
-                    />
-                </div>
+                <Field
+                    label="Alternate phone"
+                    name="alternate_phone"
+                    type="tel"
+                    value={data.alternate_phone}
+                    onChange={(e) =>
+                        setData('alternate_phone', e.target.value)
+                    }
+                    error={errors.alternate_phone}
+                />
 
-                <div>
-                    <InputLabel htmlFor="city" value="City" />
-                    <TextInput
-                        id="city"
-                        className="mt-1 block w-full"
-                        value={data.city}
-                        onChange={(e) => setData('city', e.target.value)}
-                        autoComplete="address-level2"
-                    />
-                    <InputError className="mt-2" message={errors.city} />
-                </div>
+                <Field
+                    label="City"
+                    name="city"
+                    value={data.city}
+                    onChange={(e) => setData('city', e.target.value)}
+                    error={errors.city}
+                    autoComplete="address-level2"
+                />
 
                 <div className="sm:col-span-2">
-                    <InputLabel htmlFor="address" value="Address" />
-                    <TextInput
-                        id="address"
-                        className="mt-1 block w-full"
+                    <Field
+                        label="Address"
+                        name="address"
                         value={data.address}
                         onChange={(e) => setData('address', e.target.value)}
+                        error={errors.address}
                         autoComplete="street-address"
                     />
-                    <InputError className="mt-2" message={errors.address} />
                 </div>
 
-                <div>
-                    <InputLabel htmlFor="postal_code" value="Postal code" />
-                    <TextInput
-                        id="postal_code"
-                        className="mt-1 block w-full"
-                        value={data.postal_code}
-                        onChange={(e) => setData('postal_code', e.target.value)}
-                        autoComplete="postal-code"
-                    />
-                    <InputError className="mt-2" message={errors.postal_code} />
-                </div>
+                <Field
+                    label="Postal code"
+                    name="postal_code"
+                    value={data.postal_code}
+                    onChange={(e) => setData('postal_code', e.target.value)}
+                    error={errors.postal_code}
+                    autoComplete="postal-code"
+                />
             </div>
 
-            <div>
-                <InputLabel htmlFor="notes" value="Notes" />
-                <textarea
-                    id="notes"
+            <div className="border-t border-[#1a3d1a]/10 pt-6">
+                <TextAreaField
+                    label="Notes"
+                    name="notes"
                     rows={3}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                     value={data.notes}
                     onChange={(e) => setData('notes', e.target.value)}
+                    error={errors.notes}
+                    placeholder="Anything the desk should know — access needs, preferred vet, billing arrangements…"
                 />
-                <InputError className="mt-2" message={errors.notes} />
             </div>
 
-            <label className="flex items-center gap-2">
-                <Checkbox
+            <label className="flex cursor-pointer items-start gap-2.5">
+                <input
+                    type="checkbox"
+                    className={`mt-0.5 ${checkboxClass}`}
                     checked={data.is_active}
                     onChange={(e) => setData('is_active', e.target.checked)}
                 />
-                <span className="text-sm text-gray-700">
+                <span className="text-sm font-semibold text-[#1a3d1a]">
                     Active client
+                    <span className="mt-0.5 block text-xs font-normal leading-relaxed text-[#1a3d1a]/50">
+                        Inactive records stay on file with their pets and
+                        history, but drop out of the default client list.
+                    </span>
                 </span>
             </label>
 
-            <div className="flex items-center gap-3">
-                <PrimaryButton disabled={processing}>
+            <div className="flex flex-wrap items-center gap-3 border-t border-[#1a3d1a]/10 pt-6">
+                <button
+                    type="submit"
+                    disabled={processing}
+                    className={primaryButtonClass}
+                >
+                    {processing ? (
+                        <Spinner className="h-4 w-4" />
+                    ) : (
+                        <Icon
+                            name={owner ? 'check' : 'plus'}
+                            className="h-4 w-4"
+                        />
+                    )}
                     {owner ? 'Save changes' : 'Create owner'}
-                </PrimaryButton>
+                </button>
+
                 <Link
                     href={
                         owner
                             ? route('owners.show', owner.id)
                             : route('owners.index')
                     }
-                    className="text-sm font-medium text-gray-600 hover:text-gray-900"
+                    className={secondaryButtonClass}
                 >
                     Cancel
                 </Link>

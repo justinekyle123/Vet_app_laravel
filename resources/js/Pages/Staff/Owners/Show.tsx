@@ -1,6 +1,13 @@
-import DashboardCard, { EmptyState } from '@/Components/DashboardCard';
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, Link } from '@inertiajs/react';
+import {
+    dangerButtonClass,
+    secondaryButtonClass,
+} from '@/Components/buttonStyles';
+import Icon from '@/Components/Icon';
+import Panel, { EmptyState } from '@/Components/Panel';
+import StatusPill from '@/Components/StatusPill';
+import StaffLayout from '@/Layouts/StaffLayout';
+import { longDate } from '@/utils/format';
+import { Link } from '@inertiajs/react';
 
 interface OwnerDetail {
     id: number;
@@ -29,11 +36,11 @@ interface PetSummary {
 
 function Detail({ label, value }: { label: string; value: string | null }) {
     return (
-        <div>
-            <dt className="text-xs font-medium uppercase tracking-wide text-gray-400">
+        <div className="min-w-0">
+            <dt className="text-[0.66rem] font-semibold uppercase tracking-[0.12em] text-[#1a3d1a]/45">
                 {label}
             </dt>
-            <dd className="mt-1 text-sm text-gray-800">
+            <dd className="mt-1 break-words text-sm text-[#1a3d1a]">
                 {value && value !== '' ? value : '—'}
             </dd>
         </div>
@@ -50,139 +57,124 @@ export default function Show({
     const fullName = `${owner.first_name} ${owner.last_name}`;
 
     return (
-        <AuthenticatedLayout
-            header={
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                        <Link
-                            href={route('owners.index')}
-                            className="text-sm font-medium text-emerald-700 hover:text-emerald-800"
-                        >
-                            ← Back to dog owners
-                        </Link>
-                        <h2 className="mt-1 flex items-center gap-3 text-xl font-semibold leading-tight text-gray-800">
-                            {fullName}
-                            <span
-                                className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                                    owner.is_active
-                                        ? 'bg-emerald-50 text-emerald-700'
-                                        : 'bg-gray-100 text-gray-500'
-                                }`}
-                            >
-                                {owner.is_active ? 'Active' : 'Inactive'}
-                            </span>
-                        </h2>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <Link
-                            href={route('owners.edit', owner.id)}
-                            className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50"
-                        >
-                            Edit
-                        </Link>
-                        <Link
-                            href={route(
-                                owner.is_active
-                                    ? 'owners.deactivate'
-                                    : 'owners.activate',
-                                owner.id,
-                            )}
-                            method="patch"
-                            as="button"
-                            className={`rounded-md px-4 py-2 text-sm font-medium text-white shadow-sm transition ${
-                                owner.is_active
-                                    ? 'bg-red-600 hover:bg-red-500'
-                                    : 'bg-emerald-600 hover:bg-emerald-500'
-                            }`}
-                        >
-                            {owner.is_active ? 'Deactivate' : 'Reactivate'}
-                        </Link>
-                    </div>
-                </div>
+        <StaffLayout
+            title={fullName}
+            heading={fullName}
+            description="Client record, contact details, and the pets registered under this owner."
+            actions={
+                <>
+                    <StatusPill active={owner.is_active} />
+                    <Link
+                        href={route('owners.edit', owner.id)}
+                        className={secondaryButtonClass}
+                    >
+                        <Icon name="user" className="h-4 w-4" />
+                        Edit details
+                    </Link>
+                    <Link
+                        href={route(
+                            owner.is_active
+                                ? 'owners.deactivate'
+                                : 'owners.activate',
+                            owner.id,
+                        )}
+                        method="patch"
+                        as="button"
+                        className={
+                            owner.is_active
+                                ? dangerButtonClass
+                                : secondaryButtonClass
+                        }
+                    >
+                        {owner.is_active ? 'Deactivate' : 'Reactivate'}
+                    </Link>
+                </>
             }
         >
-            <Head title={fullName} />
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+                <div className="lg:col-span-2">
+                    <Panel
+                        title="Contact details"
+                        icon="user"
+                        fill
+                        action={
+                            <span className="text-xs font-medium text-[#1a3d1a]/45">
+                                Client since {longDate(owner.created_at)}
+                            </span>
+                        }
+                    >
+                        <dl className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                            <Detail label="Email" value={owner.email} />
+                            <Detail label="Phone" value={owner.phone} />
+                            <Detail
+                                label="Alternate phone"
+                                value={owner.alternate_phone}
+                            />
+                            <Detail label="City" value={owner.city} />
+                            <Detail label="Address" value={owner.address} />
+                            <Detail
+                                label="Postal code"
+                                value={owner.postal_code}
+                            />
+                        </dl>
 
-            <div className="py-12">
-                <div className="mx-auto max-w-7xl space-y-6 sm:px-6 lg:px-8">
-                    <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-                        <div className="lg:col-span-2">
-                            <DashboardCard
-                                title="Contact details"
-                                icon="user"
-                            >
-                                <dl className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-                                    <Detail label="Email" value={owner.email} />
-                                    <Detail label="Phone" value={owner.phone} />
-                                    <Detail
-                                        label="Alternate phone"
-                                        value={owner.alternate_phone}
-                                    />
-                                    <Detail
-                                        label="City"
-                                        value={owner.city}
-                                    />
-                                    <Detail
-                                        label="Address"
-                                        value={owner.address}
-                                    />
-                                    <Detail
-                                        label="Postal code"
-                                        value={owner.postal_code}
-                                    />
-                                </dl>
-
-                                <div className="mt-6 border-t border-gray-100 pt-4">
-                                    <Detail label="Notes" value={owner.notes} />
-                                </div>
-                            </DashboardCard>
+                        <div className="mt-6 border-t border-[#1a3d1a]/10 pt-5">
+                            <Detail label="Notes" value={owner.notes} />
                         </div>
-
-                        <div>
-                            <DashboardCard title="Pets" icon="paw">
-                                {pets.length === 0 ? (
-                                    <EmptyState message="No pets are registered under this owner yet." />
-                                ) : (
-                                    <ul className="divide-y divide-gray-100">
-                                        {pets.map((pet) => (
-                                            <li
-                                                key={pet.id}
-                                                className="flex items-start justify-between gap-4 py-3 first:pt-0 last:pb-0"
-                                            >
-                                                <div className="min-w-0">
-                                                    <p className="truncate text-sm font-medium text-gray-900">
-                                                        {pet.name}
-                                                    </p>
-                                                    <p className="truncate text-xs text-gray-500">
-                                                        {[
-                                                            pet.species,
-                                                            pet.breed,
-                                                            pet.sex,
-                                                        ]
-                                                            .filter(Boolean)
-                                                            .join(' · ')}
-                                                    </p>
-                                                </div>
-                                                <span
-                                                    className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${
-                                                        pet.is_active
-                                                            ? 'bg-emerald-50 text-emerald-700'
-                                                            : 'bg-gray-100 text-gray-500'
-                                                    }`}
-                                                >
-                                                    {pet.is_active
-                                                        ? 'Active'
-                                                        : 'Inactive'}
-                                                </span>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                )}
-                            </DashboardCard>
-                        </div>
-                    </div>
+                    </Panel>
                 </div>
+
+                <Panel
+                    title="Pets"
+                    icon="paw"
+                    fill
+                    action={
+                        <span className="text-xs font-medium text-[#1a3d1a]/45">
+                            {pets.length} {pets.length === 1 ? 'pet' : 'pets'}
+                        </span>
+                    }
+                >
+                    {pets.length === 0 ? (
+                        <EmptyState
+                            icon="paw"
+                            message="No pets are registered under this owner yet."
+                        />
+                    ) : (
+                        <ul className="divide-y divide-[#1a3d1a]/10">
+                            {pets.map((pet) => (
+                                <li
+                                    key={pet.id}
+                                    className="flex items-start justify-between gap-3 py-3 first:pt-0 last:pb-0"
+                                >
+                                    <div className="min-w-0">
+                                        <p className="truncate text-sm font-semibold text-[#1a3d1a]">
+                                            {pet.name}
+                                        </p>
+                                        <p className="truncate text-xs text-[#1a3d1a]/55">
+                                            {[
+                                                pet.species,
+                                                pet.breed,
+                                                pet.sex,
+                                            ]
+                                                .filter(Boolean)
+                                                .join(' · ')}
+                                        </p>
+                                        {pet.birth_date && (
+                                            <p className="mt-0.5 text-[0.68rem] text-[#1a3d1a]/45">
+                                                Born {longDate(pet.birth_date)}
+                                            </p>
+                                        )}
+                                    </div>
+                                    <StatusPill
+                                        active={pet.is_active}
+                                        activeLabel="Active"
+                                    />
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </Panel>
             </div>
-        </AuthenticatedLayout>
+        </StaffLayout>
     );
 }
