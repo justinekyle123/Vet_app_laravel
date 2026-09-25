@@ -1,6 +1,9 @@
 <?php
 
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Admin\ReportController as AdminReportController;
+use App\Http\Controllers\Admin\ServiceController as AdminServiceController;
+use App\Http\Controllers\Admin\SettingController as AdminSettingController;
 use App\Http\Controllers\Admin\StaffController as AdminStaffController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FrontDesk\DashboardController as FrontDeskDashboardController;
@@ -66,6 +69,16 @@ Route::middleware(['auth', 'verified', 'role:admin'])
 
         Route::get('staff', [AdminStaffController::class, 'index'])->name('staff.index');
         Route::patch('staff/{user}/password', [AdminStaffController::class, 'updatePassword'])->name('staff.password');
+
+        Route::get('services', [AdminServiceController::class, 'index'])->name('services.index');
+        Route::post('services', [AdminServiceController::class, 'store'])->name('services.store');
+        Route::patch('services/{service}', [AdminServiceController::class, 'update'])->name('services.update');
+        Route::patch('services/{service}/toggle', [AdminServiceController::class, 'toggle'])->name('services.toggle');
+
+        Route::get('reports', AdminReportController::class)->name('reports.index');
+
+        Route::get('settings', [AdminSettingController::class, 'edit'])->name('settings.edit');
+        Route::patch('settings', [AdminSettingController::class, 'update'])->name('settings.update');
     });
 
 Route::middleware(['auth', 'verified', 'role:front_desk,admin'])

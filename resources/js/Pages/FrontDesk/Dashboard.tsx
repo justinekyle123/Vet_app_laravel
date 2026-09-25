@@ -1,83 +1,127 @@
-import DashboardCard, { EmptyState } from '@/Components/DashboardCard';
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, Link } from '@inertiajs/react';
+import { secondaryButtonClass } from '@/Components/buttonStyles';
+import Icon, { IconName } from '@/Components/Icon';
+import Panel, { SoonChip, SoonState } from '@/Components/Panel';
+import StaffLayout from '@/Layouts/StaffLayout';
+import { Link } from '@inertiajs/react';
 
-const quickActions = [
-    { label: 'Book an appointment', icon: 'calendar' as const },
-    { label: 'Register an owner & pet', icon: 'user' as const },
-    { label: 'Record a payment', icon: 'sparkles' as const },
-    { label: 'Log a complaint', icon: 'shield' as const },
+/**
+ * Desk shortcuts. Anything not wired to a feature yet renders as a dashed,
+ * disabled tile so the gap in the build is visible rather than a dead click.
+ */
+const quickActions: {
+    label: string;
+    icon: IconName;
+    href?: string;
+}[] = [
+    { label: 'Book an appointment', icon: 'calendar' },
+    { label: 'Register an owner', icon: 'paw', href: route('owners.create') },
+    { label: 'Record a payment', icon: 'sparkles' },
+    { label: 'Log a complaint', icon: 'shield' },
 ];
 
 export default function FrontDeskDashboard() {
     return (
-        <AuthenticatedLayout
-            header={
-                <div>
-                    <h2 className="text-xl font-semibold leading-tight text-gray-800">
-                        Front Desk
-                    </h2>
-                    <p className="mt-1 text-sm text-gray-500">
-                        Today's bookings, the unpaid queue, and desk tasks.
-                    </p>
-                </div>
+        <StaffLayout
+            title="Front Desk"
+            heading="Front desk"
+            description="Today's bookings, the unpaid queue, and the client records the desk works from."
+            actions={
+                <Link
+                    href={route('owners.index')}
+                    className={secondaryButtonClass}
+                >
+                    <Icon name="paw" className="h-4 w-4" />
+                    Dog owners
+                </Link>
             }
         >
-            <Head title="Front Desk Dashboard" />
-
-            <div className="py-12">
-                <div className="mx-auto max-w-7xl space-y-6 sm:px-6 lg:px-8">
-                    <div className="overflow-hidden bg-white shadow-sm sm:rounded-lg">
-                        <div className="flex flex-wrap gap-2 p-4">
-                            {quickActions.map((action) => (
-                                <button
-                                    key={action.label}
-                                    type="button"
-                                    disabled
-                                    className="cursor-not-allowed rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm font-medium text-gray-400"
-                                >
-                                    {action.label}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                        <DashboardCard
-                            title="Today's appointments"
-                            icon="calendar"
-                        >
-                            <EmptyState message="No appointments are on the calendar yet. Bookings will show here once scheduling is live." />
-                        </DashboardCard>
-                        <DashboardCard
-                            title="Unpaid invoices"
-                            icon="sparkles"
-                        >
-                            <EmptyState message="The unpaid queue will appear here once payments are being recorded." />
-                        </DashboardCard>
-                        <DashboardCard
-                            title="Owners & pets"
-                            icon="paw"
-                            action={
+            <div className="space-y-6">
+                <Panel title="Quick actions" icon="sparkles">
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                        {quickActions.map((action) =>
+                            action.href ? (
                                 <Link
-                                    href={route('owners.index')}
-                                    className="text-xs font-medium text-emerald-700 hover:text-emerald-800"
+                                    key={action.label}
+                                    href={action.href}
+                                    className="group flex items-center gap-3 rounded-2xl border border-[#1a3d1a]/10 bg-white p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-[#1a3d1a]/20 hover:shadow-lg hover:shadow-[#1a3d1a]/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1a3d1a] focus-visible:ring-offset-2"
                                 >
-                                    Open dog owners
+                                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#EFFDF0] text-[#1a3d1a] transition-colors duration-200 group-hover:bg-[#E86A10]/10 group-hover:text-[#E86A10]">
+                                        <Icon
+                                            name={action.icon}
+                                            className="h-5 w-5"
+                                        />
+                                    </span>
+                                    <span className="text-sm font-semibold text-[#1a3d1a]">
+                                        {action.label}
+                                    </span>
                                 </Link>
-                            }
-                        >
-                            <EmptyState message="Client records will show here once owner and pet management is live." />
-                        </DashboardCard>
-                        <DashboardCard
-                            title="Open complaints"
-                            icon="shield"
-                        >
-                            <EmptyState message="Complaints awaiting a response will appear here." />
-                        </DashboardCard>
+                            ) : (
+                                <div
+                                    key={action.label}
+                                    aria-disabled="true"
+                                    className="flex items-center gap-3 rounded-2xl border border-dashed border-[#1a3d1a]/15 bg-[#EFFDF0]/60 p-4"
+                                >
+                                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-[#1a3d1a]/35">
+                                        <Icon
+                                            name={action.icon}
+                                            className="h-5 w-5"
+                                        />
+                                    </span>
+                                    <span className="min-w-0">
+                                        <span className="block text-sm font-semibold text-[#1a3d1a]/50">
+                                            {action.label}
+                                        </span>
+                                        <span className="mt-0.5 block text-[0.66rem] font-semibold uppercase tracking-[0.12em] text-[#1a3d1a]/35">
+                                            Coming soon
+                                        </span>
+                                    </span>
+                                </div>
+                            ),
+                        )}
                     </div>
+                </Panel>
+
+                <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                    <Panel
+                        title="Today's appointments"
+                        icon="calendar"
+                        action={<SoonChip />}
+                    >
+                        <SoonState message="Bookings for today will be listed here once scheduling is live. Nothing is on the calendar yet." />
+                    </Panel>
+
+                    <Panel
+                        title="Unpaid invoices"
+                        icon="sparkles"
+                        action={<SoonChip />}
+                    >
+                        <SoonState message="The unpaid queue will appear here once payments are being recorded at the desk." />
+                    </Panel>
+
+                    <Panel
+                        title="Clients &amp; pets"
+                        icon="paw"
+                        action={
+                            <Link
+                                href={route('owners.index')}
+                                className="text-xs font-semibold text-[#E86A10] transition-colors duration-150 hover:text-[#d45e0d]"
+                            >
+                                Open dog owners
+                            </Link>
+                        }
+                    >
+                        <SoonState message="Recent client and pet activity will be summarised here. In the meantime, the desk records are all under Dog owners." />
+                    </Panel>
+
+                    <Panel
+                        title="Open complaints"
+                        icon="shield"
+                        action={<SoonChip />}
+                    >
+                        <SoonState message="Complaints awaiting a response will appear here once the complaints log is built." />
+                    </Panel>
                 </div>
             </div>
-        </AuthenticatedLayout>
+        </StaffLayout>
     );
 }
