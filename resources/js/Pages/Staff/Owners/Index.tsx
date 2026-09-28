@@ -11,7 +11,7 @@ import { FormEventHandler, useState } from 'react';
 import { OwnerRecord } from './Partials/OwnerForm';
 
 interface OwnerRow extends OwnerRecord {
-    pets_count: number;
+    dogs_count: number;
 }
 
 const statusTabs = [
@@ -49,7 +49,7 @@ export default function Index({
         <StaffLayout
             title="Dog Owners"
             heading="Dog owners"
-            description="Client records for the clinic's dog owners and their pets. Deactivated clients keep their history but leave the default list."
+            description="Client records for the clinic's dog owners and their dogs. Deactivated clients keep their history but leave the default list."
             actions={
                 <Link
                     href={route('owners.create')}
@@ -124,7 +124,7 @@ export default function Index({
                             icon="user"
                             message={
                                 filters.search !== ''
-                                    ? 'No dog owners match this search. Try a different name, email, phone, or city.'
+                                    ? 'No dog owners match this search. Try a different name, email, or phone number.'
                                     : 'No dog owners in this view yet. Register a walk-in client to get started.'
                             }
                         />
@@ -141,10 +141,7 @@ export default function Index({
                                         Phone
                                     </th>
                                     <th scope="col" className={headerCellClass}>
-                                        City
-                                    </th>
-                                    <th scope="col" className={headerCellClass}>
-                                        Pets
+                                        Dogs
                                     </th>
                                     <th scope="col" className={headerCellClass}>
                                         Status
@@ -187,14 +184,11 @@ export default function Index({
                                             </div>
                                         </td>
                                         <td className="whitespace-nowrap px-5 py-3.5 text-sm text-[#1a3d1a]/70">
-                                            {owner.phone ?? '—'}
-                                        </td>
-                                        <td className="whitespace-nowrap px-5 py-3.5 text-sm text-[#1a3d1a]/70">
-                                            {owner.city ?? '—'}
+                                            {owner.phone_number ?? '—'}
                                         </td>
                                         <td className="whitespace-nowrap px-5 py-3.5">
                                             <span className="inline-flex h-7 min-w-[1.75rem] items-center justify-center rounded-full bg-[#EFFDF0] px-2 text-xs font-semibold text-[#1a3d1a] ring-1 ring-[#1a3d1a]/10">
-                                                {owner.pets_count}
+                                                {owner.dogs_count}
                                             </span>
                                         </td>
                                         <td className="whitespace-nowrap px-5 py-3.5">

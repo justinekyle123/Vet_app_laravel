@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Models\Service;
+use App\Models\ServiceCategory;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -15,12 +16,15 @@ class ServiceFactory extends Factory
     /**
      * Define the model's default state.
      *
+     * The schema makes a category mandatory, so one is created on demand.
+     *
      * @return array<string, mixed>
      */
     public function definition(): array
     {
         return [
-            'name' => fake()->unique()->words(2, true),
+            'category_id' => ServiceCategory::factory(),
+            'service_name' => fake()->unique()->words(2, true),
             'description' => fake()->sentence(),
             'duration_minutes' => fake()->randomElement([15, 30, 45, 60]),
             'price' => fake()->randomFloat(2, 20, 250),

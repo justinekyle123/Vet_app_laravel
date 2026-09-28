@@ -9,7 +9,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FrontDesk\DashboardController as FrontDeskDashboardController;
 use App\Http\Controllers\Owner\AccountController as OwnerAccountController;
 use App\Http\Controllers\Owner\DashboardController as OwnerDashboardController;
-use App\Http\Controllers\Owner\PetController as OwnerPetController;
+use App\Http\Controllers\Owner\DogController as OwnerDogController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Staff\OwnerController as StaffOwnerController;
 use Illuminate\Foundation\Application;
@@ -36,11 +36,15 @@ Route::get('/', function () {
     ]);
 });
 
+/*
+ | Accounts live in two tables, so "auth" names both guards throughout. There
+ | is no email verification: the schema has no email_verified_at column.
+ */
 Route::get('/dashboard', DashboardController::class)
-    ->middleware(['auth', 'verified'])
+    ->middleware(['auth:owner,staff'])
     ->name('dashboard');
 
-Route::middleware('auth')->group(function () {
+Route::middleware('auth:owner,staff')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
@@ -54,21 +58,21 @@ Route::middleware('auth')->group(function () {
 | Everything below is gated by the "role" middleware (EnsureUserHasRole).
 | Each area has its own dashboard controller and page. Access rules:
 |
-|   admin            - clinic-wide management (staff, services, reports).
-|   front_desk,admin - day-to-day desk work (owners, pets, bookings, payments).
-|   owner            - the client portal; owners only see their own records.
+|   admin                  - clinic-wide management (staff, services, reports).
+|   any staff role         - day-to-day desk work (owners, dogs, payments).
+|   owner                  - the client portal; owners only see their records.
 |
 | A user hitting an area their role does not cover gets a 403.
 |
 */
-Route::middleware(['auth', 'verified', 'role:admin'])
+Route::middleware(['auth:owner,staff', 'role:admin'])
     ->prefix('admin')
     ->name('admin.')
     ->group(function () {
         Route::get('/', AdminDashboardController::class)->name('dashboard');
 
         Route::get('staff', [AdminStaffController::class, 'index'])->name('staff.index');
-        Route::patch('staff/{user}/password', [AdminStaffController::class, 'updatePassword'])->name('staff.password');
+        Route::patch('staff/{staff}/password', [AdminStaffController::class, 'updatePassword'])->name('staff.password');
 
         Route::get('services', [AdminServiceController::class, 'index'])->name('services.index');
         Route::post('services', [AdminServiceController::class, 'store'])->name('services.store');
@@ -81,18 +85,19 @@ Route::middleware(['auth', 'verified', 'role:admin'])
         Route::patch('settings', [AdminSettingController::class, 'update'])->name('settings.update');
     });
 
-Route::middleware(['auth', 'verified', 'role:front_desk,admin'])
+/*
+ * Any staff role may work the desk: veterinarians and groomers need the client
+ * records as much as the front desk does. Only clinic-wide administration
+ * (the group above) is restricted to administrators.
+ */
+Route::middleware(['auth:owner,staff', 'role:admin,front_desk,veterinarian,groomer'])
     ->prefix('front-desk')
     ->name('front_desk.')
     ->group(function () {
         Route::get('/', FrontDeskDashboardController::class)->name('dashboard');
     });
 
-/*
-| Dog owner records are shared between the front desk and admin, so they get
-| their own role-gated area rather than nesting under one of the dashboards.
-*/
-Route::middleware(['auth', 'verified', 'role:front_desk,admin'])
+Route::middleware(['auth:owner,staff', 'role:admin,front_desk,veterinarian,groomer'])
     ->prefix('owners')
     ->name('owners.')
     ->group(function () {
@@ -106,7 +111,7 @@ Route::middleware(['auth', 'verified', 'role:front_desk,admin'])
         Route::patch('{owner}/activate', [StaffOwnerController::class, 'activate'])->name('activate');
     });
 
-Route::middleware(['auth', 'verified', 'role:owner'])
+Route::middleware(['auth:owner,staff', 'role:owner'])
     ->prefix('portal')
     ->name('owner.')
     ->group(function () {
@@ -115,8 +120,8 @@ Route::middleware(['auth', 'verified', 'role:owner'])
         Route::get('account', [OwnerAccountController::class, 'edit'])->name('account.edit');
         Route::patch('account', [OwnerAccountController::class, 'update'])->name('account.update');
 
-        Route::post('pets', [OwnerPetController::class, 'store'])->name('pets.store');
-        Route::patch('pets/{pet}', [OwnerPetController::class, 'update'])->name('pets.update');
+        Route::post('dogs', [OwnerDogController::class, 'store'])->name('dogs.store');
+        Route::patch('dogs/{dog}', [OwnerDogController::class, 'update'])->name('dogs.update');
     });
 
 require __DIR__.'/auth.php';

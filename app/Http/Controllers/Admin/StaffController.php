@@ -2,12 +2,11 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\ResetStaffPasswordRequest;
-use App\Models\User;
-use Illuminate\Database\Eloquent\Collection;
+use App\Models\Staff;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Collection;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -28,23 +27,28 @@ class StaffController extends Controller
 
     public function updatePassword(
         ResetStaffPasswordRequest $request,
-        User $user,
+        Staff $staff,
     ): RedirectResponse {
-        // The model's "hashed" cast takes care of hashing the plain value.
-        $user->password = $request->validated('password');
-        $user->save();
+        $staff->update(['password_hash' => $request->validated('password')]);
 
         return redirect()->route('admin.staff.index');
     }
 
     /**
-     * @return Collection<int, User>
+     * @return Collection<int, array<string, mixed>>
      */
     private function staffMembers(): Collection
     {
-        return User::query()
-            ->whereIn('role', [UserRole::Admin->value, UserRole::FrontDesk->value])
-            ->orderBy('name')
-            ->get(['id', 'name', 'email', 'role', 'created_at']);
+        return Staff::query()
+            ->orderBy('first_name')
+            ->orderBy('last_name')
+            ->get()
+            ->map(fn (Staff $member): array => [
+                'id' => $member->staff_id,
+                'name' => $member->fullName(),
+                'email' => $member->email,
+                'role' => $member->role->value,
+                'created_at' => $member->created_at,
+            ]);
     }
 }

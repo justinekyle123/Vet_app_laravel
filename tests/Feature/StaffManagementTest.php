@@ -1,28 +1,29 @@
 <?php
 
-use App\Models\User;
+use App\Models\DogOwner;
+use App\Models\Staff;
 use Illuminate\Support\Facades\Hash;
 use Inertia\Testing\AssertableInertia as Assert;
 
 test('an admin can view the staff list', function () {
-    User::factory()->admin()->create();
-    User::factory()->frontDesk()->create();
-    User::factory()->owner()->create();
+    Staff::factory()->admin()->create();
+    Staff::factory()->frontDesk()->create();
+    DogOwner::factory()->create();
 
-    $this->actingAs(User::factory()->admin()->create())
+    $this->actingAs(Staff::factory()->admin()->create())
         ->get(route('admin.staff.index'))
         ->assertInertia(fn (Assert $page) => $page
             ->component('Admin/Staff')
             // Three staff rows total (2 seeded above + the acting admin); the
-            // dog owner must not appear.
+            // dog owner has no staff record and must not appear.
             ->has('staff', 3)
         );
 });
 
 test('an admin can reset a staff password', function () {
-    $staff = User::factory()->frontDesk()->create();
+    $staff = Staff::factory()->frontDesk()->create();
 
-    $this->actingAs(User::factory()->admin()->create())
+    $this->actingAs(Staff::factory()->admin()->create())
         ->patch(route('admin.staff.password', $staff), [
             'password' => 'brand-new-password',
             'password_confirmation' => 'brand-new-password',
@@ -30,13 +31,13 @@ test('an admin can reset a staff password', function () {
         ->assertSessionHasNoErrors()
         ->assertRedirect(route('admin.staff.index'));
 
-    expect(Hash::check('brand-new-password', $staff->fresh()->password))->toBeTrue();
+    expect(Hash::check('brand-new-password', $staff->fresh()->password_hash))->toBeTrue();
 });
 
 test('a password confirmation mismatch is rejected', function () {
-    $staff = User::factory()->admin()->create();
+    $staff = Staff::factory()->admin()->create();
 
-    $this->actingAs(User::factory()->admin()->create())
+    $this->actingAs(Staff::factory()->admin()->create())
         ->from(route('admin.staff.index'))
         ->patch(route('admin.staff.password', $staff), [
             'password' => 'brand-new-password',
@@ -47,9 +48,9 @@ test('a password confirmation mismatch is rejected', function () {
 });
 
 test('front desk staff cannot manage staff passwords', function () {
-    $target = User::factory()->frontDesk()->create();
+    $target = Staff::factory()->frontDesk()->create();
 
-    $this->actingAs(User::factory()->frontDesk()->create())
+    $this->actingAs(Staff::factory()->frontDesk()->create())
         ->patch(route('admin.staff.password', $target), [
             'password' => 'brand-new-password',
             'password_confirmation' => 'brand-new-password',
@@ -57,13 +58,18 @@ test('front desk staff cannot manage staff passwords', function () {
         ->assertForbidden();
 });
 
-test('an owner account cannot be targeted by the staff reset', function () {
-    $owner = User::factory()->owner()->create();
+test('a dog owner password is never touched by the staff reset', function () {
+    $admin = Staff::factory()->admin()->create();
+    $owner = DogOwner::factory()->create();
+    $original = $owner->password_hash;
 
-    $this->actingAs(User::factory()->admin()->create())
+    // The route binds a staff row, so an owner id can only ever reach a staff
+    // record. Whatever the binding resolves to, the owner's credential stays.
+    $this->actingAs($admin)
         ->patch(route('admin.staff.password', $owner), [
             'password' => 'brand-new-password',
             'password_confirmation' => 'brand-new-password',
-        ])
-        ->assertForbidden();
+        ]);
+
+    expect($owner->fresh()->password_hash)->toBe($original);
 });

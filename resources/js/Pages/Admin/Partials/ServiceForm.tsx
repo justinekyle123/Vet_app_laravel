@@ -3,8 +3,9 @@ import {
     secondaryButtonClass,
 } from '@/Components/buttonStyles';
 import Field, { TextAreaField } from '@/Components/Field';
-import { checkboxClass } from '@/Components/formStyles';
+import { checkboxClass, fieldClass, labelClass } from '@/Components/formStyles';
 import Icon from '@/Components/Icon';
+import InputError from '@/Components/InputError';
 import Modal from '@/Components/Modal';
 import Spinner from '@/Components/Spinner';
 import { useForm } from '@inertiajs/react';
@@ -12,7 +13,9 @@ import { FormEventHandler, useEffect } from 'react';
 
 export interface ServiceRecord {
     id: number;
-    name: string;
+    category_id: number;
+    category_name: string | null;
+    service_name: string;
     description: string | null;
     duration_minutes: number;
     /** Eloquent hands decimals back as strings. */
@@ -20,8 +23,14 @@ export interface ServiceRecord {
     is_active: boolean;
 }
 
+export interface ServiceCategoryOption {
+    category_id: number;
+    category_name: string;
+}
+
 const blank = {
-    name: '',
+    service_name: '',
+    category_id: '',
     description: '',
     duration_minutes: '30',
     price: '0',
@@ -35,10 +44,12 @@ const blank = {
  */
 export default function ServiceForm({
     service,
+    categories,
     show,
     onClose,
 }: {
     service: ServiceRecord | null;
+    categories: ServiceCategoryOption[];
     show: boolean;
     onClose: () => void;
 }) {
@@ -62,7 +73,8 @@ export default function ServiceForm({
         setData(
             service
                 ? {
-                      name: service.name,
+                      service_name: service.service_name,
+                      category_id: String(service.category_id),
                       description: service.description ?? '',
                       duration_minutes: String(service.duration_minutes),
                       price: String(service.price),
@@ -100,21 +112,52 @@ export default function ServiceForm({
                     <p className="mt-1.5 text-sm leading-relaxed text-[#1a3d1a]/60">
                         {service
                             ? 'Update what this service includes, how long it takes, and what it costs.'
-                            : 'Add something the clinic offers. Retired services stay on file for past invoices.'}
+                            : 'Add something the clinic offers. Retired services stay on file for past appointments.'}
                     </p>
                 </div>
 
                 <div className="mt-6 space-y-5">
                     <Field
                         label="Name"
-                        name="name"
-                        value={data.name}
-                        onChange={(e) => setData('name', e.target.value)}
-                        error={errors.name}
+                        name="service_name"
+                        value={data.service_name}
+                        onChange={(e) =>
+                            setData('service_name', e.target.value)
+                        }
+                        error={errors.service_name}
                         placeholder="Wellness consultation"
                         required
                         autoFocus
                     />
+
+                    <div>
+                        <label htmlFor="category_id" className={labelClass}>
+                            Category
+                        </label>
+                        <select
+                            id="category_id"
+                            className={fieldClass}
+                            value={data.category_id}
+                            onChange={(e) =>
+                                setData('category_id', e.target.value)
+                            }
+                            required
+                        >
+                            <option value="">Choose a category…</option>
+                            {categories.map((category) => (
+                                <option
+                                    key={category.category_id}
+                                    value={category.category_id}
+                                >
+                                    {category.category_name}
+                                </option>
+                            ))}
+                        </select>
+                        <InputError
+                            className="mt-2"
+                            message={errors.category_id}
+                        />
+                    </div>
 
                     <TextAreaField
                         label="Description"

@@ -2,11 +2,12 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Enums\UserRole;
+use App\Enums\StaffRole;
 use App\Http\Controllers\Controller;
-use App\Models\Owner;
-use App\Models\Pet;
-use App\Models\User;
+use App\Models\Dog;
+use App\Models\DogBreed;
+use App\Models\DogOwner;
+use App\Models\Staff;
 use Illuminate\Support\Carbon;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -14,8 +15,8 @@ use Inertia\Response;
 /**
  * Read-only clinic figures, all derived from records that already exist.
  *
- * Money and appointment reporting join this page once invoicing and scheduling
- * ship; until then the page reports accounts, clients, and pets so the numbers
+ * Money and appointment reporting join this page once scheduling and payments
+ * ship; until then the page reports accounts, clients, and dogs so the numbers
  * on screen are always real.
  */
 class ReportController extends Controller
@@ -27,30 +28,29 @@ class ReportController extends Controller
     {
         return Inertia::render('Admin/Reports', [
             'accounts' => [
-                'total' => User::count(),
-                'admins' => User::where('role', UserRole::Admin->value)->count(),
-                'front_desk' => User::where('role', UserRole::FrontDesk->value)->count(),
-                'owners' => User::where('role', UserRole::Owner->value)->count(),
-                'unverified' => User::whereNull('email_verified_at')->count(),
+                'total' => Staff::count() + DogOwner::count(),
+                'admins' => Staff::where('role', StaffRole::Admin)->count(),
+                'front_desk' => Staff::where('role', StaffRole::FrontDesk)->count(),
+                'owners' => DogOwner::count(),
             ],
             'clients' => [
-                'total' => Owner::count(),
-                'active' => Owner::where('is_active', true)->count(),
-                'inactive' => Owner::where('is_active', false)->count(),
-                'with_portal' => Owner::whereNotNull('user_id')->count(),
+                'total' => DogOwner::count(),
+                'active' => DogOwner::where('is_active', true)->count(),
+                'inactive' => DogOwner::where('is_active', false)->count(),
             ],
-            'pets' => [
-                'total' => Pet::count(),
-                'active' => Pet::where('is_active', true)->count(),
+            'dogs' => [
+                'total' => Dog::count(),
+                'active' => Dog::where('is_active', true)->count(),
             ],
             'signups' => $this->signupsByMonth(),
-            'species' => $this->petsBySpecies(),
+            'breeds' => $this->dogsByBreed(),
         ]);
     }
 
     /**
-     * New accounts for each of the last six months, oldest first — including
-     * the months with no sign-ups, so the chart keeps an even time axis.
+     * New dog owner registrations for each of the last six months, oldest
+     * first — including the months with none, so the chart keeps an even time
+     * axis.
      *
      * @return list<array{label: string, count: int}>
      */
@@ -58,10 +58,10 @@ class ReportController extends Controller
     {
         $start = Carbon::now()->startOfMonth()->subMonths(self::SIGNUP_MONTHS - 1);
 
-        $counts = User::query()
+        $counts = DogOwner::query()
             ->where('created_at', '>=', $start)
             ->get(['created_at'])
-            ->countBy(fn (User $user) => $user->created_at->format('Y-m'));
+            ->countBy(fn (DogOwner $owner) => $owner->created_at->format('Y-m'));
 
         return collect(range(0, self::SIGNUP_MONTHS - 1))
             ->map(function (int $offset) use ($start, $counts): array {
@@ -76,20 +76,25 @@ class ReportController extends Controller
     }
 
     /**
-     * Registered pets grouped by species, most common first.
+     * Registered dogs grouped by breed, most common first. Dogs without a
+     * breed on file are reported as "Unspecified" rather than dropped.
      *
      * @return list<array{label: string, count: int}>
      */
-    private function petsBySpecies(): array
+    private function dogsByBreed(): array
     {
-        return Pet::query()
-            ->selectRaw('species, COUNT(*) as aggregate')
-            ->groupBy('species')
+        $names = DogBreed::query()->pluck('breed_name', 'breed_id');
+
+        return Dog::query()
+            ->selectRaw('breed_id, COUNT(*) as aggregate')
+            ->groupBy('breed_id')
             ->orderByDesc('aggregate')
             ->get()
-            ->map(fn (Pet $pet): array => [
-                'label' => ucfirst((string) $pet->species),
-                'count' => (int) $pet->aggregate,
+            ->map(fn (Dog $dog): array => [
+                'label' => $dog->breed_id === null
+                    ? 'Unspecified'
+                    : (string) ($names[$dog->breed_id] ?? 'Unspecified'),
+                'count' => (int) $dog->aggregate,
             ])
             ->all();
     }

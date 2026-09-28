@@ -5,17 +5,23 @@ namespace App\Models;
 use Database\Factories\ServiceFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * A bookable clinic service, e.g. a consultation, vaccination, or grooming.
  *
- * Services are deactivated rather than deleted so invoices and appointment
- * history that reference them stay readable.
+ * Services are deactivated rather than deleted so appointment history that
+ * references them stays readable.
  */
 class Service extends Model
 {
     /** @use HasFactory<ServiceFactory> */
     use HasFactory;
+
+    protected $table = 'services';
+
+    protected $primaryKey = 'service_id';
 
     /**
      * The attributes that are mass assignable.
@@ -23,7 +29,8 @@ class Service extends Model
      * @var list<string>
      */
     protected $fillable = [
-        'name',
+        'category_id',
+        'service_name',
         'description',
         'duration_minutes',
         'price',
@@ -42,5 +49,15 @@ class Service extends Model
             'price' => 'decimal:2',
             'is_active' => 'boolean',
         ];
+    }
+
+    public function category(): BelongsTo
+    {
+        return $this->belongsTo(ServiceCategory::class, 'category_id', 'category_id');
+    }
+
+    public function appointments(): HasMany
+    {
+        return $this->hasMany(Appointment::class, 'service_id', 'service_id');
     }
 }

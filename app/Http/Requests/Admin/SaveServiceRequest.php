@@ -22,15 +22,17 @@ class SaveServiceRequest extends FormRequest
         $service = $this->route('service');
 
         return [
-            'name' => [
+            'service_name' => [
                 'required',
                 'string',
-                'max:255',
-                Rule::unique(Service::class)->ignore($service?->id),
+                'max:150',
+                Rule::unique(Service::class, 'service_name')->ignore($service?->service_id, 'service_id'),
             ],
+            // The schema makes a service's category mandatory.
+            'category_id' => ['required', 'integer', 'exists:service_categories,category_id'],
             'description' => ['nullable', 'string', 'max:1000'],
             'duration_minutes' => ['required', 'integer', 'min:5', 'max:600'],
-            'price' => ['required', 'numeric', 'min:0', 'max:99999'],
+            'price' => ['required', 'numeric', 'min:0', 'max:99999999'],
             'is_active' => ['boolean'],
         ];
     }

@@ -6,7 +6,10 @@ import StaffLayout from '@/Layouts/StaffLayout';
 import { currency } from '@/utils/format';
 import { Link } from '@inertiajs/react';
 import { useState } from 'react';
-import ServiceForm, { ServiceRecord } from './Partials/ServiceForm';
+import ServiceForm, {
+    ServiceCategoryOption,
+    ServiceRecord,
+} from './Partials/ServiceForm';
 
 const filters = [
     { value: 'all', label: 'All' },
@@ -16,7 +19,13 @@ const filters = [
 
 type Filter = (typeof filters)[number]['value'];
 
-export default function Services({ services }: { services: ServiceRecord[] }) {
+export default function Services({
+    services,
+    categories,
+}: {
+    services: ServiceRecord[];
+    categories: ServiceCategoryOption[];
+}) {
     const [filter, setFilter] = useState<Filter>('all');
     const [editing, setEditing] = useState<ServiceRecord | null>(null);
     const [modalOpen, setModalOpen] = useState(false);
@@ -116,8 +125,13 @@ export default function Services({ services }: { services: ServiceRecord[] }) {
                                 <div className="min-w-0">
                                     <div className="flex flex-wrap items-center gap-2.5">
                                         <p className="text-sm font-semibold text-[#1a3d1a]">
-                                            {service.name}
+                                            {service.service_name}
                                         </p>
+                                        {service.category_name && (
+                                            <span className="rounded-full bg-[#EFFDF0] px-2.5 py-1 text-[0.68rem] font-semibold text-[#2a5a2a] ring-1 ring-[#1a3d1a]/10">
+                                                {service.category_name}
+                                            </span>
+                                        )}
                                         {!service.is_active && (
                                             <StatusPill
                                                 active={false}
@@ -182,6 +196,7 @@ export default function Services({ services }: { services: ServiceRecord[] }) {
 
             <ServiceForm
                 service={editing}
+                categories={categories}
                 show={modalOpen}
                 onClose={() => setModalOpen(false)}
             />

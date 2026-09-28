@@ -7,17 +7,19 @@ import StaffLayout from '@/Layouts/StaffLayout';
 import { useForm } from '@inertiajs/react';
 import { FormEventHandler } from 'react';
 
-/** The values the console manages, keyed the same as `Setting::defaults()`. */
+/** The columns of the single `clinic_info` row the console edits. */
 export interface ClinicSettings {
     clinic_name: string;
-    contact_email: string;
-    contact_phone: string;
-    address: string;
+    address_line: string;
     city: string;
-    postal_code: string;
-    opening_hours: string;
-    appointment_duration: string;
-    tax_rate: string;
+    province: string;
+    zip_code: string | null;
+    contact_number: string;
+    email: string;
+    opening_time: string;
+    closing_time: string;
+    days_open: string;
+    logo_url: string | null;
 }
 
 export default function Settings({
@@ -34,14 +36,16 @@ export default function Settings({
         recentlySuccessful,
     } = useForm({
         clinic_name: settings.clinic_name ?? '',
-        contact_email: settings.contact_email ?? '',
-        contact_phone: settings.contact_phone ?? '',
-        address: settings.address ?? '',
+        address_line: settings.address_line ?? '',
         city: settings.city ?? '',
-        postal_code: settings.postal_code ?? '',
-        opening_hours: settings.opening_hours ?? '',
-        appointment_duration: settings.appointment_duration ?? '30',
-        tax_rate: settings.tax_rate ?? '0',
+        province: settings.province ?? '',
+        zip_code: settings.zip_code ?? '',
+        contact_number: settings.contact_number ?? '',
+        email: settings.email ?? '',
+        opening_time: settings.opening_time ?? '08:00',
+        closing_time: settings.closing_time ?? '18:00',
+        days_open: settings.days_open ?? 'Monday-Saturday',
+        logo_url: settings.logo_url ?? '',
     });
 
     const submit: FormEventHandler = (e) => {
@@ -54,7 +58,7 @@ export default function Settings({
         <StaffLayout
             title="Clinic Settings"
             heading="Clinic settings"
-            description="How the clinic identifies itself, how clients reach it, and the defaults every booking and invoice starts from."
+            description="How the clinic identifies itself and how clients reach it."
         >
             <form onSubmit={submit} className="space-y-6">
                 <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -74,27 +78,41 @@ export default function Settings({
 
                             <Field
                                 label="Contact email"
-                                name="contact_email"
+                                name="email"
                                 type="email"
-                                value={data.contact_email}
+                                value={data.email}
                                 onChange={(e) =>
-                                    setData('contact_email', e.target.value)
+                                    setData('email', e.target.value)
                                 }
-                                error={errors.contact_email}
+                                error={errors.email}
                                 hint="Where client replies should land."
                                 autoComplete="email"
+                                required
                             />
 
                             <Field
-                                label="Contact phone"
-                                name="contact_phone"
+                                label="Contact number"
+                                name="contact_number"
                                 type="tel"
-                                value={data.contact_phone}
+                                value={data.contact_number}
                                 onChange={(e) =>
-                                    setData('contact_phone', e.target.value)
+                                    setData('contact_number', e.target.value)
                                 }
-                                error={errors.contact_phone}
+                                error={errors.contact_number}
                                 autoComplete="tel"
+                                required
+                            />
+
+                            <Field
+                                label="Logo URL"
+                                name="logo_url"
+                                type="url"
+                                value={data.logo_url}
+                                onChange={(e) =>
+                                    setData('logo_url', e.target.value)
+                                }
+                                error={errors.logo_url}
+                                hint="Optional — a link to the clinic's logo."
                             />
                         </div>
                     </Panel>
@@ -104,13 +122,14 @@ export default function Settings({
                             <div className="space-y-5">
                                 <Field
                                     label="Address"
-                                    name="address"
-                                    value={data.address}
+                                    name="address_line"
+                                    value={data.address_line}
                                     onChange={(e) =>
-                                        setData('address', e.target.value)
+                                        setData('address_line', e.target.value)
                                     }
-                                    error={errors.address}
+                                    error={errors.address_line}
                                     autoComplete="street-address"
+                                    required
                                 />
 
                                 <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
@@ -123,77 +142,77 @@ export default function Settings({
                                         }
                                         error={errors.city}
                                         autoComplete="address-level2"
+                                        required
                                     />
 
                                     <Field
-                                        label="Postal code"
-                                        name="postal_code"
-                                        value={data.postal_code}
+                                        label="Province"
+                                        name="province"
+                                        value={data.province}
                                         onChange={(e) =>
-                                            setData(
-                                                'postal_code',
-                                                e.target.value,
-                                            )
+                                            setData('province', e.target.value)
                                         }
-                                        error={errors.postal_code}
+                                        error={errors.province}
+                                        autoComplete="address-level1"
+                                        required
+                                    />
+
+                                    <Field
+                                        label="ZIP code"
+                                        name="zip_code"
+                                        value={data.zip_code}
+                                        onChange={(e) =>
+                                            setData('zip_code', e.target.value)
+                                        }
+                                        error={errors.zip_code}
                                         autoComplete="postal-code"
                                     />
                                 </div>
                             </div>
                         </Panel>
 
-                        <Panel title="Operations" icon="clock">
+                        <Panel title="Opening hours" icon="clock">
                             <div className="space-y-5">
                                 <Field
-                                    label="Opening hours"
-                                    name="opening_hours"
-                                    value={data.opening_hours}
+                                    label="Days open"
+                                    name="days_open"
+                                    value={data.days_open}
                                     onChange={(e) =>
-                                        setData(
-                                            'opening_hours',
-                                            e.target.value,
-                                        )
+                                        setData('days_open', e.target.value)
                                     }
-                                    error={errors.opening_hours}
+                                    error={errors.days_open}
                                     hint="Shown to clients on the public site."
+                                    required
                                 />
 
                                 <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
                                     <Field
-                                        label="Default visit (minutes)"
-                                        name="appointment_duration"
-                                        type="number"
-                                        min={5}
-                                        max={600}
-                                        step={5}
-                                        value={data.appointment_duration}
+                                        label="Opens at"
+                                        name="opening_time"
+                                        type="time"
+                                        value={data.opening_time}
                                         onChange={(e) =>
                                             setData(
-                                                'appointment_duration',
+                                                'opening_time',
                                                 e.target.value,
                                             )
                                         }
-                                        error={errors.appointment_duration}
-                                        hint="Slot length new bookings start from."
+                                        error={errors.opening_time}
                                         required
                                     />
 
                                     <Field
-                                        label="Tax rate (%)"
-                                        name="tax_rate"
-                                        type="number"
-                                        min={0}
-                                        max={100}
-                                        step="0.01"
-                                        value={data.tax_rate}
+                                        label="Closes at"
+                                        name="closing_time"
+                                        type="time"
+                                        value={data.closing_time}
                                         onChange={(e) =>
                                             setData(
-                                                'tax_rate',
+                                                'closing_time',
                                                 e.target.value,
                                             )
                                         }
-                                        error={errors.tax_rate}
-                                        hint="Added to invoice subtotals."
+                                        error={errors.closing_time}
                                         required
                                     />
                                 </div>

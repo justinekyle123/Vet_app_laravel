@@ -2,8 +2,8 @@
 
 namespace App\Http\Requests\Owner;
 
-use App\Models\Owner;
-use App\Models\User;
+use App\Models\DogOwner;
+use App\Models\Staff;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -17,28 +17,24 @@ class UpdateOwnerAccountRequest extends FormRequest
      */
     public function rules(): array
     {
-        $user = $this->user();
-        $owner = $user?->owner()->first();
+        $owner = $this->user();
 
         return [
-            'first_name' => ['required', 'string', 'max:255'],
-            'last_name' => ['required', 'string', 'max:255'],
+            'first_name' => ['required', 'string', 'max:100'],
+            'last_name' => ['required', 'string', 'max:100'],
             'email' => [
                 'required',
                 'string',
                 'lowercase',
                 'email',
-                'max:255',
-                // The address is unique in both tables, so exclude this
-                // account's own rows rather than only the users row.
-                Rule::unique(User::class)->ignore($user?->id),
-                Rule::unique(Owner::class)->ignore($owner?->id),
+                'max:150',
+                // The address identifies an account in both tables, so it must
+                // stay unique across both for sign-in to be unambiguous.
+                Rule::unique(DogOwner::class, 'email')->ignore($owner?->owner_id, 'owner_id'),
+                Rule::unique(Staff::class, 'email'),
             ],
-            'phone' => ['nullable', 'string', 'max:255'],
-            'alternate_phone' => ['nullable', 'string', 'max:255'],
+            'phone_number' => ['required', 'string', 'max:20'],
             'address' => ['nullable', 'string', 'max:255'],
-            'city' => ['nullable', 'string', 'max:255'],
-            'postal_code' => ['nullable', 'string', 'max:20'],
         ];
     }
 }

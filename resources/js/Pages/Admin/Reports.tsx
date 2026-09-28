@@ -14,20 +14,18 @@ interface ReportsProps {
         admins: number;
         front_desk: number;
         owners: number;
-        unverified: number;
     };
     clients: {
         total: number;
         active: number;
         inactive: number;
-        with_portal: number;
     };
-    pets: {
+    dogs: {
         total: number;
         active: number;
     };
     signups: SeriesPoint[];
-    species: SeriesPoint[];
+    breeds: SeriesPoint[];
 }
 
 /** Tallest value in a series, floored at 1 so ratios stay finite. */
@@ -58,7 +56,7 @@ function SignupChart({ data }: { data: SeriesPoint[] }) {
                         <div
                             role="img"
                             aria-label={`${point.label}: ${point.count} new ${
-                                point.count === 1 ? 'account' : 'accounts'
+                                point.count === 1 ? 'owner' : 'owners'
                             }`}
                             className="relative w-full rounded-t-lg bg-[#1a3d1a] transition-[height] duration-500 hover:bg-[#2a5a2a]"
                             style={{
@@ -93,13 +91,12 @@ function SignupChart({ data }: { data: SeriesPoint[] }) {
 export default function Reports({
     accounts,
     clients,
-    pets,
+    dogs,
     signups,
-    species,
+    breeds,
 }: ReportsProps) {
     const signupTotal = signups.reduce((sum, point) => sum + point.count, 0);
-    const speciesPeak = peakOf(species);
-    const portalShare = share(clients.with_portal, clients.total);
+    const breedPeak = peakOf(breeds);
 
     return (
         <StaffLayout
@@ -127,11 +124,11 @@ export default function Reports({
                         hint={`${clients.active} active · ${clients.inactive} inactive`}
                     />
                     <StatCard
-                        label="Registered pets"
-                        value={pets.total}
+                        label="Registered dogs"
+                        value={dogs.total}
                         icon="heart"
                         accent="deep"
-                        hint={`${pets.active} active on file`}
+                        hint={`${dogs.active} active on file`}
                     />
                     <StatCard
                         label="New this month"
@@ -144,7 +141,7 @@ export default function Reports({
 
                 <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
                     <Panel
-                        title="New sign-ups"
+                        title="New owner sign-ups"
                         icon="user"
                         fill
                         action={
@@ -156,46 +153,31 @@ export default function Reports({
                         {signupTotal === 0 ? (
                             <EmptyState
                                 icon="user"
-                                message="No new accounts have been created in this window yet."
+                                message="No new owner accounts have been created in this window yet."
                             />
                         ) : (
-                            <>
-                                <SignupChart data={signups} />
-                                <p className="mt-5 flex items-start gap-2.5 rounded-xl bg-[#EFFDF0] px-3.5 py-3 text-xs leading-relaxed text-[#1a3d1a]/70">
-                                    <Icon
-                                        name="mail"
-                                        className="mt-0.5 h-4 w-4 shrink-0 text-[#1a3d1a]/50"
-                                    />
-                                    {accounts.unverified === 0
-                                        ? 'Every account has confirmed its email address.'
-                                        : `${accounts.unverified} ${
-                                              accounts.unverified === 1
-                                                  ? 'account has'
-                                                  : 'accounts have'
-                                          } not confirmed an email address yet.`}
-                                </p>
-                            </>
+                            <SignupChart data={signups} />
                         )}
                     </Panel>
 
                     <Panel
-                        title="Pets by species"
+                        title="Dogs by breed"
                         icon="paw"
                         fill
                         action={
                             <span className="text-xs font-medium text-[#1a3d1a]/45">
-                                {pets.total} on file
+                                {dogs.total} on file
                             </span>
                         }
                     >
-                        {species.length === 0 ? (
+                        {breeds.length === 0 ? (
                             <EmptyState
                                 icon="paw"
-                                message="No pets are registered yet. Species totals appear once owners add their dogs."
+                                message="No dogs are registered yet. Breed totals appear once owners add their dogs."
                             />
                         ) : (
                             <ul className="space-y-4">
-                                {species.map((row) => (
+                                {breeds.map((row) => (
                                     <li key={row.label}>
                                         <div className="flex items-center justify-between gap-3 text-sm">
                                             <span className="font-medium text-[#1a3d1a]">
@@ -204,7 +186,7 @@ export default function Reports({
                                             <span className="text-[#1a3d1a]/60">
                                                 {row.count}
                                                 <span className="ml-1.5 text-xs text-[#1a3d1a]/45">
-                                                    {share(row.count, pets.total)}
+                                                    {share(row.count, dogs.total)}
                                                     %
                                                 </span>
                                             </span>
@@ -213,7 +195,7 @@ export default function Reports({
                                             <div
                                                 className="h-full rounded-full bg-[#E86A10] transition-[width] duration-500"
                                                 style={{
-                                                    width: `${(row.count / speciesPeak) * 100}%`,
+                                                    width: `${(row.count / breedPeak) * 100}%`,
                                                 }}
                                             />
                                         </div>
@@ -290,17 +272,6 @@ export default function Reports({
                                                 </span>
                                             </span>
                                         </li>
-                                        <li className="flex items-center justify-between gap-3 border-t border-[#1a3d1a]/10 pt-3.5 text-sm">
-                                            <span className="text-[#1a3d1a]/70">
-                                                Linked to a portal login
-                                            </span>
-                                            <span className="font-semibold text-[#1a3d1a]">
-                                                {clients.with_portal}
-                                                <span className="ml-1.5 text-xs font-medium text-[#1a3d1a]/45">
-                                                    {portalShare}%
-                                                </span>
-                                            </span>
-                                        </li>
                                     </ul>
 
                                     <p className="mt-auto flex items-start gap-2.5 rounded-xl bg-[#EFFDF0] px-3.5 py-3 text-xs leading-relaxed text-[#1a3d1a]/70">
@@ -308,9 +279,10 @@ export default function Reports({
                                             name="sparkles"
                                             className="mt-0.5 h-4 w-4 shrink-0 text-[#1a3d1a]/50"
                                         />
-                                        Walk-in records created at the desk are
-                                        not linked to a login until the client
-                                        registers with the same email address.
+                                        Every owner record is also a portal
+                                        login: walk-ins created at the desk set
+                                        their password through &ldquo;forgot
+                                        password&rdquo;.
                                     </p>
                                 </>
                             )}
@@ -323,7 +295,7 @@ export default function Reports({
                         fill
                         action={<SoonChip />}
                     >
-                        <SoonState message="Revenue, unpaid invoices, and appointment volumes will be reported here once invoicing and scheduling are live. Nothing is being billed through MyVet yet." />
+                        <SoonState message="Revenue, unpaid balances, and appointment volumes will be reported here once scheduling and payments are live. Nothing is being billed through MyVet yet." />
                     </Panel>
                 </div>
 

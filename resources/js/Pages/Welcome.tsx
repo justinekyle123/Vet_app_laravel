@@ -192,7 +192,7 @@ export default function Welcome({
     const ownerPanelHref = route('owner.dashboard');
 
     const savedPetsHref = isOwner
-        ? `${ownerPanelHref}#pets`
+        ? `${ownerPanelHref}#dogs`
         : isSignedIn
           ? route('dashboard')
           : route('login');

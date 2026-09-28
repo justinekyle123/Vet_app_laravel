@@ -14,11 +14,15 @@ import ResetStaffPasswordForm, {
 const roleLabels: Record<StaffMember['role'], string> = {
     admin: 'Administrator',
     front_desk: 'Front Desk',
+    veterinarian: 'Veterinarian',
+    groomer: 'Groomer',
 };
 
 const roleBadges: Record<StaffMember['role'], string> = {
     admin: 'bg-[#1a3d1a]/10 text-[#1a3d1a]',
     front_desk: 'bg-[#2a5a2a]/10 text-[#2a5a2a]',
+    veterinarian: 'bg-[#2a5a2a]/10 text-[#2a5a2a]',
+    groomer: 'bg-[#2a5a2a]/10 text-[#2a5a2a]',
 };
 
 /** First letters of the first two words, for the row avatars. */

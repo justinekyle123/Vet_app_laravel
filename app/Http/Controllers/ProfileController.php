@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ProfileUpdateRequest;
-use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -11,47 +10,49 @@ use Illuminate\Support\Facades\Redirect;
 use Inertia\Inertia;
 use Inertia\Response;
 
+/**
+ * The signed-in account's own profile.
+ *
+ * Works for either account model: both keep first name, last name, and email,
+ * which is all this screen edits.
+ */
 class ProfileController extends Controller
 {
     /**
-     * Display the user's profile form.
+     * Display the account's profile form.
      */
     public function edit(Request $request): Response
     {
         return Inertia::render('Profile/Edit', [
-            'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
             'status' => session('status'),
         ]);
     }
 
     /**
-     * Update the user's profile information.
+     * Update the account's profile information.
      */
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
-        $request->user()->fill($request->validated());
-
-        if ($request->user()->isDirty('email')) {
-            $request->user()->email_verified_at = null;
-        }
-
-        $request->user()->save();
+        $request->user()->fill($request->validated())->save();
 
         return Redirect::route('profile.edit');
     }
 
     /**
-     * Delete the user's account.
+     * Delete the account.
      */
     public function destroy(Request $request): RedirectResponse
     {
         $request->validate([
-            'password' => ['required', 'current_password'],
+            // With two account tables the guard has to be named, or the check
+            // would look the password up in the wrong provider.
+            'password' => ['required', 'current_password:'.$request->user()->guardName()],
         ]);
 
         $user = $request->user();
 
-        Auth::logout();
+        Auth::guard('owner')->logout();
+        Auth::guard('staff')->logout();
 
         $user->delete();
 

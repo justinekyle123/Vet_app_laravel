@@ -8,38 +8,40 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, useForm } from '@inertiajs/react';
 import { Transition } from '@headlessui/react';
 import { FormEventHandler, useState } from 'react';
-import PetFormModal, { PetRecord } from './Partials/PetFormModal';
+import DogFormModal, {
+    BreedOption,
+    DogRecord,
+} from './Partials/DogFormModal';
 
 interface OwnerAccount {
     id: number;
     first_name: string;
     last_name: string;
     email: string | null;
-    phone: string | null;
-    alternate_phone: string | null;
+    phone_number: string | null;
     address: string | null;
-    city: string | null;
-    postal_code: string | null;
 }
 
 export default function Account({
     owner,
-    pets,
+    dogs,
+    breeds,
 }: {
     owner: OwnerAccount;
-    pets: PetRecord[];
+    dogs: DogRecord[];
+    breeds: BreedOption[];
 }) {
-    const [selectedPet, setSelectedPet] = useState<PetRecord | null>(null);
-    const [petModalOpen, setPetModalOpen] = useState(false);
+    const [selectedDog, setSelectedDog] = useState<DogRecord | null>(null);
+    const [dogModalOpen, setDogModalOpen] = useState(false);
 
-    const openAddPet = () => {
-        setSelectedPet(null);
-        setPetModalOpen(true);
+    const openAddDog = () => {
+        setSelectedDog(null);
+        setDogModalOpen(true);
     };
 
-    const openEditPet = (pet: PetRecord) => {
-        setSelectedPet(pet);
-        setPetModalOpen(true);
+    const openEditDog = (dog: DogRecord) => {
+        setSelectedDog(dog);
+        setDogModalOpen(true);
     };
 
     const { data, setData, patch, errors, processing, recentlySuccessful } =
@@ -47,11 +49,8 @@ export default function Account({
             first_name: owner.first_name ?? '',
             last_name: owner.last_name ?? '',
             email: owner.email ?? '',
-            phone: owner.phone ?? '',
-            alternate_phone: owner.alternate_phone ?? '',
+            phone_number: owner.phone_number ?? '',
             address: owner.address ?? '',
-            city: owner.city ?? '',
-            postal_code: owner.postal_code ?? '',
         });
 
     const submit: FormEventHandler = (e) => {
@@ -69,7 +68,7 @@ export default function Account({
                     </h2>
                     <p className="mt-1 text-sm text-gray-500">
                         Keep your contact details up to date and review your
-                        pets.
+                        dogs.
                     </p>
                 </div>
             }
@@ -79,10 +78,7 @@ export default function Account({
             <div className="py-12">
                 <div className="mx-auto max-w-7xl space-y-6 sm:px-6 lg:px-8">
                     <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                        <DashboardCard
-                            title="Contact details"
-                            icon="user"
-                        >
+                        <DashboardCard title="Contact details" icon="user">
                             <form onSubmit={submit} className="space-y-5">
                                 <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
                                     <div>
@@ -136,10 +132,7 @@ export default function Account({
                                 </div>
 
                                 <div>
-                                    <InputLabel
-                                        htmlFor="email"
-                                        value="Email"
-                                    />
+                                    <InputLabel htmlFor="email" value="Email" />
                                     <TextInput
                                         id="email"
                                         type="email"
@@ -157,48 +150,27 @@ export default function Account({
                                     />
                                 </div>
 
-                                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-                                    <div>
-                                        <InputLabel
-                                            htmlFor="phone"
-                                            value="Phone"
-                                        />
-                                        <TextInput
-                                            id="phone"
-                                            className="mt-1 block w-full"
-                                            value={data.phone}
-                                            onChange={(e) =>
-                                                setData('phone', e.target.value)
-                                            }
-                                            autoComplete="tel"
-                                        />
-                                        <InputError
-                                            className="mt-2"
-                                            message={errors.phone}
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <InputLabel
-                                            htmlFor="alternate_phone"
-                                            value="Alternate phone"
-                                        />
-                                        <TextInput
-                                            id="alternate_phone"
-                                            className="mt-1 block w-full"
-                                            value={data.alternate_phone}
-                                            onChange={(e) =>
-                                                setData(
-                                                    'alternate_phone',
-                                                    e.target.value,
-                                                )
-                                            }
-                                        />
-                                        <InputError
-                                            className="mt-2"
-                                            message={errors.alternate_phone}
-                                        />
-                                    </div>
+                                <div>
+                                    <InputLabel
+                                        htmlFor="phone_number"
+                                        value="Phone number"
+                                    />
+                                    <TextInput
+                                        id="phone_number"
+                                        className="mt-1 block w-full"
+                                        value={data.phone_number}
+                                        onChange={(e) =>
+                                            setData(
+                                                'phone_number',
+                                                e.target.value,
+                                            )
+                                        }
+                                        autoComplete="tel"
+                                    />
+                                    <InputError
+                                        className="mt-2"
+                                        message={errors.phone_number}
+                                    />
                                 </div>
 
                                 <div>
@@ -219,48 +191,6 @@ export default function Account({
                                         className="mt-2"
                                         message={errors.address}
                                     />
-                                </div>
-
-                                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-                                    <div>
-                                        <InputLabel htmlFor="city" value="City" />
-                                        <TextInput
-                                            id="city"
-                                            className="mt-1 block w-full"
-                                            value={data.city}
-                                            onChange={(e) =>
-                                                setData('city', e.target.value)
-                                            }
-                                            autoComplete="address-level2"
-                                        />
-                                        <InputError
-                                            className="mt-2"
-                                            message={errors.city}
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <InputLabel
-                                            htmlFor="postal_code"
-                                            value="Postal code"
-                                        />
-                                        <TextInput
-                                            id="postal_code"
-                                            className="mt-1 block w-full"
-                                            value={data.postal_code}
-                                            onChange={(e) =>
-                                                setData(
-                                                    'postal_code',
-                                                    e.target.value,
-                                                )
-                                            }
-                                            autoComplete="postal-code"
-                                        />
-                                        <InputError
-                                            className="mt-2"
-                                            message={errors.postal_code}
-                                        />
-                                    </div>
                                 </div>
 
                                 <div className="flex items-center gap-4">
@@ -284,33 +214,29 @@ export default function Account({
                         </DashboardCard>
 
                         <DashboardCard
-                            title="My pets"
+                            title="My dogs"
                             icon="paw"
                             action={
-                                <SecondaryButton onClick={openAddPet}>
-                                    Add pet
+                                <SecondaryButton onClick={openAddDog}>
+                                    Add dog
                                 </SecondaryButton>
                             }
                         >
-                            {pets.length === 0 ? (
-                                <EmptyState message="No pets are registered under your account yet. Add your first one to get started." />
+                            {dogs.length === 0 ? (
+                                <EmptyState message="No dogs are registered under your account yet. Add your first one to get started." />
                             ) : (
                                 <ul className="divide-y divide-gray-100">
-                                    {pets.map((pet) => (
+                                    {dogs.map((dog) => (
                                         <li
-                                            key={pet.id}
+                                            key={dog.id}
                                             className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0"
                                         >
                                             <div className="min-w-0">
                                                 <p className="truncate text-sm font-medium text-gray-900">
-                                                    {pet.name}
+                                                    {dog.dog_name}
                                                 </p>
                                                 <p className="truncate text-xs text-gray-500">
-                                                    {[
-                                                        pet.species,
-                                                        pet.breed,
-                                                        pet.sex,
-                                                    ]
+                                                    {[dog.breed, dog.sex]
                                                         .filter(Boolean)
                                                         .join(' · ')}
                                                 </p>
@@ -318,18 +244,18 @@ export default function Account({
                                             <div className="flex shrink-0 items-center gap-3">
                                                 <span
                                                     className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                                                        pet.is_active
+                                                        dog.is_active
                                                             ? 'bg-emerald-50 text-emerald-700'
                                                             : 'bg-gray-100 text-gray-500'
                                                     }`}
                                                 >
-                                                    {pet.is_active
+                                                    {dog.is_active
                                                         ? 'Active'
                                                         : 'Inactive'}
                                                 </span>
                                                 <SecondaryButton
                                                     onClick={() =>
-                                                        openEditPet(pet)
+                                                        openEditDog(dog)
                                                     }
                                                 >
                                                     Edit
@@ -354,10 +280,11 @@ export default function Account({
                 </div>
             </div>
 
-            <PetFormModal
-                pet={selectedPet}
-                show={petModalOpen}
-                onClose={() => setPetModalOpen(false)}
+            <DogFormModal
+                dog={selectedDog}
+                breeds={breeds}
+                show={dogModalOpen}
+                onClose={() => setDogModalOpen(false)}
             />
         </AuthenticatedLayout>
     );

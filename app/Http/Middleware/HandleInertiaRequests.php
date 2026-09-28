@@ -32,7 +32,12 @@ class HandleInertiaRequests extends Middleware
         return [
             ...parent::share($request),
             'auth' => [
-                'user' => $request->user(),
+                /*
+                 * The two account models are shaped into one contract here so
+                 * every page can read `name`, `email`, and `role` without
+                 * caring which table the signed-in account came from.
+                 */
+                'user' => $this->authUser($request),
             ],
             /*
              * Both halves of the Firebase setup are required before the
@@ -47,6 +52,29 @@ class HandleInertiaRequests extends Middleware
                     && filled(config('firebase.project_id'))
                     && filled(config('firebase.api_key')),
             ],
+        ];
+    }
+
+    /**
+     * The signed-in account, flattened to the shape the pages expect.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function authUser(Request $request): ?array
+    {
+        $user = $request->user();
+
+        if ($user === null) {
+            return null;
+        }
+
+        return [
+            'id' => $user->getAuthIdentifier(),
+            'name' => $user->fullName(),
+            'email' => $user->email,
+            // Owners report the single implicit "owner" role; staff report
+            // whatever their `staff.role` column holds.
+            'role' => $user->isOwner() ? 'owner' : $user->role->value,
         ];
     }
 }

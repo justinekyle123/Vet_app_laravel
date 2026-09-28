@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\Staff;
 use App\Services\Firebase\FirebaseAuthenticator;
 use App\Services\Firebase\FirebaseUserSynchronizer;
 use Illuminate\Http\JsonResponse;
@@ -16,10 +17,10 @@ use UnexpectedValueException;
  * Bridges a Firebase sign-in into a normal Laravel session.
  *
  * Firebase authenticates the user in the browser and hands the page an ID
- * token; this endpoint proves that token to Laravel, mirrors the identity onto
- * a local user row, and then logs in the usual way. Everything downstream
- * (Inertia shared props, the "auth" middleware, Auth::user()) keeps working
- * untouched.
+ * token; this endpoint proves that token to Laravel, matches the identity to a
+ * `dog_owners` or `staff` row, and then logs in the usual way. Everything
+ * downstream (Inertia shared props, the "auth" middleware, Auth::user()) keeps
+ * working untouched.
  */
 class FirebaseSessionController extends Controller
 {
@@ -52,9 +53,13 @@ class FirebaseSessionController extends Controller
             ]);
         }
 
-        $user = $synchronizer->sync($claims);
+        $account = $synchronizer->sync($claims);
 
-        Auth::login($user, remember: true);
+        // The account may be a dog owner or a staff member; each has its own
+        // guard, so the session is opened on the matching one.
+        $guard = $account instanceof Staff ? 'staff' : 'owner';
+
+        Auth::guard($guard)->login($account);
 
         // Guards against session fixation now that the user is authenticated.
         $request->session()->regenerate();

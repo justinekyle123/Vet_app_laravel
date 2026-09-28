@@ -99,7 +99,7 @@ export default function FrontDeskDashboard() {
                     </Panel>
 
                     <Panel
-                        title="Clients &amp; pets"
+                        title="Clients &amp; dogs"
                         icon="paw"
                         action={
                             <Link
@@ -110,7 +110,7 @@ export default function FrontDeskDashboard() {
                             </Link>
                         }
                     >
-                        <SoonState message="Recent client and pet activity will be summarised here. In the meantime, the desk records are all under Dog owners." />
+                        <SoonState message="Recent client and dog activity will be summarised here. In the meantime, the desk records are all under Dog owners." />
                     </Panel>
 
                     <Panel

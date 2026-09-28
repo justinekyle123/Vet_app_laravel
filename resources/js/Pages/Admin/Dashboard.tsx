@@ -14,7 +14,6 @@ interface Stats {
     admins: number;
     front_desk: number;
     owners: number;
-    unverified: number;
 }
 
 interface RecentUser {
@@ -28,6 +27,8 @@ interface RecentUser {
 const roleLabels: Record<UserRole, string> = {
     admin: 'Administrator',
     front_desk: 'Front Desk',
+    veterinarian: 'Veterinarian',
+    groomer: 'Groomer',
     owner: 'Dog Owner',
 };
 
@@ -35,6 +36,8 @@ const roleLabels: Record<UserRole, string> = {
 const roleBadges: Record<UserRole, string> = {
     admin: 'bg-[#1a3d1a]/10 text-[#1a3d1a]',
     front_desk: 'bg-[#2a5a2a]/10 text-[#2a5a2a]',
+    veterinarian: 'bg-[#2a5a2a]/10 text-[#2a5a2a]',
+    groomer: 'bg-[#2a5a2a]/10 text-[#2a5a2a]',
     owner: 'bg-[#E86A10]/10 text-[#E86A10]',
 };
 
@@ -147,18 +150,8 @@ export default function AdminDashboard({
             label: 'Dog owners',
             value: stats.owners,
             icon: 'paw',
-            accent: 'deep',
-            hint: statHints.owners,
-        },
-        {
-            label: 'Unverified emails',
-            value: stats.unverified,
-            icon: 'mail',
             accent: 'accent',
-            hint:
-                stats.unverified === 0
-                    ? 'Every account is confirmed'
-                    : 'Awaiting email confirmation',
+            hint: statHints.owners,
         },
     ];
 
@@ -189,7 +182,7 @@ export default function AdminDashboard({
             <div className="space-y-6">
                 <section
                     aria-label="Account totals"
-                    className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5"
+                    className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4"
                 >
                     {cards.map((card) => (
                         <StatCard
@@ -319,16 +312,12 @@ export default function AdminDashboard({
 
                                 <p className="mt-auto flex items-start gap-2.5 rounded-xl bg-[#EFFDF0] px-3.5 py-3 text-xs leading-relaxed text-[#1a3d1a]/70">
                                     <Icon
-                                        name="mail"
+                                        name="user"
                                         className="mt-0.5 h-4 w-4 shrink-0 text-[#1a3d1a]/50"
                                     />
-                                    {stats.unverified === 0
-                                        ? 'Every account has a confirmed email address.'
-                                        : `${stats.unverified} ${
-                                              stats.unverified === 1
-                                                  ? 'account still needs'
-                                                  : 'accounts still need'
-                                          } to confirm an email address.`}
+                                    Staff accounts are provisioned by an
+                                    administrator; dog owners sign themselves
+                                    up.
                                 </p>
                             </>
                         )}

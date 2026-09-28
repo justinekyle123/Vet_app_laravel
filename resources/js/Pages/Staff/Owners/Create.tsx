@@ -10,7 +10,7 @@ export default function Create() {
         <StaffLayout
             title="New Dog Owner"
             heading="New dog owner"
-            description="Record a walk-in client. They can link a login account later by registering with the same email address."
+            description="Record a walk-in client. The email address doubles as their portal login, so they can sign in straight away with a password reset."
             actions={
                 <Link
                     href={route('owners.index')}

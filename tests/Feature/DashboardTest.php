@@ -1,27 +1,29 @@
 <?php
 
-use App\Models\User;
+use App\Models\DogOwner;
+use App\Models\Staff;
 use Inertia\Testing\AssertableInertia as Assert;
 
 test('the root dashboard redirects each role to its own area', function (
-    string $factoryState,
+    callable $account,
     string $routeName,
 ) {
-    $this->actingAs(User::factory()->{$factoryState}()->create())
+    $this->actingAs($account())
         ->get('/dashboard')
         ->assertRedirect(route($routeName));
 })->with([
-    'admin' => ['admin', 'admin.dashboard'],
-    'front desk' => ['frontDesk', 'front_desk.dashboard'],
-    'owner' => ['owner', 'owner.dashboard'],
+    'admin' => [fn () => Staff::factory()->admin()->create(), 'admin.dashboard'],
+    'front desk' => [fn () => Staff::factory()->frontDesk()->create(), 'front_desk.dashboard'],
+    'veterinarian' => [fn () => Staff::factory()->veterinarian()->create(), 'front_desk.dashboard'],
+    'dog owner' => [fn () => DogOwner::factory()->create(), 'owner.dashboard'],
 ]);
 
 test('the admin dashboard renders account stats', function () {
-    User::factory()->admin()->create();
-    User::factory()->frontDesk()->create();
-    User::factory()->owner()->count(2)->create();
+    Staff::factory()->admin()->create();
+    Staff::factory()->frontDesk()->create();
+    DogOwner::factory()->count(2)->create();
 
-    $this->actingAs(User::factory()->admin()->create())
+    $this->actingAs(Staff::factory()->admin()->create())
         ->get(route('admin.dashboard'))
         ->assertInertia(fn (Assert $page) => $page
             ->component('Admin/Dashboard')
@@ -34,13 +36,13 @@ test('the admin dashboard renders account stats', function () {
 });
 
 test('the front desk dashboard renders for staff', function () {
-    $this->actingAs(User::factory()->frontDesk()->create())
+    $this->actingAs(Staff::factory()->frontDesk()->create())
         ->get(route('front_desk.dashboard'))
         ->assertInertia(fn (Assert $page) => $page->component('FrontDesk/Dashboard'));
 });
 
 test('the owner dashboard renders for owners', function () {
-    $this->actingAs(User::factory()->owner()->create())
+    $this->actingAs(DogOwner::factory()->create())
         ->get(route('owner.dashboard'))
         ->assertInertia(fn (Assert $page) => $page->component('Owner/Dashboard'));
 });

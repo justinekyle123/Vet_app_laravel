@@ -1,7 +1,7 @@
 <?php
 
-use App\Models\Owner;
-use App\Models\User;
+use App\Models\DogOwner;
+use App\Models\Staff;
 use App\Services\Firebase\GooglePublicKeys;
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
@@ -170,57 +170,58 @@ test('a google sign-in creates a local account and starts a session', function (
         ->assertOk()
         ->assertJsonPath('redirect', '/dashboard');
 
-    $user = User::where('firebase_uid', 'firebase-uid-001')->firstOrFail();
+    $owner = DogOwner::where('email', 'ada@example.com')->firstOrFail();
 
-    expect($user->email)->toBe('ada@example.com')
-        ->and($user->name)->toBe('Ada Lovelace')
-        ->and($user->role->value)->toBe('owner')
-        ->and($user->email_verified_at)->not->toBeNull()
-        ->and($user->password)->toBeNull();
+    expect($owner->fullName())->toBe('Ada Lovelace')
+        ->and($owner->isOwner())->toBeTrue()
+        // Firebase owns the credential, so the stored hash is a random value
+        // no password can match.
+        ->and($owner->password_hash)->not->toBeEmpty();
 
-    // Owners need a client record for the portal to have anything to show.
-    expect(Owner::where('user_id', $user->id)->exists())->toBeTrue();
-
-    $this->assertAuthenticatedAs($user);
+    $this->assertAuthenticatedAs($owner, 'owner');
 });
 
 test('an existing password account is adopted instead of duplicated', function () {
-    $existing = User::factory()->frontDesk()->create([
+    $existing = Staff::factory()->frontDesk()->create([
         'email' => 'ada@example.com',
-        'name' => 'Ada L',
+        'first_name' => 'Ada',
+        'last_name' => 'L',
     ]);
 
     $this->postJson(route('firebase.session'), ['id_token' => firebaseToken()])
         ->assertOk();
 
-    // No second row, the staff role survives, and the link is recorded.
-    expect(User::count())->toBe(1);
+    // No second account, and the staff role survives.
+    expect(DogOwner::count() + Staff::count())->toBe(1);
 
     $existing->refresh();
 
-    expect($existing->firebase_uid)->toBe('firebase-uid-001')
-        ->and($existing->role->value)->toBe('front_desk')
-        ->and($existing->name)->toBe('Ada Lovelace');
+    expect($existing->role->value)->toBe('front_desk')
+        ->and($existing->fullName())->toBe('Ada Lovelace');
 
-    $this->assertAuthenticatedAs($existing);
+    $this->assertAuthenticatedAs($existing, 'staff');
 });
 
 test('a returning google user reuses their account', function () {
     $this->postJson(route('firebase.session'), ['id_token' => firebaseToken()])
         ->assertOk();
 
-    $first = User::where('firebase_uid', 'firebase-uid-001')->firstOrFail();
+    $first = DogOwner::where('email', 'ada@example.com')->firstOrFail();
 
     $this->postJson(route('firebase.session'), [
         'id_token' => firebaseToken(['name' => 'Ada L. Lovelace']),
     ])->assertOk();
 
-    expect(User::count())->toBe(1);
+    expect(DogOwner::count() + Staff::count())->toBe(1);
 
-    expect($first->refresh()->name)->toBe('Ada L. Lovelace');
+    expect($first->refresh()->fullName())->toBe('Ada L. Lovelace');
 });
 
-test('an unverified email is not marked as verified', function () {
+test('an unverified google address still creates an owner account', function () {
+    /*
+     * Neither account table stores a verification state, so an unverified
+     * address is accepted: there is no column that could record otherwise.
+     */
     $this->postJson(route('firebase.session'), [
         'id_token' => firebaseToken([
             'sub' => 'firebase-uid-unverified',
@@ -229,9 +230,7 @@ test('an unverified email is not marked as verified', function () {
         ]),
     ])->assertOk();
 
-    $user = User::where('firebase_uid', 'firebase-uid-unverified')->firstOrFail();
-
-    expect($user->email_verified_at)->toBeNull();
+    expect(DogOwner::where('email', 'unverified@example.com')->exists())->toBeTrue();
 });
 
 test('a token minted for another project is rejected', function () {
@@ -242,7 +241,7 @@ test('a token minted for another project is rejected', function () {
         ->assertJsonValidationErrors('id_token');
 
     $this->assertGuest();
-    expect(User::count())->toBe(0);
+    expect(DogOwner::count() + Staff::count())->toBe(0);
 });
 
 test('a token with an unexpected issuer is rejected', function () {
@@ -276,7 +275,7 @@ test('a token signed by a different key is rejected', function () {
         ->assertJsonValidationErrors('id_token');
 
     $this->assertGuest();
-    expect(User::count())->toBe(0);
+    expect(DogOwner::count() + Staff::count())->toBe(0);
 });
 
 test('a tampered token is rejected', function () {
@@ -318,7 +317,7 @@ test('the bridge is unavailable when firebase is disabled', function () {
 });
 
 test('the shared props report whether google sign-in is available', function () {
-    $this->actingAs(User::factory()->owner()->create())
+    $this->actingAs(DogOwner::factory()->create())
         ->get(route('owner.dashboard'))
         ->assertInertia(fn (Assert $page) => $page
             ->where('firebase.enabled', true)
@@ -329,7 +328,7 @@ test('the shared props report whether google sign-in is available', function () 
 test('the shared props hide google sign-in when the project id is missing', function () {
     config(['firebase.project_id' => null]);
 
-    $this->actingAs(User::factory()->owner()->create())
+    $this->actingAs(DogOwner::factory()->create())
         ->get(route('owner.dashboard'))
         ->assertInertia(fn (Assert $page) => $page
             ->where('firebase.configured', false)

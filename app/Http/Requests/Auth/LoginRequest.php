@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Auth;
 
+use App\Models\Staff;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -36,13 +37,25 @@ class LoginRequest extends FormRequest
     /**
      * Attempt to authenticate the request's credentials.
      *
+     * Accounts live in two tables, so both guards are tried. Staff are checked
+     * first because an administrator signing in should land in the console
+     * even in the unlikely case an owner shares the same email — although the
+     * registration rules refuse to create that clash.
+     *
      * @throws ValidationException
      */
     public function authenticate(): void
     {
         $this->ensureIsNotRateLimited();
 
-        if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
+        $credentials = $this->only('email', 'password');
+
+        $authenticated = Auth::guard('staff')->attempt($credentials)
+            || Auth::guard('owner')->attempt($credentials);
+
+        // "Remember me" is not offered: neither account table has a
+        // remember_token column, so a persistent login has nowhere to live.
+        if (! $authenticated) {
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([

@@ -12,10 +12,10 @@ interface LoginProps {
 }
 
 export default function Login({ status, canResetPassword }: LoginProps) {
+    // No "remember me": neither account table has a remember_token column.
     const { data, setData, post, processing, errors, reset } = useForm({
         email: '',
         password: '',
-        remember: false as boolean,
     });
 
     const submit: FormEventHandler = (event) => {
@@ -95,22 +95,7 @@ export default function Login({ status, canResetPassword }: LoginProps) {
                         }
                     />
 
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                        <label className="flex cursor-pointer select-none items-center gap-2.5">
-                            <input
-                                type="checkbox"
-                                name="remember"
-                                checked={data.remember}
-                                onChange={(event) =>
-                                    setData('remember', event.target.checked)
-                                }
-                                className="h-4 w-4 rounded border-[#1a3d1a]/25 text-[#E86A10] shadow-sm transition duration-150 focus:ring-2 focus:ring-[#E86A10]/40 focus:ring-offset-0"
-                            />
-                            <span className="text-sm text-gray-600">
-                                Keep me signed in
-                            </span>
-                        </label>
-
+                    <div className="flex flex-wrap items-center justify-end gap-3">
                         {canResetPassword && (
                             <Link
                                 href={route('password.request')}

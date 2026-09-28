@@ -2,8 +2,8 @@
 
 namespace App\Providers;
 
-use App\Models\Pet;
-use App\Policies\PetPolicy;
+use App\Models\Dog;
+use App\Policies\DogPolicy;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
@@ -25,6 +25,6 @@ class AppServiceProvider extends ServiceProvider
     {
         Vite::prefetch(concurrency: 3);
 
-        Gate::policy(Pet::class, PetPolicy::class);
+        Gate::policy(Dog::class, DogPolicy::class);
     }
 }

@@ -22,10 +22,13 @@ class ConfirmablePasswordController extends Controller
 
     /**
      * Confirm the user's password.
+     *
+     * The account may live in either table, so the guard is chosen from the
+     * authenticated model rather than assuming the default one.
      */
     public function store(Request $request): RedirectResponse
     {
-        if (! Auth::guard('web')->validate([
+        if (! Auth::guard($request->user()->guardName())->validate([
             'email' => $request->user()->email,
             'password' => $request->password,
         ])) {

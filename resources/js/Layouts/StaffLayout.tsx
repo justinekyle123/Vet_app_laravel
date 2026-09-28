@@ -20,6 +20,8 @@ interface NavGroup {
 const roleLabels: Record<UserRole, string> = {
     admin: 'Administrator',
     front_desk: 'Front desk',
+    veterinarian: 'Veterinarian',
+    groomer: 'Groomer',
     owner: 'Dog owner',
 };
 

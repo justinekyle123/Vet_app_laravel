@@ -38,10 +38,14 @@ class AuthenticatedSessionController extends Controller
 
     /**
      * Destroy an authenticated session.
+     *
+     * Both guards share the browser session, so both are cleared: a staff
+     * member who had also signed in as an owner must not stay signed in.
      */
     public function destroy(Request $request): RedirectResponse
     {
-        Auth::guard('web')->logout();
+        Auth::guard('owner')->logout();
+        Auth::guard('staff')->logout();
 
         $request->session()->invalidate();
 

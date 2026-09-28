@@ -4,74 +4,62 @@ namespace App\Http\Controllers\Owner;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Owner\UpdateOwnerAccountRequest;
-use App\Models\Owner;
-use App\Models\Pet;
+use App\Models\DogBreed;
+use App\Models\DogOwner;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * The dog owner's own account: contact details plus a read-only view of the
- * pets registered under them.
+ * The dog owner's own account: contact details plus the dogs registered under
+ * them.
  */
 class AccountController extends Controller
 {
     public function edit(Request $request): Response
     {
-        $owner = Owner::provisionFor($request->user());
+        /** @var DogOwner $owner */
+        $owner = $request->user();
 
         return Inertia::render('Owner/Account', [
             'owner' => [
-                'id' => $owner->id,
+                'id' => $owner->owner_id,
                 'first_name' => $owner->first_name,
                 'last_name' => $owner->last_name,
                 'email' => $owner->email,
-                'phone' => $owner->phone,
-                'alternate_phone' => $owner->alternate_phone,
+                'phone_number' => $owner->phone_number,
                 'address' => $owner->address,
-                'city' => $owner->city,
-                'postal_code' => $owner->postal_code,
             ],
-            'pets' => $owner->pets()
-                ->orderBy('name')
+            'dogs' => $owner->dogs()
+                ->with('breed:breed_id,breed_name')
+                ->orderBy('dog_name')
                 ->get()
-                ->map(fn (Pet $pet) => [
-                    'id' => $pet->id,
-                    'name' => $pet->name,
-                    'species' => $pet->species,
-                    'breed' => $pet->breed,
-                    'sex' => $pet->sex,
-                    'color' => $pet->color,
-                    'birth_date' => $pet->birth_date?->toDateString(),
-                    'weight_kg' => $pet->weight_kg,
-                    'microchip_number' => $pet->microchip_number,
-                    'is_neutered' => $pet->is_neutered,
-                    'allergies' => $pet->allergies,
-                    'is_active' => $pet->is_active,
+                ->map(fn ($dog): array => [
+                    'id' => $dog->dog_id,
+                    'dog_name' => $dog->dog_name,
+                    'breed_id' => $dog->breed_id,
+                    'breed' => $dog->breed?->breed_name,
+                    'sex' => $dog->sex,
+                    'color' => $dog->color,
+                    'birth_date' => $dog->birth_date?->toDateString(),
+                    'weight_kg' => $dog->weight_kg,
+                    'is_vaccinated' => $dog->is_vaccinated,
+                    'photo_url' => $dog->photo_url,
+                    'is_active' => $dog->is_active,
                 ])
                 ->all(),
+            // The form files each dog under a breed from the shared list.
+            'breeds' => DogBreed::query()
+                ->orderBy('breed_name')
+                ->get(['breed_id', 'breed_name']),
         ]);
     }
 
     public function update(UpdateOwnerAccountRequest $request): RedirectResponse
     {
-        $user = $request->user();
-        $owner = Owner::provisionFor($user);
-        $data = $request->validated();
-
-        $owner->fill($data)->save();
-
-        // Keep the login account in step with the client record: the display
-        // name and email are the same identity shown in the top bar.
-        $user->name = trim("{$data['first_name']} {$data['last_name']}");
-
-        if ($user->email !== $data['email']) {
-            $user->email = $data['email'];
-            $user->email_verified_at = null;
-        }
-
-        $user->save();
+        // The login account *is* the client record, so one write covers both.
+        $request->user()->update($request->validated());
 
         return redirect()->route('owner.account.edit');
     }

@@ -1,15 +1,12 @@
 <?php
 
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
-use App\Http\Controllers\Auth\FirebaseSessionController;
 use App\Http\Controllers\Auth\ConfirmablePasswordController;
-use App\Http\Controllers\Auth\EmailVerificationNotificationController;
-use App\Http\Controllers\Auth\EmailVerificationPromptController;
+use App\Http\Controllers\Auth\FirebaseSessionController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
-use App\Http\Controllers\Auth\VerifyEmailController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -18,16 +15,16 @@ use Illuminate\Support\Facades\Route;
  |--------------------------------------------------------------------------
  |
  | Firebase signs the user in on the client (Google popup) and hands the page
- | an ID token. This endpoint verifies that token, mirrors the identity onto a
- | local user row, and starts a normal Laravel session. It sits outside the
- | "guest" group so it also works when refreshing an existing session. The
- | Breeze routes below stay as a password sign-in path.
+ | an ID token. This endpoint verifies that token, matches the identity to a
+ | `dog_owners` or `staff` row, and starts a normal Laravel session. It sits
+ | outside the "guest" group so it also works when refreshing an existing
+ | session. The password routes below stay as the primary sign-in path.
  */
 Route::post('firebase/session', [FirebaseSessionController::class, 'store'])
     ->middleware('throttle:10,1')
     ->name('firebase.session');
 
-Route::middleware('guest')->group(function () {
+Route::middleware('guest:owner,staff')->group(function () {
     Route::get('register', [RegisteredUserController::class, 'create'])
         ->name('register');
 
@@ -51,18 +48,12 @@ Route::middleware('guest')->group(function () {
         ->name('password.store');
 });
 
-Route::middleware('auth')->group(function () {
-    Route::get('verify-email', EmailVerificationPromptController::class)
-        ->name('verification.notice');
-
-    Route::get('verify-email/{id}/{hash}', VerifyEmailController::class)
-        ->middleware(['signed', 'throttle:6,1'])
-        ->name('verification.verify');
-
-    Route::post('email/verification-notification', [EmailVerificationNotificationController::class, 'store'])
-        ->middleware('throttle:6,1')
-        ->name('verification.send');
-
+/*
+ | Email verification is deliberately absent: `dog_owners` and `staff` have no
+ | `email_verified_at` column, so there is nothing for the "verified"
+ | middleware to check against.
+ */
+Route::middleware('auth:owner,staff')->group(function () {
     Route::get('confirm-password', [ConfirmablePasswordController::class, 'show'])
         ->name('password.confirm');
 

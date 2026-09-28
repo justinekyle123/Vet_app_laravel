@@ -2,18 +2,20 @@
 
 namespace App\Services\Firebase;
 
-use App\Enums\UserRole;
-use App\Models\Owner;
-use App\Models\User;
+use App\Models\DogOwner;
+use App\Models\Staff;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use RuntimeException;
 
 /**
- * Maps a verified Firebase identity onto a local user row.
+ * Maps a verified Firebase identity onto a local account row.
  *
- * Local rows must exist because other tables (owners.user_id, and
- * veterinarians.user_id later) have foreign keys into "users". This upserts on
- * first sign-in rather than relying on a webhook, so it is self-healing and
- * needs no queue.
+ * Accounts live in `dog_owners` and `staff`, and neither table has a column
+ * for the Firebase uid, so an identity is matched by email: the same address
+ * a staff member or owner already signs in with. A first-time Google sign-in
+ * with no matching address becomes a dog owner, since that is the only
+ * self-service account the clinic offers.
  */
 class FirebaseUserSynchronizer
 {
@@ -22,8 +24,10 @@ class FirebaseUserSynchronizer
      *
      * @throws RuntimeException When the token carries no usable identity.
      */
-    public function sync(array $claims): User
+    public function sync(array $claims): DogOwner|Staff
     {
+        // The subject is required even though it is not persisted: a token
+        // without one is malformed, and Google always sends it.
         $uid = (string) ($claims['sub'] ?? '');
 
         if ($uid === '') {
@@ -42,60 +46,35 @@ class FirebaseUserSynchronizer
 
         $name = $this->stringClaim($claims, 'name');
 
-        // Prefer an existing Firebase link; otherwise adopt a row previously
-        // created through Breeze with the same email instead of duplicating it.
-        $user = User::where('firebase_uid', $uid)->first()
-            ?? User::where('email', $email)->first();
+        // Prefer an existing account with this address, in either table, so a
+        // staff member signing in with Google keeps their role and history.
+        $account = DogOwner::where('email', $email)->first()
+            ?? Staff::where('email', $email)->first();
 
-        $attributes = [
-            'firebase_uid' => $uid,
-            'email' => $email,
-        ];
+        if ($account !== null) {
+            if ($name !== null) {
+                [$firstName, $lastName] = DogOwner::splitName($name);
 
-        if ($name !== null) {
-            $attributes['name'] = $name;
-        }
-
-        /*
-         * Only treat the address as verified when Firebase says it is. A
-         * Google identity is verified; an unverified email/password Firebase
-         * account is not, and the "verified" middleware gates the protected
-         * areas on this column.
-         */
-        $verified = ($claims['email_verified'] ?? false) === true;
-
-        /*
-         * Assigned as a property rather than mass-assigned, because
-         * email_verified_at is deliberately absent from the model's $fillable
-         * so request input can never set it. (Folding it into the attribute
-         * array above would silently drop it for exactly that reason.)
-         */
-        if ($user) {
-            $user->fill($attributes);
-
-            // Never downgrade an address that is already verified.
-            if ($verified && $user->email_verified_at === null) {
-                $user->email_verified_at = now();
+                $account->first_name = $firstName;
+                $account->last_name = $lastName;
+                $account->save();
             }
 
-            $user->save();
-
-            return $user;
+            return $account;
         }
 
-        // New Firebase identities become dog owners by default. Existing rows
-        // are left alone above so a promoted staff member keeps their role.
-        $user = new User([
-            ...$attributes,
-            'name' => $name ?? $email,
+        [$firstName, $lastName] = DogOwner::splitName($name ?? $email);
+
+        return DogOwner::create([
+            'first_name' => $firstName,
+            'last_name' => $lastName,
+            'email' => $email,
+            // Firebase owns the credential, so this account has no usable
+            // password. The stored value is random rather than blank so it can
+            // never be matched by an empty or guessed password.
+            'password_hash' => Hash::make(Str::random(40)),
+            'phone_number' => '',
         ]);
-        $user->role = UserRole::Owner;
-        $user->email_verified_at = $verified ? now() : null;
-        $user->save();
-
-        Owner::provisionFor($user);
-
-        return $user;
     }
 
     /**

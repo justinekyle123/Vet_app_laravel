@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\SaveServiceRequest;
 use App\Models\Service;
+use App\Models\ServiceCategory;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -12,8 +13,8 @@ use Inertia\Response;
 /**
  * The clinic's service menu: what the desk can book and bill for.
  *
- * Services are retired rather than deleted, so invoice lines and past
- * appointments that reference one keep their meaning.
+ * Services are retired rather than deleted, so appointment history that
+ * references one keeps its meaning.
  */
 class ServiceController extends Controller
 {
@@ -21,15 +22,24 @@ class ServiceController extends Controller
     {
         return Inertia::render('Admin/Services', [
             'services' => Service::query()
-                ->orderBy('name')
-                ->get([
-                    'id',
-                    'name',
-                    'description',
-                    'duration_minutes',
-                    'price',
-                    'is_active',
+                ->with('category:category_id,category_name')
+                ->orderBy('service_name')
+                ->get()
+                ->map(fn (Service $service): array => [
+                    'id' => $service->service_id,
+                    'category_id' => $service->category_id,
+                    'category_name' => $service->category?->category_name,
+                    'service_name' => $service->service_name,
+                    'description' => $service->description,
+                    'duration_minutes' => $service->duration_minutes,
+                    'price' => $service->price,
+                    'is_active' => $service->is_active,
                 ]),
+            // The form needs the menu of categories a service can be filed
+            // under; the schema makes category_id mandatory.
+            'categories' => ServiceCategory::query()
+                ->orderBy('category_name')
+                ->get(['category_id', 'category_name']),
         ]);
     }
 

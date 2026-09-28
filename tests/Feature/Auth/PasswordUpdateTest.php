@@ -1,13 +1,14 @@
 <?php
 
-use App\Models\User;
+use App\Models\DogOwner;
+use App\Models\Staff;
 use Illuminate\Support\Facades\Hash;
 
 test('password can be updated', function () {
-    $user = User::factory()->create();
+    $owner = DogOwner::factory()->create();
 
     $response = $this
-        ->actingAs($user)
+        ->actingAs($owner)
         ->from('/profile')
         ->put('/password', [
             'current_password' => 'password',
@@ -19,14 +20,33 @@ test('password can be updated', function () {
         ->assertSessionHasNoErrors()
         ->assertRedirect('/profile');
 
-    $this->assertTrue(Hash::check('new-password', $user->refresh()->password));
+    $this->assertTrue(Hash::check('new-password', $owner->refresh()->password_hash));
+});
+
+test('a staff member can update their own password', function () {
+    $staff = Staff::factory()->admin()->create();
+
+    $response = $this
+        ->actingAs($staff, 'staff')
+        ->from('/profile')
+        ->put('/password', [
+            'current_password' => 'password',
+            'password' => 'new-password',
+            'password_confirmation' => 'new-password',
+        ]);
+
+    $response
+        ->assertSessionHasNoErrors()
+        ->assertRedirect('/profile');
+
+    $this->assertTrue(Hash::check('new-password', $staff->refresh()->password_hash));
 });
 
 test('correct password must be provided to update password', function () {
-    $user = User::factory()->create();
+    $owner = DogOwner::factory()->create();
 
     $response = $this
-        ->actingAs($user)
+        ->actingAs($owner)
         ->from('/profile')
         ->put('/password', [
             'current_password' => 'wrong-password',

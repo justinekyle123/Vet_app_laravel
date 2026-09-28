@@ -2,8 +2,7 @@
 
 namespace App\Http\Requests\Admin;
 
-use App\Enums\UserRole;
-use App\Models\User;
+use App\Models\Staff;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rules;
@@ -16,10 +15,7 @@ class ResetStaffPasswordRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        $target = $this->route('user');
-
-        return $target instanceof User
-            && $target->hasAnyRole(UserRole::Admin, UserRole::FrontDesk);
+        return $this->route('staff') instanceof Staff;
     }
 
     /**

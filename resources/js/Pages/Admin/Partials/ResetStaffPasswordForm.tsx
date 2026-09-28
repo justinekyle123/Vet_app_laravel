@@ -7,6 +7,7 @@ import Icon from '@/Components/Icon';
 import InputError from '@/Components/InputError';
 import Modal from '@/Components/Modal';
 import Spinner from '@/Components/Spinner';
+import { StaffRole } from '@/types';
 import { useForm } from '@inertiajs/react';
 import { FormEventHandler, useEffect, useRef } from 'react';
 
@@ -14,7 +15,7 @@ export interface StaffMember {
     id: number;
     name: string;
     email: string;
-    role: 'admin' | 'front_desk';
+    role: StaffRole;
 }
 
 

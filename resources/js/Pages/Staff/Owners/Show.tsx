@@ -14,23 +14,19 @@ interface OwnerDetail {
     first_name: string;
     last_name: string;
     email: string | null;
-    phone: string | null;
-    alternate_phone: string | null;
+    phone_number: string | null;
     address: string | null;
-    city: string | null;
-    postal_code: string | null;
-    notes: string | null;
     is_active: boolean;
     created_at: string;
 }
 
-interface PetSummary {
+interface DogSummary {
     id: number;
-    name: string;
-    species: string;
+    dog_name: string;
     breed: string | null;
     sex: string | null;
     birth_date: string | null;
+    is_vaccinated: boolean;
     is_active: boolean;
 }
 
@@ -49,10 +45,10 @@ function Detail({ label, value }: { label: string; value: string | null }) {
 
 export default function Show({
     owner,
-    pets,
+    dogs,
 }: {
     owner: OwnerDetail;
-    pets: PetSummary[];
+    dogs: DogSummary[];
 }) {
     const fullName = `${owner.first_name} ${owner.last_name}`;
 
@@ -60,7 +56,7 @@ export default function Show({
         <StaffLayout
             title={fullName}
             heading={fullName}
-            description="Client record, contact details, and the pets registered under this owner."
+            description="Client record, contact details, and the dogs registered under this owner."
             actions={
                 <>
                     <StatusPill active={owner.is_active} />
@@ -105,68 +101,51 @@ export default function Show({
                     >
                         <dl className="grid grid-cols-1 gap-5 sm:grid-cols-2">
                             <Detail label="Email" value={owner.email} />
-                            <Detail label="Phone" value={owner.phone} />
-                            <Detail
-                                label="Alternate phone"
-                                value={owner.alternate_phone}
-                            />
-                            <Detail label="City" value={owner.city} />
+                            <Detail label="Phone" value={owner.phone_number} />
                             <Detail label="Address" value={owner.address} />
-                            <Detail
-                                label="Postal code"
-                                value={owner.postal_code}
-                            />
                         </dl>
-
-                        <div className="mt-6 border-t border-[#1a3d1a]/10 pt-5">
-                            <Detail label="Notes" value={owner.notes} />
-                        </div>
                     </Panel>
                 </div>
 
                 <Panel
-                    title="Pets"
+                    title="Dogs"
                     icon="paw"
                     fill
                     action={
                         <span className="text-xs font-medium text-[#1a3d1a]/45">
-                            {pets.length} {pets.length === 1 ? 'pet' : 'pets'}
+                            {dogs.length} {dogs.length === 1 ? 'dog' : 'dogs'}
                         </span>
                     }
                 >
-                    {pets.length === 0 ? (
+                    {dogs.length === 0 ? (
                         <EmptyState
                             icon="paw"
-                            message="No pets are registered under this owner yet."
+                            message="No dogs are registered under this owner yet."
                         />
                     ) : (
                         <ul className="divide-y divide-[#1a3d1a]/10">
-                            {pets.map((pet) => (
+                            {dogs.map((dog) => (
                                 <li
-                                    key={pet.id}
+                                    key={dog.id}
                                     className="flex items-start justify-between gap-3 py-3 first:pt-0 last:pb-0"
                                 >
                                     <div className="min-w-0">
                                         <p className="truncate text-sm font-semibold text-[#1a3d1a]">
-                                            {pet.name}
+                                            {dog.dog_name}
                                         </p>
                                         <p className="truncate text-xs text-[#1a3d1a]/55">
-                                            {[
-                                                pet.species,
-                                                pet.breed,
-                                                pet.sex,
-                                            ]
+                                            {[dog.breed, dog.sex]
                                                 .filter(Boolean)
                                                 .join(' · ')}
                                         </p>
-                                        {pet.birth_date && (
+                                        {dog.birth_date && (
                                             <p className="mt-0.5 text-[0.68rem] text-[#1a3d1a]/45">
-                                                Born {longDate(pet.birth_date)}
+                                                Born {longDate(dog.birth_date)}
                                             </p>
                                         )}
                                     </div>
                                     <StatusPill
-                                        active={pet.is_active}
+                                        active={dog.is_active}
                                         activeLabel="Active"
                                     />
                                 </li>

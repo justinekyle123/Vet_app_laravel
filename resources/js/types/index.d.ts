@@ -1,11 +1,17 @@
-export type UserRole = 'admin' | 'front_desk' | 'owner';
+/** The roles a staff row can hold, matching the `staff.role` column. */
+export type StaffRole = 'admin' | 'front_desk' | 'veterinarian' | 'groomer';
+
+/**
+ * Every role the console recognises. Dog owners are not staff: their accounts
+ * live in their own table and report the single "owner" role.
+ */
+export type UserRole = StaffRole | 'owner';
 
 export interface User {
     id: number;
     name: string;
     email: string;
     role: UserRole;
-    email_verified_at?: string;
 }
 
 export interface PaginationLink {

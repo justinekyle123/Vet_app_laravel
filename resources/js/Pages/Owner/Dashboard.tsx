@@ -13,7 +13,7 @@ export default function OwnerDashboard() {
                         Welcome, {user.name}
                     </h2>
                     <p className="mt-1 text-sm text-gray-500">
-                        Your pets, appointments, and payments in one place.
+                        Your dogs, appointments, and payments in one place.
                     </p>
                 </div>
             }
@@ -24,8 +24,8 @@ export default function OwnerDashboard() {
                 <div className="mx-auto max-w-7xl space-y-6 sm:px-6 lg:px-8">
                     <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
                         <DashboardCard
-                            id="pets"
-                            title="My pets"
+                            id="dogs"
+                            title="My dogs"
                             icon="paw"
                             action={
                                 <Link
@@ -36,13 +36,13 @@ export default function OwnerDashboard() {
                                 </Link>
                             }
                         >
-                            <EmptyState message="You have not added any pets yet." />
+                            <EmptyState message="You have not added any dogs yet." />
                             <button
                                 type="button"
                                 disabled
                                 className="mt-4 cursor-not-allowed self-start rounded-md bg-emerald-600/60 px-4 py-2 text-sm font-semibold text-white"
                             >
-                                Add a pet
+                                Add a dog
                             </button>
                         </DashboardCard>
                         <DashboardCard
