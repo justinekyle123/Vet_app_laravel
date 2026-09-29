@@ -1,17 +1,17 @@
-import DashboardCard, { EmptyState } from '@/Components/DashboardCard';
-import InputError from '@/Components/InputError';
-import InputLabel from '@/Components/InputLabel';
-import PrimaryButton from '@/Components/PrimaryButton';
-import SecondaryButton from '@/Components/SecondaryButton';
-import TextInput from '@/Components/TextInput';
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, Link, useForm } from '@inertiajs/react';
+import Field from '@/Components/Field';
+import Icon from '@/Components/Icon';
+import Panel, { EmptyState } from '@/Components/Panel';
+import Spinner from '@/Components/Spinner';
+import StatusPill from '@/Components/StatusPill';
+import {
+    primaryButtonClass,
+    rowButtonClass,
+} from '@/Components/buttonStyles';
+import OwnerLayout from '@/Layouts/OwnerLayout';
 import { Transition } from '@headlessui/react';
+import { useForm } from '@inertiajs/react';
 import { FormEventHandler, useState } from 'react';
-import DogFormModal, {
-    BreedOption,
-    DogRecord,
-} from './Partials/DogFormModal';
+import DogFormModal, { BreedOption, DogRecord } from './Partials/DogFormModal';
 
 interface OwnerAccount {
     id: number;
@@ -22,6 +22,11 @@ interface OwnerAccount {
     address: string | null;
 }
 
+/**
+ * The client's own record: the contact details the clinic calls on, plus the
+ * dogs registered under the account. One write covers both, because the login
+ * account *is* the client record.
+ */
 export default function Account({
     owner,
     dogs,
@@ -53,231 +58,179 @@ export default function Account({
             address: owner.address ?? '',
         });
 
-    const submit: FormEventHandler = (e) => {
-        e.preventDefault();
+    const submit: FormEventHandler = (event) => {
+        event.preventDefault();
 
-        patch(route('owner.account.update'));
+        patch(route('owner.account.update'), { preserveScroll: true });
     };
 
     return (
-        <AuthenticatedLayout
-            header={
-                <div>
-                    <h2 className="text-xl font-semibold leading-tight text-gray-800">
-                        My Account
-                    </h2>
-                    <p className="mt-1 text-sm text-gray-500">
-                        Keep your contact details up to date and review your
-                        dogs.
-                    </p>
-                </div>
-            }
+        <OwnerLayout
+            title="My account"
+            heading="My account"
+            description="Keep your contact details current and review the dogs registered under your account."
         >
-            <Head title="My Account" />
+            <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-2">
+                <Panel title="Contact details" icon="user">
+                    <form onSubmit={submit} className="space-y-5">
+                        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                            <Field
+                                label="First name"
+                                name="first_name"
+                                value={data.first_name}
+                                onChange={(event) =>
+                                    setData('first_name', event.target.value)
+                                }
+                                error={errors.first_name}
+                                autoComplete="given-name"
+                                required
+                            />
 
-            <div className="py-12">
-                <div className="mx-auto max-w-7xl space-y-6 sm:px-6 lg:px-8">
-                    <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                        <DashboardCard title="Contact details" icon="user">
-                            <form onSubmit={submit} className="space-y-5">
-                                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-                                    <div>
-                                        <InputLabel
-                                            htmlFor="first_name"
-                                            value="First name"
-                                        />
-                                        <TextInput
-                                            id="first_name"
-                                            className="mt-1 block w-full"
-                                            value={data.first_name}
-                                            onChange={(e) =>
-                                                setData(
-                                                    'first_name',
-                                                    e.target.value,
-                                                )
-                                            }
-                                            required
-                                            isFocused
-                                            autoComplete="given-name"
-                                        />
-                                        <InputError
-                                            className="mt-2"
-                                            message={errors.first_name}
-                                        />
-                                    </div>
+                            <Field
+                                label="Last name"
+                                name="last_name"
+                                value={data.last_name}
+                                onChange={(event) =>
+                                    setData('last_name', event.target.value)
+                                }
+                                error={errors.last_name}
+                                autoComplete="family-name"
+                                required
+                            />
 
-                                    <div>
-                                        <InputLabel
-                                            htmlFor="last_name"
-                                            value="Last name"
-                                        />
-                                        <TextInput
-                                            id="last_name"
-                                            className="mt-1 block w-full"
-                                            value={data.last_name}
-                                            onChange={(e) =>
-                                                setData(
-                                                    'last_name',
-                                                    e.target.value,
-                                                )
-                                            }
-                                            required
-                                            autoComplete="family-name"
-                                        />
-                                        <InputError
-                                            className="mt-2"
-                                            message={errors.last_name}
-                                        />
-                                    </div>
-                                </div>
+                            <div className="sm:col-span-2">
+                                <Field
+                                    label="Email"
+                                    name="email"
+                                    type="email"
+                                    value={data.email}
+                                    onChange={(event) =>
+                                        setData('email', event.target.value)
+                                    }
+                                    error={errors.email}
+                                    hint="Used to sign in and to send appointment reminders."
+                                    autoComplete="email"
+                                    required
+                                />
+                            </div>
 
-                                <div>
-                                    <InputLabel htmlFor="email" value="Email" />
-                                    <TextInput
-                                        id="email"
-                                        type="email"
-                                        className="mt-1 block w-full"
-                                        value={data.email}
-                                        onChange={(e) =>
-                                            setData('email', e.target.value)
-                                        }
-                                        required
-                                        autoComplete="username"
-                                    />
-                                    <InputError
-                                        className="mt-2"
-                                        message={errors.email}
-                                    />
-                                </div>
+                            <Field
+                                label="Phone number"
+                                name="phone_number"
+                                type="tel"
+                                value={data.phone_number}
+                                onChange={(event) =>
+                                    setData(
+                                        'phone_number',
+                                        event.target.value,
+                                    )
+                                }
+                                error={errors.phone_number}
+                                autoComplete="tel"
+                            />
 
-                                <div>
-                                    <InputLabel
-                                        htmlFor="phone_number"
-                                        value="Phone number"
-                                    />
-                                    <TextInput
-                                        id="phone_number"
-                                        className="mt-1 block w-full"
-                                        value={data.phone_number}
-                                        onChange={(e) =>
-                                            setData(
-                                                'phone_number',
-                                                e.target.value,
-                                            )
-                                        }
-                                        autoComplete="tel"
-                                    />
-                                    <InputError
-                                        className="mt-2"
-                                        message={errors.phone_number}
-                                    />
-                                </div>
+                            <Field
+                                label="Address"
+                                name="address"
+                                value={data.address}
+                                onChange={(event) =>
+                                    setData('address', event.target.value)
+                                }
+                                error={errors.address}
+                                autoComplete="street-address"
+                            />
+                        </div>
 
-                                <div>
-                                    <InputLabel
-                                        htmlFor="address"
-                                        value="Address"
+                        <div className="flex flex-wrap items-center gap-4 border-t border-[#1a3d1a]/10 pt-6">
+                            <button
+                                type="submit"
+                                disabled={processing}
+                                className={primaryButtonClass}
+                            >
+                                {processing ? (
+                                    <Spinner className="h-4 w-4" />
+                                ) : (
+                                    <Icon
+                                        name="check"
+                                        className="h-4 w-4"
                                     />
-                                    <TextInput
-                                        id="address"
-                                        className="mt-1 block w-full"
-                                        value={data.address}
-                                        onChange={(e) =>
-                                            setData('address', e.target.value)
-                                        }
-                                        autoComplete="street-address"
-                                    />
-                                    <InputError
-                                        className="mt-2"
-                                        message={errors.address}
-                                    />
-                                </div>
+                                )}
+                                Save changes
+                            </button>
 
-                                <div className="flex items-center gap-4">
-                                    <PrimaryButton disabled={processing}>
-                                        Save
-                                    </PrimaryButton>
+                            <Transition
+                                show={recentlySuccessful}
+                                enter="transition ease-in-out"
+                                enterFrom="opacity-0"
+                                leave="transition ease-in-out"
+                                leaveTo="opacity-0"
+                            >
+                                <p className="text-sm font-medium text-[#2a5a2a]">
+                                    Saved.
+                                </p>
+                            </Transition>
+                        </div>
+                    </form>
+                </Panel>
 
-                                    <Transition
-                                        show={recentlySuccessful}
-                                        enter="transition ease-in-out"
-                                        enterFrom="opacity-0"
-                                        leave="transition ease-in-out"
-                                        leaveTo="opacity-0"
-                                    >
-                                        <p className="text-sm text-gray-600">
-                                            Saved.
-                                        </p>
-                                    </Transition>
-                                </div>
-                            </form>
-                        </DashboardCard>
-
-                        <DashboardCard
-                            title="My dogs"
-                            icon="paw"
-                            action={
-                                <SecondaryButton onClick={openAddDog}>
-                                    Add dog
-                                </SecondaryButton>
-                            }
+                <Panel
+                    title="My dogs"
+                    icon="paw"
+                    action={
+                        <button
+                            type="button"
+                            onClick={openAddDog}
+                            className={rowButtonClass}
                         >
-                            {dogs.length === 0 ? (
-                                <EmptyState message="No dogs are registered under your account yet. Add your first one to get started." />
-                            ) : (
-                                <ul className="divide-y divide-gray-100">
-                                    {dogs.map((dog) => (
-                                        <li
-                                            key={dog.id}
-                                            className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0"
-                                        >
-                                            <div className="min-w-0">
-                                                <p className="truncate text-sm font-medium text-gray-900">
-                                                    {dog.dog_name}
-                                                </p>
-                                                <p className="truncate text-xs text-gray-500">
-                                                    {[dog.breed, dog.sex]
-                                                        .filter(Boolean)
-                                                        .join(' · ')}
-                                                </p>
-                                            </div>
-                                            <div className="flex shrink-0 items-center gap-3">
-                                                <span
-                                                    className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                                                        dog.is_active
-                                                            ? 'bg-emerald-50 text-emerald-700'
-                                                            : 'bg-gray-100 text-gray-500'
-                                                    }`}
-                                                >
-                                                    {dog.is_active
-                                                        ? 'Active'
-                                                        : 'Inactive'}
-                                                </span>
-                                                <SecondaryButton
-                                                    onClick={() =>
-                                                        openEditDog(dog)
-                                                    }
-                                                >
-                                                    Edit
-                                                </SecondaryButton>
-                                            </div>
-                                        </li>
-                                    ))}
-                                </ul>
-                            )}
-
-                            <p className="mt-4 text-xs text-gray-500">
-                                Need something removed? Contact the front desk.{' '}
-                                <Link
-                                    href={route('owner.dashboard')}
-                                    className="font-medium text-emerald-700 hover:text-emerald-800"
+                            Add a dog
+                        </button>
+                    }
+                >
+                    {dogs.length === 0 ? (
+                        <EmptyState message="No dogs are registered under your account yet. Add your first one to get started." />
+                    ) : (
+                        <ul className="divide-y divide-[#1a3d1a]/5">
+                            {dogs.map((dog) => (
+                                <li
+                                    key={dog.id}
+                                    className="flex items-center justify-between gap-3 py-4 first:pt-0 last:pb-0"
                                 >
-                                    Back to portal
-                                </Link>
-                            </p>
-                        </DashboardCard>
-                    </div>
-                </div>
+                                    <div className="min-w-0">
+                                        <p className="truncate text-sm font-semibold text-[#1a3d1a]">
+                                            {dog.dog_name}
+                                        </p>
+                                        <p className="truncate text-xs text-[#1a3d1a]/55">
+                                            {[dog.breed, dog.sex, dog.color]
+                                                .filter(Boolean)
+                                                .join(' · ') ||
+                                                'Breed not set'}
+                                        </p>
+                                    </div>
+
+                                    <div className="flex shrink-0 items-center gap-3">
+                                        <StatusPill
+                                            active={dog.is_active}
+                                            activeLabel="Active"
+                                            inactiveLabel="Inactive"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => openEditDog(dog)}
+                                            className={rowButtonClass}
+                                        >
+                                            Edit
+                                        </button>
+                                    </div>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+
+                    <p className="mt-5 border-t border-[#1a3d1a]/5 pt-4 text-xs leading-relaxed text-[#1a3d1a]/50">
+                        Need a dog removed, or records merged? Contact the front
+                        desk and we will sort it out.
+                    </p>
+                </Panel>
             </div>
 
             <DogFormModal
@@ -286,6 +239,6 @@ export default function Account({
                 show={dogModalOpen}
                 onClose={() => setDogModalOpen(false)}
             />
-        </AuthenticatedLayout>
+        </OwnerLayout>
     );
 }

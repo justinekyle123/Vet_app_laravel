@@ -3,13 +3,16 @@
 namespace Database\Seeders;
 
 use App\Enums\StaffRole;
+use App\Models\Appointment;
 use App\Models\AppointmentStatus;
 use App\Models\ClinicInfo;
 use App\Models\Dog;
 use App\Models\DogBreed;
 use App\Models\DogOwner;
 use App\Models\FaqCategory;
+use App\Models\Notification;
 use App\Models\PaymentMethod;
+use App\Models\Service;
 use App\Models\ServiceCategory;
 use App\Models\Staff;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
@@ -73,13 +76,15 @@ class DatabaseSeeder extends Seeder
             'address' => '1 Bark Street',
         ]);
 
-        Dog::create([
+        $dog = Dog::create([
             'owner_id' => $owner->owner_id,
             'dog_name' => 'Rex',
             'breed_id' => DogBreed::where('breed_name', 'Labrador Retriever')->value('breed_id'),
             'sex' => 'Male',
             'is_active' => true,
         ]);
+
+        $this->seedOwnerHistory($owner, $dog);
     }
 
     /**
@@ -145,5 +150,111 @@ class DatabaseSeeder extends Seeder
         foreach (['Bookings', 'Billing', 'Visits', 'Account'] as $name) {
             FaqCategory::firstOrCreate(['category_name' => $name]);
         }
+    }
+
+    /**
+     * The sample client's visit history, so the portal's appointments page and
+     * notification bell have real records behind them.
+     */
+    private function seedOwnerHistory(DogOwner $owner, Dog $dog): void
+    {
+        $services = $this->seedServices();
+
+        $completed = AppointmentStatus::where('status_name', 'Completed')->value('status_id');
+        $confirmed = AppointmentStatus::where('status_name', 'Confirmed')->value('status_id');
+
+        Appointment::create([
+            'owner_id' => $owner->owner_id,
+            'dog_id' => $dog->dog_id,
+            'service_id' => $services['Wellness Exam']->service_id,
+            'appointment_date' => now()->subWeeks(6)->toDateString(),
+            'appointment_time' => '09:30:00',
+            'status_id' => $completed,
+            'notes' => 'Healthy; due for a booster next season.',
+        ]);
+
+        $boosterOn = now()->addDays(5);
+
+        Appointment::create([
+            'owner_id' => $owner->owner_id,
+            'dog_id' => $dog->dog_id,
+            'service_id' => $services['Core Vaccine Booster']->service_id,
+            'appointment_date' => $boosterOn->toDateString(),
+            'appointment_time' => '10:00:00',
+            'status_id' => $confirmed,
+            'notes' => 'Booster visit.',
+        ]);
+
+        $this->seedNotification(
+            $owner,
+            'SMS',
+            'Rex is due for a core vaccine booster on '.$boosterOn->format('M j').'.',
+            now()->subDay(),
+        );
+
+        $this->seedNotification(
+            $owner,
+            'Email',
+            'Welcome to MyVet! Your portal is ready — Rex\'s records live here.',
+            now()->subDays(3),
+        );
+    }
+
+    /**
+     * The service menu the desk books from.
+     *
+     * Five services, spread across the consultation, vaccination, grooming,
+     * and diagnostics categories, so the booking flow has a realistic menu to
+     * work against on a fresh install. "Wellness Exam" and "Core Vaccine
+     * Booster" are also referenced by the sample owner's visit history below.
+     *
+     * @return array<string, Service>
+     */
+    private function seedServices(): array
+    {
+        $menu = [
+            ['Consultation', 'Wellness Exam', 'A routine nose-to-tail check-up.', 650, 30],
+            ['Vaccination', 'Core Vaccine Booster', 'Distemper, parvo, and hepatitis booster.', 850, 15],
+            ['Vaccination', 'Anti-rabies Shot', 'A single anti-rabies vaccination.', 450, 15],
+            ['Grooming', 'Full Groom', 'Bath, trim, ear clean, and nail clipping.', 900, 90],
+            ['Diagnostics', 'Complete Blood Count', 'In-house bloodwork, results the same visit.', 1200, 30],
+        ];
+
+        $services = [];
+
+        foreach ($menu as [$categoryName, $name, $description, $price, $duration]) {
+            $services[$name] = Service::create([
+                'category_id' => ServiceCategory::where('category_name', $categoryName)->value('category_id'),
+                'service_name' => $name,
+                'description' => $description,
+                'price' => $price,
+                'duration_minutes' => $duration,
+            ]);
+        }
+
+        return $services;
+    }
+
+    /**
+     * A notification log row. The table has no updated_at and its created_at
+     * defaults to now, so the timestamp is set explicitly to keep the seeded
+     * feed in a readable order.
+     */
+    private function seedNotification(
+        DogOwner $owner,
+        string $channel,
+        string $message,
+        \DateTimeInterface $createdAt,
+    ): void {
+        $notification = new Notification([
+            'owner_id' => $owner->owner_id,
+            'channel' => $channel,
+            'message' => $message,
+            'status' => 'Sent',
+            'sent_at' => $createdAt,
+        ]);
+
+        $notification->created_at = $createdAt;
+        $notification->save();
     }
 }
