@@ -6,10 +6,15 @@ use App\Http\Controllers\Admin\ServiceController as AdminServiceController;
 use App\Http\Controllers\Admin\SettingController as AdminSettingController;
 use App\Http\Controllers\Admin\StaffController as AdminStaffController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\FrontDesk\AppointmentController as FrontDeskAppointmentController;
 use App\Http\Controllers\FrontDesk\DashboardController as FrontDeskDashboardController;
 use App\Http\Controllers\Owner\AccountController as OwnerAccountController;
+use App\Http\Controllers\Owner\AppointmentController as OwnerAppointmentController;
 use App\Http\Controllers\Owner\DashboardController as OwnerDashboardController;
 use App\Http\Controllers\Owner\DogController as OwnerDogController;
+use App\Http\Controllers\Owner\NotificationController as OwnerNotificationController;
+use App\Http\Controllers\Owner\SearchController as OwnerSearchController;
+use App\Http\Controllers\Owner\ServiceController as OwnerServiceController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Staff\OwnerController as StaffOwnerController;
 use Illuminate\Foundation\Application;
@@ -95,6 +100,12 @@ Route::middleware(['auth:owner,staff', 'role:admin,front_desk,veterinarian,groom
     ->name('front_desk.')
     ->group(function () {
         Route::get('/', FrontDeskDashboardController::class)->name('dashboard');
+
+        // The desk's two moves on a booking it owns the state of.
+        Route::patch('appointments/{appointment}/confirm', [FrontDeskAppointmentController::class, 'confirm'])
+            ->name('appointments.confirm');
+        Route::patch('appointments/{appointment}/cancel', [FrontDeskAppointmentController::class, 'cancel'])
+            ->name('appointments.cancel');
     });
 
 Route::middleware(['auth:owner,staff', 'role:admin,front_desk,veterinarian,groomer'])
@@ -116,6 +127,21 @@ Route::middleware(['auth:owner,staff', 'role:owner'])
     ->name('owner.')
     ->group(function () {
         Route::get('/', OwnerDashboardController::class)->name('dashboard');
+
+        Route::get('services', [OwnerServiceController::class, 'index'])->name('services.index');
+
+        // Feeds the booking modal's calendar for one service; returns JSON.
+        Route::get('services/{service}/availability', [OwnerServiceController::class, 'availability'])
+            ->name('services.availability');
+
+        Route::get('appointments', [OwnerAppointmentController::class, 'index'])->name('appointments.index');
+        Route::post('appointments', [OwnerAppointmentController::class, 'store'])->name('appointments.store');
+
+        // Powers the navbar's search box; returns JSON, not an Inertia page.
+        Route::get('search', OwnerSearchController::class)->name('search');
+
+        Route::patch('notifications/read', [OwnerNotificationController::class, 'markAllRead'])
+            ->name('notifications.read');
 
         Route::get('account', [OwnerAccountController::class, 'edit'])->name('account.edit');
         Route::patch('account', [OwnerAccountController::class, 'update'])->name('account.update');

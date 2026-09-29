@@ -1,10 +1,12 @@
-import Checkbox from '@/Components/Checkbox';
+import Field from '@/Components/Field';
 import InputError from '@/Components/InputError';
-import InputLabel from '@/Components/InputLabel';
 import Modal from '@/Components/Modal';
-import PrimaryButton from '@/Components/PrimaryButton';
-import SecondaryButton from '@/Components/SecondaryButton';
-import TextInput from '@/Components/TextInput';
+import Spinner from '@/Components/Spinner';
+import {
+    primaryButtonClass,
+    secondaryButtonClass,
+} from '@/Components/buttonStyles';
+import { checkboxClass, fieldClass, labelClass } from '@/Components/formStyles';
 import { useForm } from '@inertiajs/react';
 import { FormEventHandler, useEffect } from 'react';
 
@@ -79,8 +81,8 @@ export default function DogFormModal({
         }
     }, [show, dog?.id]);
 
-    const submit: FormEventHandler = (e) => {
-        e.preventDefault();
+    const submit: FormEventHandler = (event) => {
+        event.preventDefault();
 
         const options = {
             preserveScroll: true,
@@ -97,38 +99,39 @@ export default function DogFormModal({
     return (
         <Modal show={show} onClose={onClose} maxWidth="lg">
             <form onSubmit={submit} className="p-6">
-                <h2 className="text-lg font-medium text-gray-900">
+                <h2 className="font-serif-display text-2xl leading-tight text-[#1a3d1a]">
                     {dog ? `Edit ${dog.dog_name}` : 'Add a dog'}
                 </h2>
-                <p className="mt-1 text-sm text-gray-600">
+                <p className="mt-1.5 text-sm leading-relaxed text-[#1a3d1a]/60">
                     {dog
                         ? 'Update your dog details and save.'
                         : 'Tell us about your dog so the clinic is ready for their visit.'}
                 </p>
 
                 <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2">
-                    <div>
-                        <InputLabel htmlFor="dog_name" value="Name" />
-                        <TextInput
-                            id="dog_name"
-                            className="mt-1 block w-full"
-                            value={data.dog_name}
-                            onChange={(e) =>
-                                setData('dog_name', e.target.value)
-                            }
-                            isFocused
-                        />
-                        <InputError className="mt-2" message={errors.dog_name} />
-                    </div>
+                    <Field
+                        label="Name"
+                        name="dog_name"
+                        value={data.dog_name}
+                        onChange={(event) =>
+                            setData('dog_name', event.target.value)
+                        }
+                        error={errors.dog_name}
+                        autoFocus
+                        required
+                    />
 
-                    <div>
-                        <InputLabel htmlFor="dog_breed" value="Breed" />
+                    <div className="min-w-0">
+                        <label htmlFor="breed_id" className={labelClass}>
+                            Breed
+                        </label>
                         <select
-                            id="dog_breed"
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                            id="breed_id"
+                            name="breed_id"
+                            className={fieldClass}
                             value={data.breed_id}
-                            onChange={(e) =>
-                                setData('breed_id', e.target.value)
+                            onChange={(event) =>
+                                setData('breed_id', event.target.value)
                             }
                         >
                             <option value="">Unspecified</option>
@@ -144,13 +147,18 @@ export default function DogFormModal({
                         <InputError className="mt-2" message={errors.breed_id} />
                     </div>
 
-                    <div>
-                        <InputLabel htmlFor="dog_sex" value="Sex" />
+                    <div className="min-w-0">
+                        <label htmlFor="sex" className={labelClass}>
+                            Sex
+                        </label>
                         <select
-                            id="dog_sex"
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                            id="sex"
+                            name="sex"
+                            className={fieldClass}
                             value={data.sex}
-                            onChange={(e) => setData('sex', e.target.value)}
+                            onChange={(event) =>
+                                setData('sex', event.target.value)
+                            }
                         >
                             <option value="Unknown">Unknown</option>
                             <option value="Male">Male</option>
@@ -159,99 +167,103 @@ export default function DogFormModal({
                         <InputError className="mt-2" message={errors.sex} />
                     </div>
 
-                    <div>
-                        <InputLabel htmlFor="dog_color" value="Color" />
-                        <TextInput
-                            id="dog_color"
-                            className="mt-1 block w-full"
-                            value={data.color}
-                            onChange={(e) => setData('color', e.target.value)}
-                        />
-                        <InputError className="mt-2" message={errors.color} />
-                    </div>
-
-                    <div>
-                        <InputLabel
-                            htmlFor="dog_birth_date"
-                            value="Birth date"
-                        />
-                        <TextInput
-                            id="dog_birth_date"
-                            type="date"
-                            className="mt-1 block w-full"
-                            value={data.birth_date}
-                            onChange={(e) =>
-                                setData('birth_date', e.target.value)
-                            }
-                        />
-                        <InputError
-                            className="mt-2"
-                            message={errors.birth_date}
-                        />
-                    </div>
-
-                    <div>
-                        <InputLabel
-                            htmlFor="dog_weight"
-                            value="Weight (kg)"
-                        />
-                        <TextInput
-                            id="dog_weight"
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            className="mt-1 block w-full"
-                            value={data.weight_kg}
-                            onChange={(e) =>
-                                setData('weight_kg', e.target.value)
-                            }
-                        />
-                        <InputError className="mt-2" message={errors.weight_kg} />
-                    </div>
-                </div>
-
-                <div className="mt-5">
-                    <InputLabel htmlFor="dog_photo" value="Photo URL" />
-                    <TextInput
-                        id="dog_photo"
-                        className="mt-1 block w-full"
-                        value={data.photo_url}
-                        onChange={(e) =>
-                            setData('photo_url', e.target.value)
+                    <Field
+                        label="Color"
+                        name="color"
+                        value={data.color}
+                        onChange={(event) =>
+                            setData('color', event.target.value)
                         }
+                        error={errors.color}
                     />
-                    <InputError className="mt-2" message={errors.photo_url} />
+
+                    <Field
+                        label="Birth date"
+                        name="birth_date"
+                        type="date"
+                        value={data.birth_date}
+                        onChange={(event) =>
+                            setData('birth_date', event.target.value)
+                        }
+                        error={errors.birth_date}
+                    />
+
+                    <Field
+                        label="Weight (kg)"
+                        name="weight_kg"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={data.weight_kg}
+                        onChange={(event) =>
+                            setData('weight_kg', event.target.value)
+                        }
+                        error={errors.weight_kg}
+                    />
+
+                    <div className="sm:col-span-2">
+                        <Field
+                            label="Photo URL"
+                            name="photo_url"
+                            value={data.photo_url}
+                            onChange={(event) =>
+                                setData('photo_url', event.target.value)
+                            }
+                            error={errors.photo_url}
+                            hint="Optional. A link to a photo the clinic can show with your dog's record."
+                        />
+                    </div>
                 </div>
 
-                <div className="mt-5 flex items-center gap-6">
-                    <label className="flex items-center gap-2">
-                        <Checkbox
+                <div className="mt-5 flex flex-wrap items-center gap-6">
+                    <label className="flex cursor-pointer items-center gap-2.5">
+                        <input
+                            type="checkbox"
+                            className={checkboxClass}
                             checked={data.is_vaccinated}
-                            onChange={(e) =>
-                                setData('is_vaccinated', e.target.checked)
+                            onChange={(event) =>
+                                setData(
+                                    'is_vaccinated',
+                                    event.target.checked,
+                                )
                             }
                         />
-                        <span className="text-sm text-gray-700">
+                        <span className="text-sm font-medium text-[#1a3d1a]">
                             Vaccinated
                         </span>
                     </label>
 
-                    <label className="flex items-center gap-2">
-                        <Checkbox
+                    <label className="flex cursor-pointer items-center gap-2.5">
+                        <input
+                            type="checkbox"
+                            className={checkboxClass}
                             checked={data.is_active}
-                            onChange={(e) =>
-                                setData('is_active', e.target.checked)
+                            onChange={(event) =>
+                                setData('is_active', event.target.checked)
                             }
                         />
-                        <span className="text-sm text-gray-700">Active</span>
+                        <span className="text-sm font-medium text-[#1a3d1a]">
+                            Active
+                        </span>
                     </label>
                 </div>
 
-                <div className="mt-6 flex justify-end gap-3">
-                    <SecondaryButton onClick={onClose}>Cancel</SecondaryButton>
-                    <PrimaryButton disabled={processing}>
+                <div className="mt-6 flex justify-end gap-3 border-t border-[#1a3d1a]/10 pt-6">
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        className={secondaryButtonClass}
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        type="submit"
+                        disabled={processing}
+                        className={primaryButtonClass}
+                    >
+                        {processing && <Spinner className="h-4 w-4" />}
                         {dog ? 'Save changes' : 'Add dog'}
-                    </PrimaryButton>
+                    </button>
                 </div>
             </form>
         </Modal>

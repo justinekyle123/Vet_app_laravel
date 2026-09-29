@@ -13,6 +13,10 @@ test('front desk staff can browse dog owners', function () {
         ->assertInertia(fn (Assert $page) => $page
             ->component('Staff/Owners/Index')
             ->has('owners.data', 3)
+            // Each row needs the `id` the show/edit links are built from,
+            // not just the raw `owner_id` column.
+            ->has('owners.data.0.id')
+            ->has('owners.data.0.dogs_count')
         );
 });
 

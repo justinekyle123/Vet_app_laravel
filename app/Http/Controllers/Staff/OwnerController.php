@@ -41,7 +41,12 @@ class OwnerController extends Controller
             ->orderBy('last_name')
             ->orderBy('first_name')
             ->paginate(10)
-            ->withQueryString();
+            ->withQueryString()
+            // The list rows are shaped like the show and edit payloads, so the
+            // link targets have an `id` rather than the raw `owner_id` column.
+            ->through(fn (DogOwner $owner): array => $this->ownerPayload($owner) + [
+                'dogs_count' => $owner->dogs_count,
+            ]);
 
         return Inertia::render('Staff/Owners/Index', [
             'owners' => $owners,
