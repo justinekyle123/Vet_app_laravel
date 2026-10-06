@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\StaffRole;
+use App\Models\Concerns\HasImage;
 use App\Models\Concerns\HasRoles;
 use Database\Factories\StaffFactory;
 use Illuminate\Auth\Authenticatable;
@@ -21,7 +22,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Staff extends Model implements AuthenticatableContract
 {
     /** @use HasFactory<StaffFactory> */
-    use Authenticatable, HasFactory, HasRoles;
+    use Authenticatable, HasFactory, HasImage, HasRoles;
 
     protected $table = 'staff';
 
@@ -42,6 +43,7 @@ class Staff extends Model implements AuthenticatableContract
         'role',
         'specialization',
         'license_number',
+        'image_path',
         'is_active',
     ];
 

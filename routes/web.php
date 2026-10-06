@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\StaffController as AdminStaffController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\FrontDesk\AppointmentController as FrontDeskAppointmentController;
 use App\Http\Controllers\FrontDesk\DashboardController as FrontDeskDashboardController;
+use App\Http\Controllers\LandingController;
 use App\Http\Controllers\Owner\AccountController as OwnerAccountController;
 use App\Http\Controllers\Owner\AppointmentController as OwnerAppointmentController;
 use App\Http\Controllers\Owner\DashboardController as OwnerDashboardController;
@@ -17,10 +18,8 @@ use App\Http\Controllers\Owner\SearchController as OwnerSearchController;
 use App\Http\Controllers\Owner\ServiceController as OwnerServiceController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Staff\OwnerController as StaffOwnerController;
-use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
 
 Route::get('/run-my-migrations', function () {
     try {
@@ -32,14 +31,7 @@ Route::get('/run-my-migrations', function () {
     }
 });
 
-Route::get('/', function () {
-    return Inertia::render('Welcome', [
-        'canLogin' => Route::has('login'),
-        'canRegister' => Route::has('register'),
-        'laravelVersion' => Application::VERSION,
-        'phpVersion' => PHP_VERSION,
-    ]);
-});
+Route::get('/', LandingController::class);
 
 /*
  | Accounts live in two tables, so "auth" names both guards throughout. There

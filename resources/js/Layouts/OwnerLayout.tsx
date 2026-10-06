@@ -309,7 +309,6 @@ function NotificationBell({
                 <Bell className="h-5 w-5" />
                 {unread > 0 && (
                     <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-[#E86A10] px-1 text-[0.64rem] font-semibold text-white ring-2 ring-white">
-                    <span className="absolute -right-0.5 -top-0.5 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-[#E86A10] px-1 text-[0.64rem] font-semibold text-white ring-2 ring-[#EFFDF0]">
                         {unread > 9 ? '9+' : unread}
                     </span>
                 )}
@@ -562,10 +561,6 @@ export default function OwnerLayout({
             <header
                 ref={headerRef}
                 className="sticky top-0 z-30 shrink-0 border-b border-[#1a3d1a]/10 bg-white/90 backdrop-blur-md"
-        <div className="flex min-h-screen flex-col bg-[#EFFDF0] font-inter text-[#1a3d1a] antialiased">
-            <header
-                ref={headerRef}
-                className="sticky top-0 z-30 shrink-0 border-b border-[#1a3d1a]/10 bg-[#EFFDF0]/90 backdrop-blur-md"
             >
                 <div className="mx-auto flex h-20 max-w-7xl items-center gap-3 px-4 sm:px-6 lg:px-8">
                     <Link
@@ -574,7 +569,6 @@ export default function OwnerLayout({
                         className="group flex shrink-0 items-center gap-2.5 rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1a3d1a]"
                     >
                         <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#1a3d1a] text-white transition-colors duration-200 group-hover:bg-[#2a5a2a]">
-                        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#1a3d1a] text-[#EFFDF0] transition-colors duration-200 group-hover:bg-[#2a5a2a]">
                             <PawPrint className="h-5 w-5" />
                         </span>
                         <span className="font-serif-display text-xl leading-none text-[#1a3d1a] sm:text-2xl">
@@ -595,8 +589,6 @@ export default function OwnerLayout({
                                         active
                                             ? 'bg-[#EFFDF0] text-[#1a3d1a] shadow-sm'
                                             : 'text-[#1a3d1a]/65 hover:bg-[#EFFDF0]/70 hover:text-[#1a3d1a]'
-                                            ? 'bg-white text-[#1a3d1a] shadow-sm'
-                                            : 'text-[#1a3d1a]/65 hover:bg-white/60 hover:text-[#1a3d1a]'
                                     }`}
                                 >
                                     {item.label}

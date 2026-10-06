@@ -6,8 +6,6 @@ import { Link } from '@inertiajs/react';
 import { ArrowRight, CalendarDays, Clock, PawPrint } from 'lucide-react';
 import AppointmentList, { fullDate } from './Partials/AppointmentList';
 import { OwnerHero, SectionLabel } from './Partials/OwnerHero';
-import { ArrowRight } from 'lucide-react';
-import AppointmentList from './Partials/AppointmentList';
 
 /** Small count chip for a panel header. */
 function CountChip({ count }: { count: number }) {
@@ -97,9 +95,6 @@ export default function Appointments({
                 <SectionLabel>Upcoming</SectionLabel>
                 <Panel
                     title="Upcoming visits"
-            <div className="space-y-6">
-                <Panel
-                    title="Upcoming"
                     icon="calendar"
                     action={<CountChip count={upcoming.length} />}
                 >
@@ -112,7 +107,6 @@ export default function Appointments({
 
             <section className="mt-8">
                 <SectionLabel>History</SectionLabel>
-
                 <Panel
                     title="Past visits"
                     icon="clock"
@@ -124,7 +118,6 @@ export default function Appointments({
                     />
                 </Panel>
             </section>
-            </div>
         </OwnerLayout>
     );
 }
