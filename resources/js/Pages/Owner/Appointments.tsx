@@ -3,8 +3,9 @@ import { primaryButtonClass } from '@/Components/buttonStyles';
 import OwnerLayout from '@/Layouts/OwnerLayout';
 import { PageProps, PortalAppointment } from '@/types';
 import { Link } from '@inertiajs/react';
-import { ArrowRight } from 'lucide-react';
-import AppointmentList from './Partials/AppointmentList';
+import { ArrowRight, CalendarDays, Clock, PawPrint } from 'lucide-react';
+import AppointmentList, { fullDate } from './Partials/AppointmentList';
+import { OwnerHero, SectionLabel } from './Partials/OwnerHero';
 
 /** Small count chip for a panel header. */
 function CountChip({ count }: { count: number }) {
@@ -26,6 +27,8 @@ export default function Appointments({
     upcoming: PortalAppointment[];
     past: PortalAppointment[];
 }>) {
+    const next = upcoming[0] ?? null;
+
     return (
         <OwnerLayout
             title="My appointments"
@@ -41,9 +44,57 @@ export default function Appointments({
                 </Link>
             }
         >
-            <div className="space-y-6">
+            <OwnerHero
+                eyebrow={next ? 'Next visit' : 'Your visits'}
+                title={
+                    next ? (next.service ?? 'Visit') : 'Nothing booked yet'
+                }
+                description={
+                    next
+                        ? undefined
+                        : "Browse the clinic's services to find a time that suits you, and request a visit in a couple of taps."
+                }
+                badge={
+                    next ? (
+                        <span className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-semibold text-white ring-1 ring-inset ring-white/15">
+                            {next.status ?? 'Scheduled'}
+                        </span>
+                    ) : undefined
+                }
+                actions={
+                    <Link
+                        href={route('owner.services.index')}
+                        className={primaryButtonClass}
+                    >
+                        Book a service
+                        <ArrowRight className="h-4 w-4" />
+                    </Link>
+                }
+            >
+                {next && (
+                    <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-white/75">
+                        <span className="inline-flex items-center gap-2">
+                            <PawPrint className="h-4 w-4 text-[#E86A10]" />
+                            {next.dog ?? 'Your dog'}
+                        </span>
+                        <span className="inline-flex items-center gap-2">
+                            <CalendarDays className="h-4 w-4 text-[#E86A10]" />
+                            {fullDate(next.date)}
+                        </span>
+                        {next.time && (
+                            <span className="inline-flex items-center gap-2">
+                                <Clock className="h-4 w-4 text-[#E86A10]" />
+                                {next.time}
+                            </span>
+                        )}
+                    </div>
+                )}
+            </OwnerHero>
+
+            <section className="mt-8">
+                <SectionLabel>Upcoming</SectionLabel>
                 <Panel
-                    title="Upcoming"
+                    title="Upcoming visits"
                     icon="calendar"
                     action={<CountChip count={upcoming.length} />}
                 >
@@ -52,7 +103,10 @@ export default function Appointments({
                         emptyMessage="No visits booked yet. Browse the clinic's services to see what is available."
                     />
                 </Panel>
+            </section>
 
+            <section className="mt-8">
+                <SectionLabel>History</SectionLabel>
                 <Panel
                     title="Past visits"
                     icon="clock"
@@ -63,7 +117,7 @@ export default function Appointments({
                         emptyMessage="No past visits on record yet."
                     />
                 </Panel>
-            </div>
+            </section>
         </OwnerLayout>
     );
 }

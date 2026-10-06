@@ -6,14 +6,88 @@ import {
 } from '@/Components/buttonStyles';
 import OwnerLayout from '@/Layouts/OwnerLayout';
 import { PageProps, PortalAppointment, PortalDog } from '@/types';
+import { currency } from '@/utils/format';
 import { Link, usePage } from '@inertiajs/react';
-import { ArrowRight, PawPrint, Plus, Syringe } from 'lucide-react';
-import AppointmentList from './Partials/AppointmentList';
+import {
+    ArrowRight,
+    CalendarDays,
+    Clock,
+    PawPrint,
+    Plus,
+    Syringe,
+} from 'lucide-react';
+import AppointmentList, { fullDate } from './Partials/AppointmentList';
+import { OwnerHero, SectionLabel } from './Partials/OwnerHero';
 
 interface DashboardStats {
     dogs: number;
     upcoming: number;
     unread: number;
+}
+
+/**
+ * The page's focal point: the owner's very next visit, on the brand's dark
+ * green so it reads as the headline rather than one more white card. Falls back
+ * to an invitation to book when the diary is empty.
+ */
+function NextVisitCard({
+    appointment,
+}: {
+    appointment: PortalAppointment | null;
+}) {
+    return (
+        <OwnerHero
+            eyebrow={appointment ? 'Next visit' : 'Your visits'}
+            title={
+                appointment
+                    ? (appointment.service ?? 'Visit')
+                    : 'Nothing booked yet'
+            }
+            description={
+                appointment
+                    ? undefined
+                    : "Browse the clinic's services to find a time that suits you, and request a visit in a couple of taps."
+            }
+            badge={
+                appointment ? (
+                    <span className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-semibold text-white ring-1 ring-inset ring-white/15">
+                        {appointment.status ?? 'Scheduled'}
+                    </span>
+                ) : undefined
+            }
+            actions={
+                <Link
+                    href={route('owner.services.index')}
+                    className={primaryButtonClass}
+                >
+                    Book a service
+                    <ArrowRight className="h-4 w-4" />
+                </Link>
+            }
+        >
+            {appointment && (
+                <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-white/75">
+                    <span className="inline-flex items-center gap-2">
+                        <PawPrint className="h-4 w-4 text-[#E86A10]" />
+                        {appointment.dog ?? 'Your dog'}
+                    </span>
+                    <span className="inline-flex items-center gap-2">
+                        <CalendarDays className="h-4 w-4 text-[#E86A10]" />
+                        {fullDate(appointment.date)}
+                    </span>
+                    {appointment.time && (
+                        <span className="inline-flex items-center gap-2">
+                            <Clock className="h-4 w-4 text-[#E86A10]" />
+                            {appointment.time}
+                        </span>
+                    )}
+                    {appointment.price && (
+                        <span>{currency(appointment.price)}</span>
+                    )}
+                </div>
+            )}
+        </OwnerHero>
+    );
 }
 
 /**
@@ -60,30 +134,35 @@ export default function OwnerDashboard({
                 </>
             }
         >
-            <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
-                <StatCard
-                    label="My dogs"
-                    value={stats.dogs}
-                    icon="paw"
-                    hint="Registered under your account"
-                />
-                <StatCard
-                    label="Upcoming visits"
-                    value={stats.upcoming}
-                    icon="calendar"
-                    hint="Booked from today onwards"
-                    accent="deep"
-                />
-                <StatCard
-                    label="New messages"
-                    value={stats.unread}
-                    icon="mail"
-                    hint="Since you last checked"
-                    accent="accent"
-                />
-            </div>
+            <NextVisitCard appointment={upcoming[0] ?? null} />
 
-            <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <section className="mt-8">
+                <SectionLabel>At a glance</SectionLabel>
+                <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
+                    <StatCard
+                        label="My dogs"
+                        value={stats.dogs}
+                        icon="paw"
+                        hint="Registered under your account"
+                    />
+                    <StatCard
+                        label="Upcoming visits"
+                        value={stats.upcoming}
+                        icon="calendar"
+                        hint="Booked from today onwards"
+                        accent="deep"
+                    />
+                    <StatCard
+                        label="New messages"
+                        value={stats.unread}
+                        icon="mail"
+                        hint="Since you last checked"
+                        accent="accent"
+                    />
+                </div>
+            </section>
+
+            <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
                 <Panel
                     id="appointments"
                     title="Upcoming appointments"
@@ -161,9 +240,10 @@ export default function OwnerDashboard({
                 </Panel>
             </div>
 
-            <div className="mt-6">
+            <section className="mt-8">
+                <SectionLabel>From the clinic</SectionLabel>
                 <Panel
-                    title="Messages from the clinic"
+                    title="Messages"
                     icon="mail"
                     action={
                         <span className="text-xs font-semibold text-[#1a3d1a]/45">
@@ -211,7 +291,7 @@ export default function OwnerDashboard({
                         </ul>
                     )}
                 </Panel>
-            </div>
+            </section>
         </OwnerLayout>
     );
 }
