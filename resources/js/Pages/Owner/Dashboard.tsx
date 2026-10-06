@@ -18,35 +18,12 @@ import {
 } from 'lucide-react';
 import AppointmentList, { fullDate } from './Partials/AppointmentList';
 import { OwnerHero, SectionLabel } from './Partials/OwnerHero';
-import { Link, usePage } from '@inertiajs/react';
-import { ArrowRight, PawPrint, Plus, Syringe } from 'lucide-react';
-import AppointmentList from './Partials/AppointmentList';
 
 interface DashboardStats {
     dogs: number;
     upcoming: number;
     unread: number;
 }
-
-/**
- * The owner portal's home page.
- *
- * Leads with the two things a client opens the portal for — their dogs and
- * their next visit — and keeps the clinic's messages within reach rather than
- * burying them behind the bell alone.
- */
-export default function OwnerDashboard({
-    dogs,
-    upcoming,
-    stats,
-}: PageProps<{
-    dogs: PortalDog[];
-    upcoming: PortalAppointment[];
-    stats: DashboardStats;
-}>) {
-    const user = usePage<PageProps>().props.auth.user;
-    const notifications = usePage<PageProps>().props.portal?.notifications ?? [];
-    const firstName = user.name.trim().split(/\s+/)[0] ?? user.name;
 
 /**
  * The page's focal point: the owner's very next visit, on the brand's dark
@@ -186,30 +163,6 @@ export default function OwnerDashboard({
             </section>
 
             <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
-            <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
-                <StatCard
-                    label="My dogs"
-                    value={stats.dogs}
-                    icon="paw"
-                    hint="Registered under your account"
-                />
-                <StatCard
-                    label="Upcoming visits"
-                    value={stats.upcoming}
-                    icon="calendar"
-                    hint="Booked from today onwards"
-                    accent="deep"
-                />
-                <StatCard
-                    label="New messages"
-                    value={stats.unread}
-                    icon="mail"
-                    hint="Since you last checked"
-                    accent="accent"
-                />
-            </div>
-
-            <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
                 <Panel
                     id="appointments"
                     title="Upcoming appointments"
@@ -339,59 +292,6 @@ export default function OwnerDashboard({
                     )}
                 </Panel>
             </section>
-            </div>
-
-            <div className="mt-6">
-                <Panel
-                    title="Messages from the clinic"
-                    icon="mail"
-                    action={
-                        <span className="text-xs font-semibold text-[#1a3d1a]/45">
-                            {stats.unread > 0
-                                ? `${stats.unread} unread`
-                                : 'All caught up'}
-                        </span>
-                    }
-                >
-                    {notifications.length === 0 ? (
-                        <EmptyState
-                            icon="mail"
-                            message="Nothing yet. Appointment reminders and clinic updates will land here."
-                        />
-                    ) : (
-                        <ul className="divide-y divide-[#1a3d1a]/5">
-                            {notifications.slice(0, 4).map((notification) => (
-                                <li
-                                    key={notification.id}
-                                    className="py-4 first:pt-0 last:pb-0"
-                                >
-                                    <div className="flex items-center justify-between gap-3">
-                                        <span className="rounded-full bg-[#EFFDF0] px-2 py-0.5 text-[0.62rem] font-bold uppercase tracking-[0.1em] text-[#1a3d1a]/70">
-                                            {notification.channel}
-                                        </span>
-                                        <span className="text-[0.68rem] text-[#1a3d1a]/45">
-                                            {notification.sent_at
-                                                ? new Date(
-                                                      notification.sent_at,
-                                                  ).toLocaleDateString(
-                                                      'en-US',
-                                                      {
-                                                          month: 'short',
-                                                          day: 'numeric',
-                                                      },
-                                                  )
-                                                : ''}
-                                        </span>
-                                    </div>
-                                    <p className="mt-1.5 text-sm leading-relaxed text-[#1a3d1a]">
-                                        {notification.message}
-                                    </p>
-                                </li>
-                            ))}
-                        </ul>
-                    )}
-                </Panel>
-            </div>
         </OwnerLayout>
     );
 }

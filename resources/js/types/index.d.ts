@@ -81,6 +81,59 @@ export interface PortalServiceCategory {
     services: PortalService[];
 }
 
+/**
+ * A service on the landing page, with the category the desk files it under and
+ * its own picture. `image` is null when none is set, and the page falls back to
+ * the clinic's own artwork.
+ */
+export interface PublicService extends PortalService {
+    category: string;
+    image: string | null;
+}
+
+/**
+ * The landing page's headline numbers, counted from the clinic's own records
+ * rather than written into the copy.
+ */
+export interface PublicStats {
+    /** Dogs with at least one completed visit. */
+    pets_cared_for: number;
+    /** Average published rating, or null before anyone has left one. */
+    rating: number | null;
+    /** How many published ratings that average covers. */
+    rating_count: number;
+}
+
+/**
+ * A client-facing staff member on the landing page's care team. `image` is null
+ * for anyone without a portrait, which the page renders as an initials
+ * monogram.
+ */
+export interface PublicTeamMember {
+    id: number;
+    name: string;
+    role: string;
+    specialization: string | null;
+    image: string | null;
+}
+
+/**
+ * The clinic's own details, as the landing page and its footer render them.
+ * Times are trimmed to "HH:MM" server-side so the page formats one shape.
+ */
+export interface PublicClinic {
+    clinic_name: string;
+    address_line: string;
+    city: string;
+    province: string;
+    zip_code: string;
+    contact_number: string;
+    email: string;
+    opening_time: string;
+    closing_time: string;
+    days_open: string;
+}
+
 /** One bookable time in the clinic's day. */
 export interface BookingSlot {
     /** 24-hour "HH:MM", the shape the booking endpoint accepts. */

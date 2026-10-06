@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasImage;
 use Database\Factories\ServiceFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -17,7 +18,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Service extends Model
 {
     /** @use HasFactory<ServiceFactory> */
-    use HasFactory;
+    use HasFactory, HasImage;
 
     protected $table = 'services';
 
@@ -32,6 +33,7 @@ class Service extends Model
         'category_id',
         'service_name',
         'description',
+        'image_path',
         'duration_minutes',
         'price',
         'is_active',

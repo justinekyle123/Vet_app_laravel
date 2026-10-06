@@ -145,6 +145,43 @@
     }
 }
 
+/* -------------------------------------------------------------------
+   Care-team flip cards — the front holds the portrait, the back the
+   profile. A hover or keyboard focus turns the card over, and the card
+   itself is focusable so a tap can do the same on a touch screen.
+   ------------------------------------------------------------------- */
+
+@layer utilities {
+    .flip-card {
+        perspective: 1800px;
+    }
+
+    .flip-card-inner {
+        position: relative;
+        height: 100%;
+        transition: transform 0.9s cubic-bezier(0.4, 0.2, 0.2, 1);
+        transform-style: preserve-3d;
+    }
+
+    .flip-card:hover .flip-card-inner,
+    .flip-card:focus-within .flip-card-inner,
+    .flip-card.is-flipped .flip-card-inner {
+        transform: rotateY(180deg);
+    }
+
+    .flip-face {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+        backface-visibility: hidden;
+        -webkit-backface-visibility: hidden;
+    }
+
+    .flip-face-back {
+        transform: rotateY(180deg);
+    }
+}
+
 @keyframes fade-up {
     from {
         opacity: 0;

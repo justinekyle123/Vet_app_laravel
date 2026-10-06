@@ -19,9 +19,6 @@ import {
 import { useMemo, useState } from 'react';
 import BookingModal from './Partials/BookingModal';
 import { OwnerHero, SectionLabel } from './Partials/OwnerHero';
-import { CalendarDays, Clock, Info, Search, X } from 'lucide-react';
-import { useMemo, useState } from 'react';
-import BookingModal from './Partials/BookingModal';
 
 /**
  * The clinic's service menu, as a client sees it.
@@ -131,22 +128,6 @@ export default function Services({
                         <SectionLabel>Browse the menu</SectionLabel>
                     </div>
 
-            <div className="mb-8 flex items-start gap-3 rounded-2xl border border-dashed border-[#1a3d1a]/15 bg-white/60 px-5 py-4">
-                <Info className="mt-0.5 h-4 w-4 shrink-0 text-[#1a3d1a]/45" />
-                <p className="text-sm leading-relaxed text-[#1a3d1a]/65">
-                    Pick a service to see the clinic's open days and request a
-                    visit. The front desk confirms every request, and you can
-                    watch its status on your appointments page.
-                </p>
-            </div>
-
-            {categories.length === 0 ? (
-                <EmptyState
-                    icon="paw"
-                    message="The service menu is being updated. Please check back shortly."
-                />
-            ) : (
-                <>
                     <div className="flex flex-col gap-4 rounded-2xl border border-[#1a3d1a]/10 bg-white p-4 shadow-sm sm:flex-row sm:items-center">
                         <div className="relative min-w-0 flex-1">
                             <label htmlFor="service-search" className="sr-only">
