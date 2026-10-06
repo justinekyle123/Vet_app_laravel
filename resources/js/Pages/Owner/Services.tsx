@@ -8,6 +8,17 @@ import {
     PortalServiceCategory,
 } from '@/types';
 import { currency } from '@/utils/format';
+import { Link } from '@inertiajs/react';
+import {
+    ArrowRight,
+    CalendarDays,
+    Clock,
+    Search,
+    X,
+} from 'lucide-react';
+import { useMemo, useState } from 'react';
+import BookingModal from './Partials/BookingModal';
+import { OwnerHero, SectionLabel } from './Partials/OwnerHero';
 import { CalendarDays, Clock, Info, Search, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import BookingModal from './Partials/BookingModal';
@@ -92,6 +103,34 @@ export default function Services({
             heading="Our services"
             description="Everything the clinic offers, grouped the way the desk books it."
         >
+            <OwnerHero
+                eyebrow="Services"
+                title="Find the right care"
+                description="Pick a service to see the clinic's open days and request a visit. The front desk confirms every request, and you can watch its status on your appointments page."
+                actions={
+                    <Link
+                        href={route('owner.appointments.index')}
+                        className={primaryButtonClass}
+                    >
+                        My appointments
+                        <ArrowRight className="h-4 w-4" />
+                    </Link>
+                }
+            />
+
+            {categories.length === 0 ? (
+                <div className="mt-8">
+                    <EmptyState
+                        icon="paw"
+                        message="The service menu is being updated. Please check back shortly."
+                    />
+                </div>
+            ) : (
+                <>
+                    <div className="mt-8">
+                        <SectionLabel>Browse the menu</SectionLabel>
+                    </div>
+
             <div className="mb-8 flex items-start gap-3 rounded-2xl border border-dashed border-[#1a3d1a]/15 bg-white/60 px-5 py-4">
                 <Info className="mt-0.5 h-4 w-4 shrink-0 text-[#1a3d1a]/45" />
                 <p className="text-sm leading-relaxed text-[#1a3d1a]/65">
