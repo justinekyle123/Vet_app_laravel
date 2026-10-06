@@ -44,6 +44,7 @@ class ServiceController extends Controller
                             'description' => $service->description,
                             'duration_minutes' => $service->duration_minutes,
                             'price' => $service->price,
+                            'image' => $service->imageUrl(),
                         ])
                         ->values()
                         ->all(),

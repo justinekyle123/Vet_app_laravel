@@ -4,10 +4,13 @@ use App\Models\Appointment;
 use App\Models\AppointmentStatus;
 use App\Models\Dog;
 use App\Models\DogOwner;
+use App\Models\Faq;
+use App\Models\FaqCategory;
 use App\Models\Notification;
 use App\Models\Service;
 use App\Models\ServiceCategory;
 use App\Models\Staff;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia as Assert;
 
 /**
@@ -75,6 +78,7 @@ test('the services page groups the active menu by category', function () {
     Service::factory()->create([
         'category_id' => $category->category_id,
         'service_name' => 'Core Booster',
+        'image_path' => 'services/core-booster.jpg',
     ]);
     Service::factory()->inactive()->create([
         'category_id' => $category->category_id,
@@ -90,6 +94,10 @@ test('the services page groups the active menu by category', function () {
             ->where('categories.0.name', 'Vaccination')
             ->has('categories.0.services', 1)
             ->where('categories.0.services.0.service_name', 'Core Booster')
+            ->where(
+                'categories.0.services.0.image',
+                Storage::disk('public')->url('services/core-booster.jpg'),
+            )
         );
 });
 
@@ -116,6 +124,74 @@ test('the appointments page splits upcoming from past and hides other owners', f
             ->has('past', 1)
             ->where('past.0.status', 'Completed')
         );
+});
+
+test('an owner can cancel their own upcoming visit', function () {
+    $owner = DogOwner::factory()->create();
+    $dog = Dog::factory()->create(['owner_id' => $owner->owner_id]);
+    $visit = bookPortalVisit($owner, $dog, today()->addDays(2)->toDateString(), 'Confirmed');
+
+    $this->actingAs($owner)
+        ->patch(route('owner.appointments.cancel', $visit))
+        ->assertSessionHasNoErrors()
+        ->assertRedirect(route('owner.appointments.index'));
+
+    expect($visit->fresh()->status->status_name)->toBe('Cancelled');
+});
+
+test('an owner cannot cancel another client\'s visit', function () {
+    $owner = DogOwner::factory()->create();
+    $other = DogOwner::factory()->create();
+    $visit = bookPortalVisit(
+        $other,
+        Dog::factory()->create(['owner_id' => $other->owner_id]),
+        today()->addDay()->toDateString(),
+    );
+
+    $this->actingAs($owner)
+        ->patch(route('owner.appointments.cancel', $visit))
+        ->assertNotFound();
+
+    // The other client's booking is untouched.
+    expect($visit->fresh()->status->status_name)->toBe('Confirmed');
+});
+
+test('a completed visit cannot be cancelled', function () {
+    $owner = DogOwner::factory()->create();
+    $dog = Dog::factory()->create(['owner_id' => $owner->owner_id]);
+    $visit = bookPortalVisit($owner, $dog, today()->subDays(2)->toDateString(), 'Completed');
+
+    $this->actingAs($owner)
+        ->patch(route('owner.appointments.cancel', $visit))
+        ->assertSessionHasErrors('appointment');
+
+    expect($visit->fresh()->status->status_name)->toBe('Completed');
+});
+
+test('the FAQ endpoint returns only published questions, grouped by category', function () {
+    $bookings = FaqCategory::create(['category_name' => 'Bookings']);
+    Faq::create([
+        'faq_category_id' => $bookings->faq_category_id,
+        'question' => 'Can I cancel a booking?',
+        'answer' => 'Yes, from your appointments page.',
+        'is_published' => true,
+    ]);
+    Faq::create([
+        'faq_category_id' => $bookings->faq_category_id,
+        'question' => 'Unpublished draft',
+        'answer' => 'Hidden.',
+        'is_published' => false,
+    ]);
+    // A category with nothing published is dropped rather than shown empty.
+    FaqCategory::create(['category_name' => 'Empty']);
+
+    $this->actingAs(DogOwner::factory()->create())
+        ->getJson(route('owner.faqs'))
+        ->assertOk()
+        ->assertJsonCount(1, 'categories')
+        ->assertJsonPath('categories.0.name', 'Bookings')
+        ->assertJsonCount(1, 'categories.0.faqs')
+        ->assertJsonPath('categories.0.faqs.0.question', 'Can I cancel a booking?');
 });
 
 test('the portal search only matches the owner\'s own dogs', function () {

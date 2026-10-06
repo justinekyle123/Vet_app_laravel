@@ -3,6 +3,7 @@
 namespace App\Services\Portal;
 
 use App\Models\Appointment;
+use App\Models\AppointmentStatus;
 use App\Models\DogOwner;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -66,12 +67,17 @@ class OwnerAppointments
     {
         $appointment->loadMissing(self::RELATIONS);
 
+        $status = $appointment->status?->status_name;
+
         return [
             'id' => $appointment->appointment_id,
             'date' => $appointment->appointment_date?->toDateString(),
             // `time` columns come back as HH:MM:SS; the UI only shows HH:MM.
             'time' => substr((string) $appointment->appointment_time, 0, 5),
-            'status' => $appointment->status?->status_name,
+            'status' => $status,
+            // The portal offers a Cancel action only while the clinic can still
+            // call the visit off.
+            'cancellable' => in_array($status, AppointmentStatus::CANCELLABLE, true),
             'dog' => $appointment->dog?->dog_name,
             'dog_id' => $appointment->dog_id,
             'service' => $appointment->service?->service_name,
