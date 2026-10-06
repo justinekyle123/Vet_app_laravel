@@ -10,6 +10,12 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 class AppointmentStatus extends Model
 {
+    /**
+     * The statuses a booking can still be cancelled from. Once a visit is
+     * completed, cancelled, or missed it is history, not something to undo.
+     */
+    public const CANCELLABLE = ['Requested', 'Confirmed'];
+
     protected $table = 'appointment_status';
 
     protected $primaryKey = 'status_id';

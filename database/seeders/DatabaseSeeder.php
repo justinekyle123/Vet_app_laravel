@@ -9,6 +9,7 @@ use App\Models\ClinicInfo;
 use App\Models\Dog;
 use App\Models\DogBreed;
 use App\Models\DogOwner;
+use App\Models\Faq;
 use App\Models\FaqCategory;
 use App\Models\Notification;
 use App\Models\PaymentMethod;
@@ -34,6 +35,7 @@ class DatabaseSeeder extends Seeder
     {
         $clinic = $this->seedClinic();
         $this->seedLookups();
+        $this->seedFaqs();
 
         /*
          * Staff accounts are provisioned here rather than through sign-up:
@@ -149,6 +151,52 @@ class DatabaseSeeder extends Seeder
 
         foreach (['Bookings', 'Billing', 'Visits', 'Account'] as $name) {
             FaqCategory::firstOrCreate(['category_name' => $name]);
+        }
+    }
+
+    /**
+     * Help questions for the portal's floating FAQ button. Keyed by the
+     * category the clinic files them under; a fresh install then has a useful
+     * help panel without anyone writing the copy first.
+     */
+    private function seedFaqs(): void
+    {
+        $menu = [
+            'Bookings' => [
+                ['How do I book a visit?', 'Open Services, pick the care your dog needs, then choose a day and time. The front desk confirms every request, and you can follow its status here.'],
+                ['Can I cancel a booking?', 'Yes. Any upcoming visit has a Cancel button on the appointments page, as long as the clinic has not already marked it complete.'],
+                ['How soon can I book?', 'The calendar only offers days the clinic has free slots on, usually within the next few weeks. For anything urgent, call the front desk.'],
+            ],
+            'Visits' => [
+                ['What should I bring?', 'Your dog\'s vaccination record if you have it, and any medication they are taking. A leash or carrier keeps everyone safe in the waiting room.'],
+                ['How long is a visit?', 'Each service lists its own length on the menu, from a 15-minute booster to a full groom.'],
+                ['Can I stay with my dog?', 'For most consultations, yes. For procedures under anaesthesia the team will ask you to wait in reception and will call you when your dog is awake.'],
+            ],
+            'Billing' => [
+                ['When do I pay?', 'Payment is taken at the desk when the visit is finished. The price of each service is shown on the menu before you book.'],
+                ['Which payment methods do you accept?', 'Cash, card, GCash, and bank transfer.'],
+            ],
+            'Account' => [
+                ['How do I add another dog?', 'Open \"My account & dogs\" from the menu and add the new dog there.'],
+                ['I forgot my password.', 'Use the forgot-password link on the sign-in page, or call the front desk and they will help you back in.'],
+            ],
+        ];
+
+        $categoryIds = FaqCategory::query()->pluck('faq_category_id', 'category_name');
+
+        foreach ($menu as $categoryName => $questions) {
+            $categoryId = $categoryIds[$categoryName] ?? null;
+
+            if ($categoryId === null) {
+                continue;
+            }
+
+            foreach ($questions as [$question, $answer]) {
+                Faq::firstOrCreate(
+                    ['faq_category_id' => $categoryId, 'question' => $question],
+                    ['answer' => $answer, 'is_published' => true],
+                );
+            }
         }
     }
 

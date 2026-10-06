@@ -64,6 +64,8 @@ export interface PortalAppointment {
     price: string | null;
     staff: string | null;
     notes: string | null;
+    /** True while the visit can still be cancelled (requested or confirmed). */
+    cancellable: boolean;
 }
 
 /** A service on the clinic's active menu. */
@@ -73,6 +75,21 @@ export interface PortalService {
     description: string | null;
     duration_minutes: number | null;
     price: string | null;
+    /** Resolved photo URL, null when the clinic has not set one. */
+    image: string | null;
+}
+
+/** One published help question, as the floating FAQ button lists it. */
+export interface PortalFaq {
+    id: number;
+    question: string;
+    answer: string;
+}
+
+/** Help questions grouped under their category for the FAQ panel. */
+export interface PortalFaqCategory {
+    name: string;
+    faqs: PortalFaq[];
 }
 
 /** Services grouped under their category for the menu page. */
@@ -88,7 +105,6 @@ export interface PortalServiceCategory {
  */
 export interface PublicService extends PortalService {
     category: string;
-    image: string | null;
 }
 
 /**

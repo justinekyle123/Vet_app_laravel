@@ -1,11 +1,18 @@
-import { PageProps, PortalNotification, User } from '@/types';
+import Spinner from '@/Components/Spinner';
+import {
+    PageProps,
+    PortalFaqCategory,
+    PortalNotification,
+    User,
+} from '@/types';
 import { initials } from '@/utils/format';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import {
+    ArrowRight,
     Bell,
     CheckCheck,
     ChevronDown,
-    ChevronRight,
+    HelpCircle,
     LogOut,
     Menu,
     PawPrint,
@@ -16,6 +23,7 @@ import {
 import {
     PropsWithChildren,
     ReactNode,
+    RefObject,
     useCallback,
     useEffect,
     useRef,
@@ -117,70 +125,27 @@ function shortDateTime(iso: string | null): string {
 }
 
 /**
- * The navbar's search box. Matches run server-side against the signed-in
- * owner's dogs and visits plus the clinic's services, so the results are the
- * client's own records rather than a static list.
+ * The navbar's search panel, dressed the same as the landing page's own
+ * search: a single row for the query, then the matches grouped by what they
+ * are, each with a title and a supporting line. The matches are fetched
+ * server-side and scoped to the signed-in owner.
  */
-function SearchBar({ onNavigate }: { onNavigate?: () => void }) {
-    const [query, setQuery] = useState('');
-    const [groups, setGroups] = useState<SearchGroups | null>(null);
-    const [loading, setLoading] = useState(false);
-    const [open, setOpen] = useState(false);
-
-    const close = useCallback(() => {
-        setOpen(false);
-        onNavigate?.();
-    }, [onNavigate]);
-
-    const wrapperRef = useDismiss<HTMLDivElement>(open, close);
-
-    useEffect(() => {
-        const term = query.trim();
-
-        // One character is noise, and matches the server's own threshold.
-        if (term.length < 2) {
-            setGroups(null);
-            setLoading(false);
-
-            return;
-        }
-
-        let cancelled = false;
-        setLoading(true);
-
-        /* Debounced so typing does not fire a request per keystroke. */
-        const timer = setTimeout(async () => {
-            try {
-                const response = await fetch(
-                    `${route('owner.search')}?q=${encodeURIComponent(term)}`,
-                    {
-                        headers: { Accept: 'application/json' },
-                        credentials: 'same-origin',
-                    },
-                );
-
-                const data = (await response.json()) as SearchGroups;
-
-                if (!cancelled) {
-                    setGroups(data);
-                }
-            } catch {
-                // A failed lookup is just an empty one; the box stays usable.
-                if (!cancelled) {
-                    setGroups({ dogs: [], appointments: [], services: [] });
-                }
-            } finally {
-                if (!cancelled) {
-                    setLoading(false);
-                }
-            }
-        }, 250);
-
-        return () => {
-            cancelled = true;
-            clearTimeout(timer);
-        };
-    }, [query]);
+function SearchPanel({
+    query,
+    onQueryChange,
+    groups,
+    loading,
+    onClose,
+    inputRef,
+}: {
+    query: string;
+    onQueryChange: (value: string) => void;
+    groups: SearchGroups | null;
+    loading: boolean;
+    onClose: () => void;
+    inputRef: RefObject<HTMLInputElement>;
+}) {
+    const term = query.trim();
 
     const sections = groups
         ? SEARCH_SECTIONS.map((section) => ({
@@ -189,77 +154,87 @@ function SearchBar({ onNavigate }: { onNavigate?: () => void }) {
           })).filter((section) => section.items.length > 0)
         : [];
 
-    const panelOpen = open && query.trim().length >= 2;
-
     return (
-        <div ref={wrapperRef} className="relative">
-            <label htmlFor="portal-search" className="sr-only">
-                Search
-            </label>
-            <span
-                aria-hidden="true"
-                className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 text-[#1a3d1a]/40"
-            >
-                <Search className="h-4 w-4" />
-            </span>
-            <input
-                id="portal-search"
-                type="search"
-                value={query}
-                autoComplete="off"
-                placeholder="Search dogs, visits, services"
-                onChange={(event) => {
-                    setQuery(event.target.value);
-                    setOpen(true);
-                }}
-                onFocus={() => setOpen(true)}
-                className="w-full rounded-full border border-[#1a3d1a]/15 bg-white py-2.5 pl-10 pr-4 text-sm text-[#1a3d1a] shadow-sm transition-[border-color,box-shadow] duration-200 placeholder:text-[#1a3d1a]/40 focus:border-[#1a3d1a] focus:outline-none focus:ring-4 focus:ring-[#1a3d1a]/10"
-            />
-
-            {panelOpen && (
-                <div className="absolute inset-x-0 top-full z-40 mt-2 animate-dropdown overflow-hidden rounded-2xl border border-[#1a3d1a]/10 bg-white shadow-2xl shadow-[#1a3d1a]/10">
-                    {sections.length > 0 ? (
-                        <div className="max-h-[60vh] overflow-y-auto p-2">
-                            {sections.map((section) => (
-                                <div key={section.title} className="py-1">
-                                    <p className="px-3 pb-1 pt-2 text-[0.66rem] font-bold uppercase tracking-[0.14em] text-[#1a3d1a]/40">
-                                        {section.title}
-                                    </p>
-                                    <ul>
-                                        {section.items.map((row) => (
-                                            <li key={`${section.title}-${row.id}`}>
-                                                <Link
-                                                    href={row.href}
-                                                    onClick={close}
-                                                    className="group flex items-start gap-3 rounded-xl px-3 py-2.5 transition-colors duration-150 hover:bg-[#EFFDF0] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1a3d1a]"
-                                                >
-                                                    <span className="min-w-0 flex-1">
-                                                        <span className="block truncate text-sm font-medium text-[#1a3d1a]">
-                                                            {row.label}
-                                                        </span>
-                                                        {row.meta && (
-                                                            <span className="mt-0.5 block truncate text-xs text-[#1a3d1a]/55">
-                                                                {row.meta}
-                                                            </span>
-                                                        )}
-                                                    </span>
-                                                    <ChevronRight className="mt-0.5 h-4 w-4 shrink-0 text-[#1a3d1a]/25 transition-transform duration-150 group-hover:translate-x-0.5 group-hover:text-[#1a3d1a]/60" />
-                                                </Link>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </div>
-                            ))}
-                        </div>
-                    ) : (
-                        <p className="px-5 py-5 text-sm text-[#1a3d1a]/55">
-                            {loading
-                                ? 'Searching…'
-                                : `No matches for “${query.trim()}”.`}
-                        </p>
-                    )}
+        <div
+            id="portal-search"
+            className="absolute inset-x-0 top-full z-40 animate-dropdown px-4 pt-1 sm:px-6 lg:px-8"
+        >
+            <div className="mx-auto max-w-2xl overflow-hidden rounded-2xl border border-[#1a3d1a]/10 bg-white shadow-2xl shadow-[#1a3d1a]/10">
+                <div className="flex items-center gap-3 border-b border-[#1a3d1a]/10 px-4">
+                    <Search className="h-4 w-4 shrink-0 text-[#1a3d1a]/40" />
+                    <label htmlFor="portal-search-input" className="sr-only">
+                        Search
+                    </label>
+                    <input
+                        ref={inputRef}
+                        id="portal-search-input"
+                        type="search"
+                        value={query}
+                        autoComplete="off"
+                        placeholder="Search dogs, visits, services"
+                        onChange={(event) =>
+                            onQueryChange(event.target.value)
+                        }
+                        className="w-full border-0 bg-transparent py-3.5 text-sm text-[#1a3d1a] placeholder:text-[#1a3d1a]/40 focus:outline-none focus:ring-0"
+                    />
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        aria-label="Close search"
+                        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[#1a3d1a]/50 transition-colors duration-200 hover:bg-[#EFFDF0] hover:text-[#1a3d1a] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1a3d1a]"
+                    >
+                        <X className="h-4 w-4" />
+                    </button>
                 </div>
-            )}
+
+                {term.length < 2 ? (
+                    <p className="px-5 py-6 text-sm leading-relaxed text-[#1a3d1a]/55">
+                        Type at least two letters to search your dogs, your
+                        visits, and the clinic's services.
+                    </p>
+                ) : sections.length > 0 ? (
+                    <div className="max-h-[60vh] overflow-y-auto p-2">
+                        {sections.map((section) => (
+                            <div key={section.title} className="py-1">
+                                <p className="px-3 pb-1 pt-2 text-[0.66rem] font-bold uppercase tracking-[0.14em] text-[#1a3d1a]/40">
+                                    {section.title}
+                                </p>
+                                <ul>
+                                    {section.items.map((row) => (
+                                        <li
+                                            key={`${section.title}-${row.id}`}
+                                        >
+                                            <Link
+                                                href={row.href}
+                                                onClick={onClose}
+                                                className="group flex items-start gap-3 rounded-xl px-3 py-2.5 transition-colors duration-150 hover:bg-[#EFFDF0] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1a3d1a]"
+                                            >
+                                                <span className="min-w-0 flex-1">
+                                                    <span className="block truncate text-sm font-medium text-[#1a3d1a]">
+                                                        {row.label}
+                                                    </span>
+                                                    {row.meta && (
+                                                        <span className="mt-0.5 block truncate text-xs text-[#1a3d1a]/55">
+                                                            {row.meta}
+                                                        </span>
+                                                    )}
+                                                </span>
+                                                <ArrowRight className="mt-0.5 h-4 w-4 shrink-0 text-[#1a3d1a]/25 transition-transform duration-150 group-hover:translate-x-0.5 group-hover:text-[#1a3d1a]/60" />
+                                            </Link>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <p className="px-5 py-6 text-sm text-[#1a3d1a]/55">
+                        {loading
+                            ? 'Searching…'
+                            : `No matches for “${term}”.`}
+                    </p>
+                )}
+            </div>
         </div>
     );
 }
@@ -457,6 +432,183 @@ function AccountMenu({ user }: { user: User }) {
     );
 }
 
+/**
+ * The floating help button, pinned to the bottom-right of every portal page.
+ * Opening it lazily loads the clinic's published questions — grouped the way
+ * the front desk files them — and each one expands in place.
+ */
+function FaqButton() {
+    const [open, setOpen] = useState(false);
+    const [categories, setCategories] = useState<PortalFaqCategory[] | null>(
+        null,
+    );
+    const [loading, setLoading] = useState(false);
+    const [expanded, setExpanded] = useState<number | null>(null);
+
+    /* Load the questions the first time the panel is opened. */
+    useEffect(() => {
+        if (!open || categories !== null) {
+            return;
+        }
+
+        let cancelled = false;
+        setLoading(true);
+
+        fetch(route('owner.faqs'), {
+            headers: { Accept: 'application/json' },
+            credentials: 'same-origin',
+        })
+            .then(
+                (response) =>
+                    response.json() as Promise<{
+                        categories: PortalFaqCategory[];
+                    }>,
+            )
+            .then((data) => {
+                if (!cancelled) {
+                    setCategories(data.categories);
+                }
+            })
+            .catch(() => {
+                // A failed load is just an empty panel; the button still closes.
+                if (!cancelled) {
+                    setCategories([]);
+                }
+            })
+            .finally(() => {
+                if (!cancelled) {
+                    setLoading(false);
+                }
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [open, categories]);
+
+    /* Escape closes the panel, like the header's own dropdowns. */
+    useEffect(() => {
+        if (!open) {
+            return;
+        }
+
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') {
+                setOpen(false);
+            }
+        };
+
+        document.addEventListener('keydown', handleKeyDown);
+
+        return () => document.removeEventListener('keydown', handleKeyDown);
+    }, [open]);
+
+    return (
+        <div className="fixed bottom-5 right-4 z-40 flex flex-col items-end gap-3 sm:bottom-6 sm:right-6">
+            {open && (
+                <div
+                    id="portal-faq"
+                    className="w-[min(24rem,calc(100vw-2rem))] animate-dropdown overflow-hidden rounded-2xl border border-[#1a3d1a]/10 bg-white shadow-2xl shadow-[#1a3d1a]/15"
+                >
+                    <div className="flex items-center justify-between gap-3 border-b border-[#1a3d1a]/10 bg-[#EFFDF0]/70 px-5 py-3.5">
+                        <h2 className="text-sm font-semibold text-[#1a3d1a]">
+                            Frequently asked questions
+                        </h2>
+                        <button
+                            type="button"
+                            onClick={() => setOpen(false)}
+                            aria-label="Close FAQs"
+                            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[#1a3d1a]/50 transition-colors duration-200 hover:bg-white hover:text-[#1a3d1a] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1a3d1a]"
+                        >
+                            <X className="h-4 w-4" />
+                        </button>
+                    </div>
+
+                    <div className="max-h-[60vh] overflow-y-auto p-2">
+                        {loading && categories === null ? (
+                            <p className="flex items-center gap-2 px-4 py-6 text-sm text-[#1a3d1a]/55">
+                                <Spinner className="h-4 w-4" />
+                                Loading questions…
+                            </p>
+                        ) : categories && categories.length > 0 ? (
+                            categories.map((category) => (
+                                <div key={category.name} className="py-1">
+                                    <p className="px-3 pb-1 pt-2 text-[0.66rem] font-bold uppercase tracking-[0.14em] text-[#1a3d1a]/40">
+                                        {category.name}
+                                    </p>
+                                    <ul>
+                                        {category.faqs.map((faq) => (
+                                            <li key={faq.id}>
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        setExpanded(
+                                                            (current) =>
+                                                                current ===
+                                                                faq.id
+                                                                    ? null
+                                                                    : faq.id,
+                                                        )
+                                                    }
+                                                    aria-expanded={
+                                                        expanded === faq.id
+                                                    }
+                                                    className="flex w-full items-start justify-between gap-3 rounded-xl px-3 py-2.5 text-left transition-colors duration-150 hover:bg-[#EFFDF0] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1a3d1a]"
+                                                >
+                                                    <span className="text-sm font-medium text-[#1a3d1a]">
+                                                        {faq.question}
+                                                    </span>
+                                                    <ChevronDown
+                                                        className={`mt-0.5 h-4 w-4 shrink-0 text-[#1a3d1a]/40 transition-transform duration-200 ${
+                                                            expanded === faq.id
+                                                                ? 'rotate-180'
+                                                                : ''
+                                                        }`}
+                                                    />
+                                                </button>
+                                                {expanded === faq.id && (
+                                                    <p className="px-3 pb-3 text-sm leading-relaxed text-[#1a3d1a]/60">
+                                                        {faq.answer}
+                                                    </p>
+                                                )}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            ))
+                        ) : (
+                            <p className="px-4 py-6 text-sm leading-relaxed text-[#1a3d1a]/55">
+                                No help articles yet. Call the front desk and
+                                they will be glad to help.
+                            </p>
+                        )}
+                    </div>
+
+                    <p className="border-t border-[#1a3d1a]/10 bg-[#EFFDF0]/40 px-5 py-3 text-xs leading-relaxed text-[#1a3d1a]/55">
+                        Still stuck? Call the front desk — they can change or
+                        cancel a booking for you.
+                    </p>
+                </div>
+            )}
+
+            <button
+                type="button"
+                onClick={() => setOpen((value) => !value)}
+                aria-label="Frequently asked questions"
+                aria-expanded={open}
+                aria-controls="portal-faq"
+                className="flex h-14 w-14 items-center justify-center rounded-full bg-[#1a3d1a] text-white shadow-xl shadow-[#1a3d1a]/30 transition-colors duration-200 hover:bg-[#2a5a2a] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1a3d1a] focus-visible:ring-offset-2"
+            >
+                {open ? (
+                    <X className="h-6 w-6" />
+                ) : (
+                    <HelpCircle className="h-6 w-6" />
+                )}
+            </button>
+        </div>
+    );
+}
+
 export default function OwnerLayout({
     title,
     heading,
@@ -501,8 +653,113 @@ export default function OwnerLayout({
         return () => {
             document.removeEventListener('mousedown', handlePointerDown);
             document.removeEventListener('keydown', handleKeyDown);
+        };    }, [mobileOpen]);
+
+    const [searchOpen, setSearchOpen] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [searchGroups, setSearchGroups] = useState<SearchGroups | null>(null);
+    const [searchLoading, setSearchLoading] = useState(false);
+    const searchInputRef = useRef<HTMLInputElement>(null);
+
+    /* Focusing on open means the panel is usable the moment it appears. */
+    useEffect(() => {
+        if (searchOpen) {
+            searchInputRef.current?.focus();
+        }
+    }, [searchOpen]);
+
+    /* The header shows one overlay at a time, so opening search closes the menu. */
+    const openSearch = useCallback(() => {
+        setMobileOpen(false);
+        setSearchOpen(true);
+    }, []);
+
+    const closeSearch = useCallback(() => {
+        setSearchOpen(false);
+        setSearchQuery('');
+        setSearchGroups(null);
+    }, []);
+
+    /* Escape and outside clicks close the search panel. It lives inside the
+       header, so the header's own ref covers it. */
+    useEffect(() => {
+        if (!searchOpen) {
+            return;
+        }
+
+        const handlePointerDown = (event: MouseEvent) => {
+            if (!headerRef.current?.contains(event.target as Node)) {
+                closeSearch();
+            }
         };
-    }, [mobileOpen]);
+
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') {
+                closeSearch();
+            }
+        };
+
+        document.addEventListener('mousedown', handlePointerDown);
+        document.addEventListener('keydown', handleKeyDown);
+
+        return () => {
+            document.removeEventListener('mousedown', handlePointerDown);
+            document.removeEventListener('keydown', handleKeyDown);
+        };
+    }, [searchOpen, closeSearch]);
+
+    /* Debounced server-side search, so typing does not fire a request per key. */
+    useEffect(() => {
+        const term = searchQuery.trim();
+
+        // One character is noise, and matches the server's own threshold.
+        if (term.length < 2) {
+            setSearchGroups(null);
+            setSearchLoading(false);
+
+            return;
+        }
+
+        let cancelled = false;
+        setSearchLoading(true);
+
+        const timer = setTimeout(async () => {
+            try {
+                const response = await fetch(
+                    `${route('owner.search')}?q=${encodeURIComponent(term)}`,
+                    {
+                        headers: { Accept: 'application/json' },
+                        credentials: 'same-origin',
+                    },
+                );
+
+                const data = (await response.json()) as SearchGroups;
+
+                if (!cancelled) {
+                    setSearchGroups(data);
+                }
+            } catch {
+                // A failed lookup is just an empty one; the panel stays usable.
+                if (!cancelled) {
+                    setSearchGroups({
+                        dogs: [],
+                        appointments: [],
+                        services: [],
+                    });
+                }
+            } finally {
+                if (!cancelled) {
+                    setSearchLoading(false);
+                }
+            }
+        }, 250);
+
+        return () => {
+            cancelled = true;
+            clearTimeout(timer);
+        };
+    }, [searchQuery]);
+
 
     const navItems: NavItem[] = [
         {
@@ -597,11 +854,20 @@ export default function OwnerLayout({
                         })}
                     </nav>
 
-                    <div className="mx-auto hidden w-full max-w-md md:block">
-                        <SearchBar />
-                    </div>
-
                     <div className="ml-auto flex shrink-0 items-center gap-2">
+                        <button
+                            type="button"
+                            onClick={() =>
+                                searchOpen ? closeSearch() : openSearch()
+                            }
+                            aria-label="Search"
+                            aria-expanded={searchOpen}
+                            aria-controls="portal-search"
+                            className="hidden h-11 w-11 items-center justify-center rounded-full border border-[#1a3d1a]/15 bg-white text-[#1a3d1a] transition-colors duration-200 hover:bg-[#EFFDF0] md:flex focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1a3d1a]"
+                        >
+                            <Search className="h-5 w-5" />
+                        </button>
+
                         <NotificationBell
                             notifications={notifications}
                             unread={unread}
@@ -610,7 +876,10 @@ export default function OwnerLayout({
 
                         <button
                             type="button"
-                            onClick={() => setMobileOpen((value) => !value)}
+                            onClick={() => {
+                                setMobileOpen((value) => !value);
+                                setSearchOpen(false);
+                            }}
                             aria-label="Toggle navigation menu"
                             aria-expanded={mobileOpen}
                             aria-controls="portal-mobile-nav"
@@ -625,18 +894,34 @@ export default function OwnerLayout({
                     </div>
                 </div>
 
-                {/* Mobile nav. The search box moves in here below the `md`
-                    breakpoint, where the header has no room for it. */}
+                {searchOpen && (
+                    <SearchPanel
+                        query={searchQuery}
+                        onQueryChange={setSearchQuery}
+                        groups={searchGroups}
+                        loading={searchLoading}
+                        onClose={closeSearch}
+                        inputRef={searchInputRef}
+                    />
+                )}
+
+                {/* Mobile nav. Below `md` the header has no room for the search
+                    button, so it becomes a row inside this panel. */}
                 {mobileOpen && (
                     <div
                         id="portal-mobile-nav"
                         className="absolute inset-x-0 top-full z-40 animate-dropdown px-4 pt-1 sm:px-6 lg:hidden"
                     >
                         <div className="mx-auto max-h-[calc(100vh-6rem)] max-w-2xl overflow-y-auto overflow-x-hidden rounded-2xl border border-[#1a3d1a]/10 bg-white shadow-2xl shadow-[#1a3d1a]/10">
-                            <div className="border-b border-[#1a3d1a]/10 p-3 md:hidden">
-                                <SearchBar
-                                    onNavigate={() => setMobileOpen(false)}
-                                />
+                            <div className="border-b border-[#1a3d1a]/10 p-2 md:hidden">
+                                <button
+                                    type="button"
+                                    onClick={openSearch}
+                                    className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-medium text-[#1a3d1a] transition-colors duration-200 hover:bg-[#EFFDF0] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1a3d1a]"
+                                >
+                                    <Search className="h-4 w-4 text-[#1a3d1a]/50" />
+                                    Search
+                                </button>
                             </div>
 
                             <nav className="flex flex-col p-2">
@@ -711,6 +996,8 @@ export default function OwnerLayout({
 
                 <div className={heading ? 'mt-8' : ''}>{children}</div>
             </main>
+
+            <FaqButton />
 
             <Head title={title} />
         </div>

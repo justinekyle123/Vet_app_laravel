@@ -22,6 +22,11 @@ interface OwnerHeroProps {
     actions?: ReactNode;
     /** Small chip shown beside the actions, e.g. a booking status. */
     badge?: ReactNode;
+    /**
+     * Optional photograph behind the band. A dark overlay keeps the white
+     * copy readable; without one the plain green gradient stands in.
+     */
+    image?: string | null;
 }
 
 export function OwnerHero({
@@ -31,9 +36,26 @@ export function OwnerHero({
     children,
     actions,
     badge,
+    image,
 }: OwnerHeroProps) {
     return (
-        <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#1a3d1a] via-[#1a3d1a] to-[#2a5a2a] p-6 text-white shadow-xl shadow-[#1a3d1a]/20 sm:p-8">
+        <section className="relative isolate overflow-hidden rounded-3xl bg-gradient-to-br from-[#1a3d1a] via-[#1a3d1a] to-[#2a5a2a] p-6 text-white shadow-xl shadow-[#1a3d1a]/20 sm:p-8">
+            {image && (
+                <>
+                    <img
+                        src={image}
+                        alt=""
+                        aria-hidden="true"
+                        draggable={false}
+                        className="pointer-events-none absolute inset-0 -z-20 h-full w-full object-cover"
+                    />
+                    <span
+                        aria-hidden="true"
+                        className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-r from-[#1a3d1a]/95 via-[#1a3d1a]/80 to-[#1a3d1a]/35"
+                    />
+                </>
+            )}
+
             <span
                 aria-hidden="true"
                 className="pointer-events-none absolute -right-20 -top-24 h-64 w-64 rounded-full bg-[#E86A10]/25 blur-3xl"

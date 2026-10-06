@@ -13,6 +13,7 @@ use App\Http\Controllers\Owner\AccountController as OwnerAccountController;
 use App\Http\Controllers\Owner\AppointmentController as OwnerAppointmentController;
 use App\Http\Controllers\Owner\DashboardController as OwnerDashboardController;
 use App\Http\Controllers\Owner\DogController as OwnerDogController;
+use App\Http\Controllers\Owner\FaqController as OwnerFaqController;
 use App\Http\Controllers\Owner\NotificationController as OwnerNotificationController;
 use App\Http\Controllers\Owner\SearchController as OwnerSearchController;
 use App\Http\Controllers\Owner\ServiceController as OwnerServiceController;
@@ -129,8 +130,15 @@ Route::middleware(['auth:owner,staff', 'role:owner'])
         Route::get('appointments', [OwnerAppointmentController::class, 'index'])->name('appointments.index');
         Route::post('appointments', [OwnerAppointmentController::class, 'store'])->name('appointments.store');
 
+        // Cancels one of the owner's own upcoming visits.
+        Route::patch('appointments/{appointment}/cancel', [OwnerAppointmentController::class, 'cancel'])
+            ->name('appointments.cancel');
+
         // Powers the navbar's search box; returns JSON, not an Inertia page.
         Route::get('search', OwnerSearchController::class)->name('search');
+
+        // Powers the floating FAQ button; returns JSON, not an Inertia page.
+        Route::get('faqs', OwnerFaqController::class)->name('faqs');
 
         Route::patch('notifications/read', [OwnerNotificationController::class, 'markAllRead'])
             ->name('notifications.read');

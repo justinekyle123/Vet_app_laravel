@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Owner;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Owner\StoreAppointmentRequest;
+use App\Models\Appointment;
 use App\Models\AppointmentStatus;
 use App\Models\DogOwner;
 use App\Models\Service;
@@ -68,6 +69,37 @@ class AppointmentController extends Controller
         return redirect()
             ->route('owner.appointments.index')
             ->with('status', 'appointment-requested');
+    }
+
+    /**
+     * Cancel one of the owner's own visits.
+     *
+     * Only a visit the clinic has not carried out yet — requested or
+     * confirmed — can be cancelled; a completed, cancelled, or missed record
+     * is history and is left alone. The check is scoped to the signed-in
+     * owner, so another client's appointment is invisible rather than
+     * forbidden.
+     */
+    public function cancel(Request $request, Appointment $appointment): RedirectResponse
+    {
+        /** @var DogOwner $owner */
+        $owner = $request->user();
+
+        abort_unless($appointment->owner_id === $owner->owner_id, 404);
+
+        if (! in_array($appointment->status?->status_name, AppointmentStatus::CANCELLABLE, true)) {
+            throw ValidationException::withMessages([
+                'appointment' => 'Only a requested or confirmed visit can be cancelled.',
+            ]);
+        }
+
+        $appointment->update([
+            'status_id' => AppointmentStatus::firstOrCreate(['status_name' => 'Cancelled'])->status_id,
+        ]);
+
+        return redirect()
+            ->route('owner.appointments.index')
+            ->with('status', 'appointment-cancelled');
     }
 
     /**
