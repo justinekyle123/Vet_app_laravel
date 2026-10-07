@@ -7,7 +7,7 @@ import { Link, router } from '@inertiajs/react';
 import { useState } from 'react';
 
 /**
- * Desk shortcuts. Anything not wired to a feature yet renders as a dashed,
+ * Operations shortcuts. Anything not wired to a feature yet renders as a dashed,
  * disabled tile so the gap in the build is visible rather than a dead click.
  */
 const quickActions: {
@@ -16,7 +16,6 @@ const quickActions: {
     href?: string;
 }[] = [
     { label: 'Book an appointment', icon: 'calendar' },
-    { label: 'Register an owner', icon: 'paw', href: route('owners.create') },
     { label: 'Record a payment', icon: 'sparkles' },
     { label: 'Log a complaint', icon: 'shield' },
 ];
@@ -100,8 +99,8 @@ export default function FrontDeskDashboard({
     ) => {
         const url =
             action === 'confirm'
-                ? route('front_desk.appointments.confirm', appointment.id)
-                : route('front_desk.appointments.cancel', appointment.id);
+                ? route('admin.operations.appointments.confirm', appointment.id)
+                : route('admin.operations.appointments.cancel', appointment.id);
 
         router.patch(
             url,
@@ -122,7 +121,7 @@ export default function FrontDeskDashboard({
     // preview would hide matching visits further out.
     const applyStatus = (value: string) => {
         router.get(
-            route('front_desk.dashboard'),
+            route('admin.operations.dashboard'),
             value === 'all' ? {} : { status: value },
             { preserveState: true, preserveScroll: true, replace: true },
         );
@@ -130,9 +129,9 @@ export default function FrontDeskDashboard({
 
     return (
         <StaffLayout
-            title="Front Desk"
-            heading="Front desk"
-            description="Today's bookings, the unpaid queue, and the client records the desk works from."
+            title="Admin Operations"
+            heading="Admin operations"
+            description="Today's bookings, appointment requests, and the client records the clinic manages."
             actions={
                 <Link
                     href={route('owners.index')}

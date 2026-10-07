@@ -12,7 +12,6 @@ import { Link } from '@inertiajs/react';
 interface Stats {
     total_users: number;
     admins: number;
-    front_desk: number;
     owners: number;
 }
 
@@ -26,37 +25,29 @@ interface RecentUser {
 
 const roleLabels: Record<UserRole, string> = {
     admin: 'Administrator',
-    front_desk: 'Front Desk',
-    veterinarian: 'Veterinarian',
-    groomer: 'Groomer',
     owner: 'Dog Owner',
 };
 
 /* Badges stay inside the brand palette instead of the stock Tailwind hues. */
 const roleBadges: Record<UserRole, string> = {
     admin: 'bg-[#1a3d1a]/10 text-[#1a3d1a]',
-    front_desk: 'bg-[#2a5a2a]/10 text-[#2a5a2a]',
-    veterinarian: 'bg-[#2a5a2a]/10 text-[#2a5a2a]',
-    groomer: 'bg-[#2a5a2a]/10 text-[#2a5a2a]',
     owner: 'bg-[#E86A10]/10 text-[#E86A10]',
 };
 
 /** Segments of the role-mix bar, in the order they are stacked. */
 const roleMix: {
     label: string;
-    key: 'admins' | 'front_desk' | 'owners';
+    key: 'admins' | 'owners';
     bar: string;
     dot: string;
 }[] = [
     { label: 'Administrators', key: 'admins', bar: 'bg-[#1a3d1a]', dot: 'bg-[#1a3d1a]' },
-    { label: 'Front desk', key: 'front_desk', bar: 'bg-[#2a5a2a]', dot: 'bg-[#2a5a2a]' },
     { label: 'Dog owners', key: 'owners', bar: 'bg-[#E86A10]', dot: 'bg-[#E86A10]' },
 ];
 
 const statHints: Record<string, string> = {
     total_users: 'Everyone with a MyVet login',
     admins: 'Full clinic management access',
-    front_desk: 'Desk bookings and client records',
     owners: 'Client portal accounts',
 };
 
@@ -114,7 +105,7 @@ export default function AdminDashboard({
     stats: Stats;
     recentUsers: RecentUser[];
 }) {
-    const rostered = stats.admins + stats.front_desk + stats.owners;
+    const rostered = stats.admins + stats.owners;
     const share = (value: number) =>
         rostered > 0 ? Math.round((value / rostered) * 100) : 0;
 
@@ -138,13 +129,6 @@ export default function AdminDashboard({
             icon: 'shield',
             accent: 'deep',
             hint: statHints.admins,
-        },
-        {
-            label: 'Front desk',
-            value: stats.front_desk,
-            icon: 'calendar',
-            accent: 'brand',
-            hint: statHints.front_desk,
         },
         {
             label: 'Dog owners',

@@ -8,15 +8,13 @@ use App\Models\DogOwner;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
 /**
  * Staff-facing management of dog owner records.
  *
- * Available to every staff role. Owners are deactivated rather than deleted so
+ * Available to administrators. Owners are deactivated rather than deleted so
  * their dogs and history stay intact.
  */
 class OwnerController extends Controller
@@ -55,26 +53,6 @@ class OwnerController extends Controller
                 'status' => $status,
             ],
         ]);
-    }
-
-    public function create(): Response
-    {
-        return Inertia::render('Staff/Owners/Create');
-    }
-
-    public function store(SaveOwnerRequest $request): RedirectResponse
-    {
-        $owner = DogOwner::create([
-            ...$request->validated(),
-            // A desk-created record has no password of its own. The value is
-            // random rather than blank so nobody can sign in with an empty
-            // password; the client can set one through "forgot password".
-            'password_hash' => Hash::make(Str::random(40)),
-        ]);
-
-        return redirect()
-            ->route('owners.show', $owner)
-            ->with('status', 'owner-created');
     }
 
     public function show(DogOwner $owner): Response

@@ -28,7 +28,6 @@ class DashboardController extends Controller
             'stats' => [
                 'total_users' => Staff::count() + DogOwner::count(),
                 'admins' => Staff::where('role', StaffRole::Admin)->count(),
-                'front_desk' => Staff::where('role', StaffRole::FrontDesk)->count(),
                 'owners' => DogOwner::count(),
             ],
             'recentUsers' => $this->recentAccounts(),
@@ -43,6 +42,7 @@ class DashboardController extends Controller
     private function recentAccounts(): Collection
     {
         $staff = Staff::query()
+            ->where('role', StaffRole::Admin)
             ->latest('created_at')
             ->limit(self::RECENT_LIMIT)
             ->get()

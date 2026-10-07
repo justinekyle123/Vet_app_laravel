@@ -6,8 +6,8 @@ use App\Http\Controllers\Admin\ServiceController as AdminServiceController;
 use App\Http\Controllers\Admin\SettingController as AdminSettingController;
 use App\Http\Controllers\Admin\StaffController as AdminStaffController;
 use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\FrontDesk\AppointmentController as FrontDeskAppointmentController;
-use App\Http\Controllers\FrontDesk\DashboardController as FrontDeskDashboardController;
+use App\Http\Controllers\Admin\OperationsAppointmentController;
+use App\Http\Controllers\Admin\OperationsDashboardController;
 use App\Http\Controllers\LandingController;
 use App\Http\Controllers\Owner\AccountController as OwnerAccountController;
 use App\Http\Controllers\Owner\AppointmentController as OwnerAppointmentController;
@@ -57,7 +57,7 @@ Route::middleware('auth:owner,staff')->group(function () {
 | Each area has its own dashboard controller and page. Access rules:
 |
 |   admin                  - clinic-wide management (staff, services, reports).
-|   any staff role         - day-to-day desk work (owners, dogs, payments).
+|   admin                  - clinic-wide management and daily operations.
 |   owner                  - the client portal; owners only see their records.
 |
 | A user hitting an area their role does not cover gets a 403.
@@ -83,32 +83,27 @@ Route::middleware(['auth:owner,staff', 'role:admin'])
         Route::patch('settings', [AdminSettingController::class, 'update'])->name('settings.update');
     });
 
-/*
- * Any staff role may work the desk: veterinarians and groomers need the client
- * records as much as the front desk does. Only clinic-wide administration
- * (the group above) is restricted to administrators.
- */
-Route::middleware(['auth:owner,staff', 'role:admin,front_desk,veterinarian,groomer'])
-    ->prefix('front-desk')
-    ->name('front_desk.')
+Route::middleware(['auth:owner,staff', 'role:admin'])
+    ->prefix('admin/operations')
+    ->name('admin.operations.')
     ->group(function () {
-        Route::get('/', FrontDeskDashboardController::class)->name('dashboard');
+        Route::get('/', OperationsDashboardController::class)->name('dashboard');
 
-        // The desk's two moves on a booking it owns the state of.
-        Route::patch('appointments/{appointment}/confirm', [FrontDeskAppointmentController::class, 'confirm'])
+        // Administrators own the two appointment state transitions.
+        Route::patch('appointments/{appointment}/confirm', [OperationsAppointmentController::class, 'confirm'])
             ->name('appointments.confirm');
-        Route::patch('appointments/{appointment}/cancel', [FrontDeskAppointmentController::class, 'cancel'])
+        Route::patch('appointments/{appointment}/cancel', [OperationsAppointmentController::class, 'cancel'])
             ->name('appointments.cancel');
     });
 
-Route::middleware(['auth:owner,staff', 'role:admin,front_desk,veterinarian,groomer'])
+Route::middleware(['auth:owner,staff', 'role:admin'])
     ->prefix('owners')
     ->name('owners.')
     ->group(function () {
         Route::get('/', [StaffOwnerController::class, 'index'])->name('index');
+        Route::get('{owner}', [StaffOwnerController::class, 'show'])->name('show');
         Route::get('create', [StaffOwnerController::class, 'create'])->name('create');
         Route::post('/', [StaffOwnerController::class, 'store'])->name('store');
-        Route::get('{owner}', [StaffOwnerController::class, 'show'])->name('show');
         Route::get('{owner}/edit', [StaffOwnerController::class, 'edit'])->name('edit');
         Route::patch('{owner}', [StaffOwnerController::class, 'update'])->name('update');
         Route::patch('{owner}/deactivate', [StaffOwnerController::class, 'deactivate'])->name('deactivate');

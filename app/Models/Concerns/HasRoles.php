@@ -50,11 +50,6 @@ trait HasRoles
         return $this->hasRole(StaffRole::Admin);
     }
 
-    public function isFrontDesk(): bool
-    {
-        return $this->hasRole(StaffRole::FrontDesk);
-    }
-
     public function isOwner(): bool
     {
         return $this->hasRole('owner');

@@ -160,6 +160,11 @@ class DogOwner extends Model implements AuthenticatableContract, CanResetPasswor
         return $this->hasMany(RatingFeedback::class, 'owner_id', 'owner_id');
     }
 
+    public function faqs(): HasMany
+    {
+        return $this->hasMany(Faq::class, 'owner_id', 'owner_id');
+    }
+
     public function fullName(): string
     {
         return trim("{$this->first_name} {$this->last_name}");

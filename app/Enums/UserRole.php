@@ -12,7 +12,6 @@ namespace App\Enums;
 enum UserRole: string
 {
     case Admin = 'admin';
-    case FrontDesk = 'front_desk';
     case Owner = 'owner';
 
     /**
@@ -22,7 +21,6 @@ enum UserRole: string
     {
         return match ($this) {
             self::Admin => 'Administrator',
-            self::FrontDesk => 'Front Desk',
             self::Owner => 'Dog Owner',
         };
     }

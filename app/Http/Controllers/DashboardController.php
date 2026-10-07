@@ -19,10 +19,6 @@ class DashboardController extends Controller
     {
         $user = $request->user();
 
-        if ($user instanceof Staff && $user->role !== StaffRole::Admin) {
-            return redirect()->route('front_desk.dashboard');
-        }
-
         if ($user instanceof Staff) {
             return redirect()->route('admin.dashboard');
         }

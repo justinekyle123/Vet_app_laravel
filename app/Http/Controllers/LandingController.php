@@ -39,8 +39,7 @@ class LandingController extends Controller
             ->get();
 
         /*
-         * The care team: everyone client-facing, veterinarians first, then the
-         * groomers, then the front desk. Administrators are left off the
+         * The care team: veterinarians first, then groomers. Administrators are left off the
          * marketing page, and the page falls back to an initials monogram for
          * anyone without a portrait.
          */
@@ -49,7 +48,6 @@ class LandingController extends Controller
             ->whereIn('role', [
                 StaffRole::Veterinarian->value,
                 StaffRole::Groomer->value,
-                StaffRole::FrontDesk->value,
             ])
             ->orderBy('last_name')
             ->get()
@@ -97,6 +95,10 @@ class LandingController extends Controller
                     'name' => $member->fullName(),
                     'role' => $member->role->label(),
                     'specialization' => $member->specialization,
+                    'background' => $member->background,
+                    'experience_years' => $member->experience_years,
+                    'qualifications' => $member->qualifications,
+                    'license_number' => $member->license_number,
                     'image' => $member->imageUrl(),
                 ])
                 ->all(),

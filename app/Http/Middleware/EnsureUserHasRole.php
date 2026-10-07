@@ -9,7 +9,7 @@ use Symfony\Component\HttpFoundation\Response;
 /**
  * Restricts a route (or route group) to accounts holding one of the roles.
  *
- * Usage: ->middleware('role:admin') or ->middleware('role:admin,front_desk').
+ * Usage: ->middleware('role:admin') or ->middleware('role:owner').
  * It expects an authenticated account to already be resolved; pair it with an
  * "auth:owner,staff" middleware rather than using it on its own. Dog owners
  * report the "owner" role, staff report their `staff.role` value.

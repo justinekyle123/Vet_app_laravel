@@ -1,4 +1,4 @@
-import { primaryButtonClass, rowButtonClass } from '@/Components/buttonStyles';
+import { rowButtonClass } from '@/Components/buttonStyles';
 import Icon from '@/Components/Icon';
 import Pagination from '@/Components/Pagination';
 import Panel, { EmptyState } from '@/Components/Panel';
@@ -50,15 +50,6 @@ export default function Index({
             title="Dog Owners"
             heading="Dog owners"
             description="Client records for the clinic's dog owners and their dogs. Deactivated clients keep their history but leave the default list."
-            actions={
-                <Link
-                    href={route('owners.create')}
-                    className={primaryButtonClass}
-                >
-                    <Icon name="plus" className="h-4 w-4" />
-                    Add owner
-                </Link>
-            }
         >
             <Panel
                 title="Client list"
@@ -125,7 +116,7 @@ export default function Index({
                             message={
                                 filters.search !== ''
                                     ? 'No dog owners match this search. Try a different name, email, or phone number.'
-                                    : 'No dog owners in this view yet. Register a walk-in client to get started.'
+                                    : 'No dog owners in this view yet. New clients can register through the owner portal.'
                             }
                         />
                     </div>

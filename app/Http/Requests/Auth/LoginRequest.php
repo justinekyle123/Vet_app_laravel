@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Auth;
 
+use App\Enums\StaffRole;
 use App\Models\Staff;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Contracts\Validation\ValidationRule;
@@ -50,7 +51,9 @@ class LoginRequest extends FormRequest
 
         $credentials = $this->only('email', 'password');
 
-        $authenticated = Auth::guard('staff')->attempt($credentials)
+        $authenticated = (Staff::where('email', $credentials['email'])
+            ->where('role', StaffRole::Admin)
+            ->exists() && Auth::guard('staff')->attempt($credentials))
             || Auth::guard('owner')->attempt($credentials);
 
         // "Remember me" is not offered: neither account table has a

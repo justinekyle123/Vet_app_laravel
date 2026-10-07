@@ -5,10 +5,10 @@ use App\Models\DogOwner;
 use App\Models\Staff;
 use Inertia\Testing\AssertableInertia as Assert;
 
-test('front desk staff can browse dog owners', function () {
+test('admins can browse dog owners', function () {
     DogOwner::factory()->count(3)->create();
 
-    $this->actingAs(Staff::factory()->frontDesk()->create())
+    $this->actingAs(Staff::factory()->admin()->create())
         ->get(route('owners.index'))
         ->assertInertia(fn (Assert $page) => $page
             ->component('Staff/Owners/Index')
@@ -46,30 +46,10 @@ test('dog owners cannot reach the staff owners area', function () {
         ->assertForbidden();
 });
 
-test('staff can create an owner record', function () {
-    $this->actingAs(Staff::factory()->frontDesk()->create())
-        ->post(route('owners.store'), [
-            'first_name' => 'Jane',
-            'last_name' => 'Doe',
-            'email' => 'jane@example.com',
-            'phone_number' => '5550100',
-            'is_active' => true,
-        ])
-        ->assertSessionHasNoErrors();
-
-    $owner = DogOwner::where('email', 'jane@example.com')->firstOrFail();
-
-    expect($owner->first_name)->toBe('Jane')
-        ->and($owner->is_active)->toBeTrue()
-        // A desk-created record still needs a credential the owner can reset.
-        ->and($owner->password_hash)->not->toBeEmpty();
-});
-
-test('creating an owner requires a name, an email, and a phone', function () {
-    $this->actingAs(Staff::factory()->frontDesk()->create())
-        ->from(route('owners.create'))
-        ->post(route('owners.store'), [])
-        ->assertSessionHasErrors(['first_name', 'last_name', 'email', 'phone_number']);
+test('admins cannot register an owner through the staff area', function () {
+    $this->actingAs(Staff::factory()->admin()->create())
+        ->get('/owners/create')
+        ->assertNotFound();
 });
 
 test('staff can view an owner with their dogs', function () {
@@ -79,7 +59,7 @@ test('staff can view an owner with their dogs', function () {
         'dog_name' => 'Rex',
     ]);
 
-    $this->actingAs(Staff::factory()->frontDesk()->create())
+    $this->actingAs(Staff::factory()->admin()->create())
         ->get(route('owners.show', $owner))
         ->assertInertia(fn (Assert $page) => $page
             ->component('Staff/Owners/Show')
@@ -92,7 +72,7 @@ test('staff can view an owner with their dogs', function () {
 test('staff can update an owner', function () {
     $owner = DogOwner::factory()->create(['address' => 'Old Town']);
 
-    $this->actingAs(Staff::factory()->frontDesk()->create())
+    $this->actingAs(Staff::factory()->admin()->create())
         ->patch(route('owners.update', $owner), [
             'first_name' => $owner->first_name,
             'last_name' => $owner->last_name,
@@ -109,7 +89,7 @@ test('staff can update an owner', function () {
 
 test('staff can deactivate and reactivate an owner', function () {
     $owner = DogOwner::factory()->create(['is_active' => true]);
-    $staff = Staff::factory()->frontDesk()->create();
+    $staff = Staff::factory()->admin()->create();
 
     $this->actingAs($staff)
         ->patch(route('owners.deactivate', $owner))
