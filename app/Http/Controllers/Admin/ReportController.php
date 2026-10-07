@@ -30,7 +30,6 @@ class ReportController extends Controller
             'accounts' => [
                 'total' => Staff::count() + DogOwner::count(),
                 'admins' => Staff::where('role', StaffRole::Admin)->count(),
-                'front_desk' => Staff::where('role', StaffRole::FrontDesk)->count(),
                 'owners' => DogOwner::count(),
             ],
             'clients' => [

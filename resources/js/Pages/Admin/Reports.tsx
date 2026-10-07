@@ -12,7 +12,6 @@ interface ReportsProps {
     accounts: {
         total: number;
         admins: number;
-        front_desk: number;
         owners: number;
     };
     clients: {
@@ -114,7 +113,7 @@ export default function Reports({
                         value={accounts.total}
                         icon="user"
                         accent="brand"
-                        hint={`${accounts.admins} admin · ${accounts.front_desk} front desk · ${accounts.owners} dog owners`}
+                        hint={`${accounts.admins} admin · ${accounts.owners} dog owners`}
                     />
                     <StatCard
                         label="Dog owners"

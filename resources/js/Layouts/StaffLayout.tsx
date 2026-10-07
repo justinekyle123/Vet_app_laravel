@@ -19,18 +19,14 @@ interface NavGroup {
 
 const roleLabels: Record<UserRole, string> = {
     admin: 'Administrator',
-    front_desk: 'Front desk',
-    veterinarian: 'Veterinarian',
-    groomer: 'Groomer',
     owner: 'Dog owner',
 };
 
 /**
  * The console navigation, split by what the signed-in role can actually reach.
  *
- * Administrators see clinic-wide management; front desk staff see only their
- * own desk plus the client records they share with admins. Offering a link the
- * role cannot open would just hand them a 403.
+ * Administrators see clinic-wide management and daily operations. Offering a
+ * link the role cannot open would just hand them a 403.
  */
 function navGroupsFor(role: UserRole): NavGroup[] {
     const isAdmin = role === 'admin';
@@ -39,19 +35,18 @@ function navGroupsFor(role: UserRole): NavGroup[] {
         {
             title: 'Clinic',
             items: [
-                isAdmin
-                    ? {
-                          label: 'Overview',
-                          href: route('admin.dashboard'),
-                          pattern: 'admin.dashboard',
-                          icon: 'sparkles',
-                      }
-                    : {
-                          label: 'Today',
-                          href: route('front_desk.dashboard'),
-                          pattern: 'front_desk.dashboard',
-                          icon: 'calendar',
-                      },
+                {
+                    label: 'Overview',
+                    href: route('admin.dashboard'),
+                    pattern: 'admin.dashboard',
+                    icon: 'sparkles',
+                },
+                {
+                    label: 'Operations',
+                    href: route('admin.operations.dashboard'),
+                    pattern: 'admin.operations.*',
+                    icon: 'calendar',
+                },
             ],
         },
         {
@@ -147,10 +142,8 @@ export default function StaffLayout({
 
     const isAdmin = user.role === 'admin';
     const navGroups = navGroupsFor(user.role);
-    const homeHref = isAdmin
-        ? route('admin.dashboard')
-        : route('front_desk.dashboard');
-    const sectionLabel = isAdmin ? 'Admin' : 'Front desk';
+    const homeHref = route('admin.dashboard');
+    const sectionLabel = 'Admin';
 
     /* Land on a new page and the mobile drawer should already be closed. */
     useEffect(() => {
@@ -290,7 +283,7 @@ export default function StaffLayout({
                         Back to website
                     </Link>
                     <p className="px-3 pt-2 text-[0.66rem] uppercase tracking-[0.16em] text-[#EFFDF0]/30">
-                        {isAdmin ? 'Admin console' : 'Front desk console'}
+                        Admin console
                     </p>
                 </div>
             </aside>

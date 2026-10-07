@@ -31,7 +31,7 @@ class StaffFactory extends Factory
             'email' => fake()->unique()->safeEmail(),
             'password_hash' => Hash::make('password'),
             'phone_number' => fake()->numerify('##########'),
-            'role' => StaffRole::FrontDesk,
+            'role' => StaffRole::Veterinarian,
             'is_active' => true,
         ];
     }
@@ -40,13 +40,6 @@ class StaffFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'role' => StaffRole::Admin,
-        ]);
-    }
-
-    public function frontDesk(): static
-    {
-        return $this->state(fn (array $attributes) => [
-            'role' => StaffRole::FrontDesk,
         ]);
     }
 

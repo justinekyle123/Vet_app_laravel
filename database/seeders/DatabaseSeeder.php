@@ -50,7 +50,6 @@ class DatabaseSeeder extends Seeder
             ['Vet', 'Oncalla', 'vet@example.com', StaffRole::Veterinarian, 'Surgery & dental', $this->staffImage('oncalla')],
             ['Clara', 'Mendoza', 'clara@example.com', StaffRole::Veterinarian, 'Internal medicine', $this->staffImage('mendoza')],
             ['Nina', 'Salvador', 'nina@example.com', StaffRole::Groomer, 'Bath, trim, and coat care', $this->staffImage('salvador')],
-            ['Front', 'Desk', 'frontdesk@example.com', StaffRole::FrontDesk, 'Appointments & billing', $this->staffImage('frontdesk')],
         ];
 
         foreach ($accounts as [$firstName, $lastName, $email, $role, $specialization, $image]) {
@@ -62,6 +61,9 @@ class DatabaseSeeder extends Seeder
                 'password_hash' => Hash::make('password'),
                 'role' => $role,
                 'specialization' => $specialization,
+                'background' => $role === StaffRole::Veterinarian ? 'Experienced in companion-animal medicine and preventive care.' : ($role === StaffRole::Groomer ? 'Focused on gentle, breed-aware grooming and coat care.' : null),
+                'experience_years' => $role === StaffRole::Admin ? null : 8,
+                'qualifications' => $role === StaffRole::Veterinarian ? 'Licensed veterinarian' : ($role === StaffRole::Groomer ? 'Certified professional groomer' : null),
                 'image_path' => $image,
             ]);
         }

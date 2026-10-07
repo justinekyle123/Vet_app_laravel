@@ -14,7 +14,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
- * A clinic staff member: veterinarian, administrator, front desk, or groomer.
+ * A clinic staff member: veterinarian, administrator, or groomer.
  *
  * Staff sign in against `staff.password_hash`; there is no shared `users`
  * table. A staff member's access is decided by `role`.
@@ -42,6 +42,9 @@ class Staff extends Model implements AuthenticatableContract
         'phone_number',
         'role',
         'specialization',
+        'background',
+        'experience_years',
+        'qualifications',
         'license_number',
         'image_path',
         'is_active',
@@ -65,6 +68,7 @@ class Staff extends Model implements AuthenticatableContract
     {
         return [
             'role' => StaffRole::class,
+            'experience_years' => 'integer',
             'is_active' => 'boolean',
             // The admin password-reset form hands over a plain value; hashing
             // on assignment keeps it that way for every write path.

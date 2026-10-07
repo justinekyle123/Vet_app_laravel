@@ -483,10 +483,18 @@ function CareTeamMemberCard({
                         {member.role}
                     </h3>
                     <p className="mt-4 text-sm leading-relaxed text-white/70">
-                        {member.specialization
-                            ? `Works with your dog on ${member.specialization.toLowerCase()}, and is on hand at every visit to answer what you are unsure about.`
-                            : 'Part of the team who sees your dog at every visit.'}
+                        {member.background ??
+                            (member.specialization
+                                ? `Works with your dog on ${member.specialization.toLowerCase()}.`
+                                : 'Part of the team who sees your dog at every visit.')}
                     </p>
+                    <div className="mt-5 space-y-2 text-xs text-white/60">
+                        {member.experience_years !== null && (
+                            <p>{member.experience_years} years of experience</p>
+                        )}
+                        {member.qualifications && <p>{member.qualifications}</p>}
+                        {member.license_number && <p>License: {member.license_number}</p>}
+                    </div>
                     <a
                         href={bookHref}
                         onClick={(event) => event.stopPropagation()}

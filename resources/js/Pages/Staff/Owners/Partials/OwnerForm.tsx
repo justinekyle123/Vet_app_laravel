@@ -1,7 +1,4 @@
-import {
-    primaryButtonClass,
-    secondaryButtonClass,
-} from '@/Components/buttonStyles';
+import { primaryButtonClass, secondaryButtonClass } from '@/Components/buttonStyles';
 import Field from '@/Components/Field';
 import { checkboxClass } from '@/Components/formStyles';
 import Icon from '@/Components/Icon';
@@ -19,41 +16,23 @@ export interface OwnerRecord {
     is_active: boolean;
 }
 
-const blank = {
-    first_name: '',
-    last_name: '',
-    email: '',
-    phone_number: '',
-    address: '',
-    is_active: true,
-};
-
 /**
- * Shared by the create and edit screens: with no owner it posts a new record,
- * with one it patches that record.
+ * The admin can update an existing owner, but cannot create owner accounts.
  */
-export default function OwnerForm({ owner }: { owner?: OwnerRecord }) {
-    const { data, setData, post, patch, processing, errors } = useForm(
-        owner
-            ? {
-                  first_name: owner.first_name ?? '',
-                  last_name: owner.last_name ?? '',
-                  email: owner.email ?? '',
-                  phone_number: owner.phone_number ?? '',
-                  address: owner.address ?? '',
-                  is_active: Boolean(owner.is_active),
-              }
-            : blank,
-    );
+export default function OwnerForm({ owner }: { owner: OwnerRecord }) {
+    const { data, setData, patch, processing, errors } = useForm({
+        first_name: owner.first_name ?? '',
+        last_name: owner.last_name ?? '',
+        email: owner.email ?? '',
+        phone_number: owner.phone_number ?? '',
+        address: owner.address ?? '',
+        is_active: Boolean(owner.is_active),
+    });
 
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
 
-        if (owner) {
-            patch(route('owners.update', owner.id));
-        } else {
-            post(route('owners.store'));
-        }
+        patch(route('owners.update', owner.id));
     };
 
     return (
@@ -141,18 +120,16 @@ export default function OwnerForm({ owner }: { owner?: OwnerRecord }) {
                         <Spinner className="h-4 w-4" />
                     ) : (
                         <Icon
-                            name={owner ? 'check' : 'plus'}
+                            name="check"
                             className="h-4 w-4"
                         />
                     )}
-                    {owner ? 'Save changes' : 'Create owner'}
+                    Save changes
                 </button>
 
                 <Link
                     href={
-                        owner
-                            ? route('owners.show', owner.id)
-                            : route('owners.index')
+                        route('owners.show', owner.id)
                     }
                     className={secondaryButtonClass}
                 >

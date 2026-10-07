@@ -13,7 +13,6 @@ enum StaffRole: string
 {
     case Veterinarian = 'veterinarian';
     case Admin = 'admin';
-    case FrontDesk = 'front_desk';
     case Groomer = 'groomer';
 
     /**
@@ -24,7 +23,6 @@ enum StaffRole: string
         return match ($this) {
             self::Veterinarian => 'Veterinarian',
             self::Admin => 'Administrator',
-            self::FrontDesk => 'Front Desk',
             self::Groomer => 'Groomer',
         };
     }

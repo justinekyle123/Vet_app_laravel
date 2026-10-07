@@ -21,6 +21,7 @@ class Faq extends Model
      */
     protected $fillable = [
         'faq_category_id',
+        'owner_id',
         'question',
         'answer',
         'is_published',
@@ -41,5 +42,10 @@ class Faq extends Model
     public function category(): BelongsTo
     {
         return $this->belongsTo(FaqCategory::class, 'faq_category_id', 'faq_category_id');
+    }
+
+    public function owner(): BelongsTo
+    {
+        return $this->belongsTo(DogOwner::class, 'owner_id', 'owner_id');
     }
 }

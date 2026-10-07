@@ -2,6 +2,7 @@
 
 namespace App\Services\Firebase;
 
+use App\Enums\StaffRole;
 use App\Models\DogOwner;
 use App\Models\Staff;
 use Illuminate\Support\Facades\Hash;
@@ -52,6 +53,10 @@ class FirebaseUserSynchronizer
             ?? Staff::where('email', $email)->first();
 
         if ($account !== null) {
+            if ($account instanceof Staff && $account->role !== StaffRole::Admin) {
+                throw new RuntimeException('Only administrator staff accounts can sign in.');
+            }
+
             if ($name !== null) {
                 [$firstName, $lastName] = DogOwner::splitName($name);
 

@@ -1,11 +1,11 @@
 /** The roles a staff row can hold, matching the `staff.role` column. */
-export type StaffRole = 'admin' | 'front_desk' | 'veterinarian' | 'groomer';
+export type StaffRole = 'admin' | 'veterinarian' | 'groomer';
 
 /**
  * Every role the console recognises. Dog owners are not staff: their accounts
  * live in their own table and report the single "owner" role.
  */
-export type UserRole = StaffRole | 'owner';
+export type UserRole = 'admin' | 'owner';
 
 export interface User {
     id: number;
@@ -130,6 +130,10 @@ export interface PublicTeamMember {
     name: string;
     role: string;
     specialization: string | null;
+    background: string | null;
+    experience_years: number | null;
+    qualifications: string | null;
+    license_number: string | null;
     image: string | null;
 }
 

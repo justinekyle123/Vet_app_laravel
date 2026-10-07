@@ -13,14 +13,12 @@ import ResetStaffPasswordForm, {
 
 const roleLabels: Record<StaffMember['role'], string> = {
     admin: 'Administrator',
-    front_desk: 'Front Desk',
     veterinarian: 'Veterinarian',
     groomer: 'Groomer',
 };
 
 const roleBadges: Record<StaffMember['role'], string> = {
     admin: 'bg-[#1a3d1a]/10 text-[#1a3d1a]',
-    front_desk: 'bg-[#2a5a2a]/10 text-[#2a5a2a]',
     veterinarian: 'bg-[#2a5a2a]/10 text-[#2a5a2a]',
     groomer: 'bg-[#2a5a2a]/10 text-[#2a5a2a]',
 };
@@ -67,7 +65,7 @@ export default function Staff({ staff }: { staff: StaffMember[] }) {
             >
                 {staff.length === 0 ? (
                     <div className="p-5">
-                        <SoonState message="No staff accounts exist yet. Administrators and front desk accounts will be listed here." />
+                        <SoonState message="No staff profiles exist yet. Administrators, veterinarians, and groomers will be listed here." />
                     </div>
                 ) : (
                     <ul className="divide-y divide-[#1a3d1a]/10">
