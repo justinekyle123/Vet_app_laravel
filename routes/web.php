@@ -1,13 +1,14 @@
 <?php
 
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Admin\NotificationController as AdminNotificationController;
+use App\Http\Controllers\Admin\OperationsAppointmentController;
+use App\Http\Controllers\Admin\OperationsDashboardController;
 use App\Http\Controllers\Admin\ReportController as AdminReportController;
 use App\Http\Controllers\Admin\ServiceController as AdminServiceController;
 use App\Http\Controllers\Admin\SettingController as AdminSettingController;
 use App\Http\Controllers\Admin\StaffController as AdminStaffController;
 use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\Admin\OperationsAppointmentController;
-use App\Http\Controllers\Admin\OperationsDashboardController;
 use App\Http\Controllers\LandingController;
 use App\Http\Controllers\Owner\AccountController as OwnerAccountController;
 use App\Http\Controllers\Owner\AppointmentController as OwnerAppointmentController;
@@ -70,12 +71,23 @@ Route::middleware(['auth:owner,staff', 'role:admin'])
         Route::get('/', AdminDashboardController::class)->name('dashboard');
 
         Route::get('staff', [AdminStaffController::class, 'index'])->name('staff.index');
+        Route::get('staff/create', [AdminStaffController::class, 'create'])->name('staff.create');
+        Route::post('staff', [AdminStaffController::class, 'store'])->name('staff.store');
+        Route::get('staff/{staff}/edit', [AdminStaffController::class, 'edit'])->name('staff.edit');
+        Route::patch('staff/{staff}', [AdminStaffController::class, 'update'])->name('staff.update');
+        Route::delete('staff/{staff}', [AdminStaffController::class, 'destroy'])->name('staff.destroy');
         Route::patch('staff/{staff}/password', [AdminStaffController::class, 'updatePassword'])->name('staff.password');
 
         Route::get('services', [AdminServiceController::class, 'index'])->name('services.index');
+        Route::get('services/create', [AdminServiceController::class, 'create'])->name('services.create');
         Route::post('services', [AdminServiceController::class, 'store'])->name('services.store');
+        Route::get('services/{service}/edit', [AdminServiceController::class, 'edit'])->name('services.edit');
         Route::patch('services/{service}', [AdminServiceController::class, 'update'])->name('services.update');
         Route::patch('services/{service}/toggle', [AdminServiceController::class, 'toggle'])->name('services.toggle');
+
+        // Powers the console topbar's notification bell; clears the unread badge.
+        Route::patch('notifications/read', AdminNotificationController::class)
+            ->name('notifications.read');
 
         Route::get('reports', AdminReportController::class)->name('reports.index');
 
@@ -89,11 +101,15 @@ Route::middleware(['auth:owner,staff', 'role:admin'])
     ->group(function () {
         Route::get('/', OperationsDashboardController::class)->name('dashboard');
 
-        // Administrators own the two appointment state transitions.
+        // Administrators own the appointment state transitions.
         Route::patch('appointments/{appointment}/confirm', [OperationsAppointmentController::class, 'confirm'])
             ->name('appointments.confirm');
         Route::patch('appointments/{appointment}/cancel', [OperationsAppointmentController::class, 'cancel'])
             ->name('appointments.cancel');
+        Route::patch('appointments/{appointment}/complete', [OperationsAppointmentController::class, 'complete'])
+            ->name('appointments.complete');
+        Route::patch('appointments/{appointment}/no-show', [OperationsAppointmentController::class, 'noShow'])
+            ->name('appointments.no-show');
     });
 
 Route::middleware(['auth:owner,staff', 'role:admin'])
@@ -104,8 +120,11 @@ Route::middleware(['auth:owner,staff', 'role:admin'])
         Route::get('{owner}', [StaffOwnerController::class, 'show'])->name('show');
         Route::get('create', [StaffOwnerController::class, 'create'])->name('create');
         Route::post('/', [StaffOwnerController::class, 'store'])->name('store');
-        Route::get('{owner}/edit', [StaffOwnerController::class, 'edit'])->name('edit');
-        Route::patch('{owner}', [StaffOwnerController::class, 'update'])->name('update');
+        /*
+         * Owners can be reviewed and deactivated, but their personal details
+         * are theirs to maintain through the portal; administrators cannot
+         * edit them from here.
+         */
         Route::patch('{owner}/deactivate', [StaffOwnerController::class, 'deactivate'])->name('deactivate');
         Route::patch('{owner}/activate', [StaffOwnerController::class, 'activate'])->name('activate');
     });

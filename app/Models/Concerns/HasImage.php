@@ -2,8 +2,6 @@
 
 namespace App\Models\Concerns;
 
-use Illuminate\Support\Facades\Storage;
-
 /**
  * The picture a record shows on the public site, shared by the two kinds of row
  * that have one: services and staff.
@@ -29,6 +27,6 @@ trait HasImage
 
         return str_starts_with($path, 'http')
             ? $path
-            : Storage::disk('public')->url($path);
+            : '/storage/'.ltrim($path, '/');
     }
 }

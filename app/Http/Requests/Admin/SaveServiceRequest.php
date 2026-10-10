@@ -31,6 +31,7 @@ class SaveServiceRequest extends FormRequest
             // The schema makes a service's category mandatory.
             'category_id' => ['required', 'integer', 'exists:service_categories,category_id'],
             'description' => ['nullable', 'string', 'max:1000'],
+            'image' => ['nullable', 'file', 'image', 'mimes:jpeg,jpg,png,webp', 'max:5120'],
             'duration_minutes' => ['required', 'integer', 'min:5', 'max:600'],
             'price' => ['required', 'numeric', 'min:0', 'max:99999999'],
             'is_active' => ['boolean'],

@@ -10,8 +10,13 @@ import { labelClass } from '@/Components/formStyles';
 import { Link, useForm } from '@inertiajs/react';
 import { CalendarDays, Clock, X } from 'lucide-react';
 import { FormEventHandler, useEffect, useMemo, useState } from 'react';
-import { PortalDog, PortalService, ServiceAvailability } from '@/types';
-import { currency } from '@/utils/format';
+import {
+    PortalDog,
+    PortalService,
+    PublicTeamMember,
+    ServiceAvailability,
+} from '@/types';
+import { currency, initials } from '@/utils/format';
 import BookingCalendar from './BookingCalendar';
 
 /**
@@ -25,12 +30,15 @@ import BookingCalendar from './BookingCalendar';
 export default function BookingModal({
     service,
     dogs,
+    team,
     show,
     onClose,
 }: {
     /** Null while the modal is closed; the service being booked otherwise. */
     service: PortalService | null;
     dogs: PortalDog[];
+    /** The clinic's care team, so the owner sees who could take the visit. */
+    team: PublicTeamMember[];
     show: boolean;
     onClose: () => void;
 }) {
@@ -115,6 +123,21 @@ export default function BookingModal({
                 ? (availability.times[data.appointment_date] ?? [])
                 : [],
         [availability, data.appointment_date],
+    );
+
+    /*
+     * Who the clinic can book for this service: groomers for grooming, vets for
+     * everything else. The rule lives on the service so this list matches what
+     * the clinic actually schedules.
+     */
+    const providers = useMemo(
+        () =>
+            service
+                ? team.filter(
+                      (member) => member.role_value === service.provider_role,
+                  )
+                : [],
+        [team, service?.provider_role],
     );
 
     const submit: FormEventHandler = (event) => {
@@ -208,6 +231,51 @@ export default function BookingModal({
                         </div>
                         <InputError className="mt-2" message={errors.dog_id} />
                     </fieldset>
+
+                    {service && providers.length > 0 && (
+                        <fieldset className="mt-6">
+                            <legend className={labelClass}>
+                                Who you could see
+                            </legend>
+                            <p className="mt-1.5 text-xs leading-relaxed text-[#1a3d1a]/50">
+                                {service.provider_role === 'groomer'
+                                    ? 'Groomers'
+                                    : 'Veterinarians'}{' '}
+                                who take this service. The front desk confirms
+                                who is free at your time.
+                            </p>
+                            <div className="mt-3 flex flex-wrap gap-2.5">
+                                {providers.map((member) => (
+                                    <div
+                                        key={member.id}
+                                        className="flex items-center gap-3 rounded-2xl border border-[#1a3d1a]/10 bg-white px-3 py-2"
+                                    >
+                                        {member.image ? (
+                                            <img
+                                                src={member.image}
+                                                alt=""
+                                                draggable={false}
+                                                className="h-10 w-10 shrink-0 rounded-xl object-cover"
+                                            />
+                                        ) : (
+                                            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#EFFDF0] text-xs font-semibold text-[#1a3d1a]">
+                                                {initials(member.name)}
+                                            </span>
+                                        )}
+                                        <span className="min-w-0">
+                                            <span className="block truncate text-sm font-semibold text-[#1a3d1a]">
+                                                {member.name}
+                                            </span>
+                                            <span className="block truncate text-xs text-[#1a3d1a]/50">
+                                                {member.specialization ??
+                                                    member.role}
+                                            </span>
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+                        </fieldset>
+                    )}
 
                     <div className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-2">
                         <div className="min-w-0">

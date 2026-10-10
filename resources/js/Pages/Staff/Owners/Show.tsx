@@ -2,12 +2,13 @@ import {
     dangerButtonClass,
     secondaryButtonClass,
 } from '@/Components/buttonStyles';
-import Icon from '@/Components/Icon';
 import Panel, { EmptyState } from '@/Components/Panel';
 import StatusPill from '@/Components/StatusPill';
 import StaffLayout from '@/Layouts/StaffLayout';
 import { longDate } from '@/utils/format';
-import { Link } from '@inertiajs/react';
+import { router } from '@inertiajs/react';
+import Swal from 'sweetalert2';
+import 'sweetalert2/dist/sweetalert2.min.css';
 
 interface OwnerDetail {
     id: number;
@@ -52,6 +53,45 @@ export default function Show({
 }) {
     const fullName = `${owner.first_name} ${owner.last_name}`;
 
+    /*
+     * Contact details are the owner's own to maintain through the portal, so
+     * the console's only action here is switching the record's status. That
+     * still affects who can sign in, so it is confirmed first.
+     */
+    const confirmToggle = () => {
+        Swal.fire({
+            title: owner.is_active
+                ? `Deactivate ${fullName}?`
+                : `Reactivate ${fullName}?`,
+            text: owner.is_active
+                ? 'The account leaves the active list and the owner can no longer sign in. Their dogs and history stay on file.'
+                : 'The account returns to the active list and the owner can sign in again.',
+            icon: owner.is_active ? 'warning' : 'question',
+            showCancelButton: true,
+            confirmButtonText: owner.is_active ? 'Deactivate' : 'Reactivate',
+            cancelButtonText: 'Cancel',
+            confirmButtonColor: owner.is_active ? '#b3261e' : '#1a3d1a',
+            cancelButtonColor: '#1a3d1a',
+            reverseButtons: true,
+            focusCancel: true,
+        }).then((result) => {
+            if (!result.isConfirmed) {
+                return;
+            }
+
+            router.patch(
+                route(
+                    owner.is_active
+                        ? 'owners.deactivate'
+                        : 'owners.activate',
+                    owner.id,
+                ),
+                {},
+                { preserveScroll: true },
+            );
+        });
+    };
+
     return (
         <StaffLayout
             title={fullName}
@@ -60,22 +100,9 @@ export default function Show({
             actions={
                 <>
                     <StatusPill active={owner.is_active} />
-                    <Link
-                        href={route('owners.edit', owner.id)}
-                        className={secondaryButtonClass}
-                    >
-                        <Icon name="user" className="h-4 w-4" />
-                        Edit details
-                    </Link>
-                    <Link
-                        href={route(
-                            owner.is_active
-                                ? 'owners.deactivate'
-                                : 'owners.activate',
-                            owner.id,
-                        )}
-                        method="patch"
-                        as="button"
+                    <button
+                        type="button"
+                        onClick={confirmToggle}
                         className={
                             owner.is_active
                                 ? dangerButtonClass
@@ -83,7 +110,7 @@ export default function Show({
                         }
                     >
                         {owner.is_active ? 'Deactivate' : 'Reactivate'}
-                    </Link>
+                    </button>
                 </>
             }
         >

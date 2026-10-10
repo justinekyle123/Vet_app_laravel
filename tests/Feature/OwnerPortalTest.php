@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\StaffRole;
 use App\Models\Appointment;
 use App\Models\AppointmentStatus;
 use App\Models\Dog;
@@ -10,7 +11,6 @@ use App\Models\Notification;
 use App\Models\Service;
 use App\Models\ServiceCategory;
 use App\Models\Staff;
-use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia as Assert;
 
 /**
@@ -96,8 +96,67 @@ test('the services page groups the active menu by category', function () {
             ->where('categories.0.services.0.service_name', 'Core Booster')
             ->where(
                 'categories.0.services.0.image',
-                Storage::disk('public')->url('services/core-booster.jpg'),
+                '/storage/services/core-booster.jpg',
             )
+        );
+});
+
+test('the services page names the role the clinic books each service against', function () {
+    $grooming = ServiceCategory::factory()->create(['category_name' => 'Grooming']);
+    Service::factory()->create([
+        'category_id' => $grooming->category_id,
+        'service_name' => 'Full Groom',
+    ]);
+
+    $consultation = ServiceCategory::factory()->create(['category_name' => 'Consultation']);
+    Service::factory()->create([
+        'category_id' => $consultation->category_id,
+        'service_name' => 'Wellness Exam',
+    ]);
+
+    // Services are grouped in the order they are read, which is alphabetical.
+    $this->actingAs(DogOwner::factory()->create())
+        ->get(route('owner.services.index'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('categories.0.name', 'Grooming')
+            ->where('categories.0.services.0.provider_role', 'groomer')
+            ->where('categories.1.name', 'Consultation')
+            ->where('categories.1.services.0.provider_role', 'veterinarian')
+        );
+});
+
+test('the services page carries the care team with each member\'s details', function () {
+    ServiceCategory::factory()->create(['category_name' => 'Grooming']);
+
+    Staff::factory()->veterinarian()->create([
+        'first_name' => 'Clara',
+        'last_name' => 'Mendoza',
+        'specialization' => 'Internal medicine',
+        'experience_years' => 8,
+        'image_path' => 'staff/clara.jpg',
+    ]);
+    Staff::factory()->create([
+        'first_name' => 'Nina',
+        'last_name' => 'Salvador',
+        'role' => StaffRole::Groomer,
+    ]);
+    // Administrators and inactive staff are not part of the care team.
+    Staff::factory()->admin()->create();
+    Staff::factory()->inactive()->create();
+
+    $this->actingAs(DogOwner::factory()->create())
+        ->get(route('owner.services.index'))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('team', 2)
+            ->where('team.0.name', 'Clara Mendoza')
+            ->where('team.0.role_value', 'veterinarian')
+            ->where('team.0.specialization', 'Internal medicine')
+            ->where('team.0.experience_years', 8)
+            ->where('team.0.image', '/storage/staff/clara.jpg')
+            ->where('team.1.name', 'Nina Salvador')
+            ->where('team.1.role_value', 'groomer')
         );
 });
 
@@ -273,6 +332,42 @@ test('the portal bell counts the owner\'s unread notifications and clears them',
         ->assertInertia(fn (Assert $page) => $page
             ->where('portal.unreadNotifications', 0)
             ->has('portal.notifications', 2)
+        );
+});
+
+test('marking read clears the badge even when the database clock runs ahead', function () {
+    $owner = DogOwner::factory()->create();
+
+    /*
+     * `created_at` is written by the database, whose time zone can differ from
+     * PHP's. Simulate that skew: a timestamp comparison would leave this
+     * message permanently unread, while an id-based bookmark clears it.
+     */
+    $notification = new Notification([
+        'owner_id' => $owner->owner_id,
+        'channel' => 'SMS',
+        'message' => 'Booster due soon',
+        'status' => 'Sent',
+    ]);
+    $notification->created_at = now()->addHours(8);
+    $notification->save();
+
+    $this->actingAs($owner)
+        ->get(route('owner.dashboard'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('portal.unreadNotifications', 1)
+        );
+
+    $this->actingAs($owner)
+        ->from(route('owner.dashboard'))
+        ->patch(route('owner.notifications.read'))
+        // The reload lands back on the portal page, so the badge clears in place.
+        ->assertRedirect(route('owner.dashboard'));
+
+    $this->actingAs($owner)
+        ->get(route('owner.dashboard'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('portal.unreadNotifications', 0)
         );
 });
 

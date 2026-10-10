@@ -2,12 +2,11 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\StaffRole;
 use App\Models\Appointment;
 use App\Models\ClinicInfo;
 use App\Models\RatingFeedback;
 use App\Models\Service;
-use App\Models\Staff;
+use App\Services\Portal\CareTeam;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -21,7 +20,7 @@ use Inertia\Response;
  */
 class LandingController extends Controller
 {
-    public function __invoke(): Response
+    public function __invoke(CareTeam $careTeam): Response
     {
         $clinic = ClinicInfo::current();
 
@@ -41,22 +40,10 @@ class LandingController extends Controller
         /*
          * The care team: veterinarians first, then groomers. Administrators are left off the
          * marketing page, and the page falls back to an initials monogram for
-         * anyone without a portrait.
+         * anyone without a portrait. The same list backs the owner portal's
+         * "who can take this service" view.
          */
-        $team = Staff::query()
-            ->where('is_active', true)
-            ->whereIn('role', [
-                StaffRole::Veterinarian->value,
-                StaffRole::Groomer->value,
-            ])
-            ->orderBy('last_name')
-            ->get()
-            ->sortBy(fn (Staff $member): int => match ($member->role) {
-                StaffRole::Veterinarian => 1,
-                StaffRole::Groomer => 2,
-                default => 3,
-            })
-            ->values();
+        $team = $careTeam->presentAll();
 
         /*
          * The headline numbers are counted rather than claimed: the pets the
@@ -86,22 +73,12 @@ class LandingController extends Controller
                     'category' => $service->category?->category_name ?? 'Other services',
                     'duration_minutes' => $service->duration_minutes,
                     'price' => $service->price,
+                    // Which part of the care team takes this service.
+                    'provider_role' => $service->providerRole()->value,
                 ])
                 ->values()
                 ->all(),
-            'team' => $team
-                ->map(fn (Staff $member): array => [
-                    'id' => $member->staff_id,
-                    'name' => $member->fullName(),
-                    'role' => $member->role->label(),
-                    'specialization' => $member->specialization,
-                    'background' => $member->background,
-                    'experience_years' => $member->experience_years,
-                    'qualifications' => $member->qualifications,
-                    'license_number' => $member->license_number,
-                    'image' => $member->imageUrl(),
-                ])
-                ->all(),
+            'team' => $team->all(),
             'stats' => [
                 'pets_cared_for' => $petsCaredFor,
                 'rating' => $averageRating,

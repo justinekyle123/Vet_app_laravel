@@ -1,8 +1,18 @@
 import Icon, { IconName } from '@/Components/Icon';
-import { UserRole } from '@/types';
+import { AdminNotification, PageProps, UserRole } from '@/types';
 import { Menu, MenuButton, MenuItem, MenuItems } from '@headlessui/react';
-import { Head, Link, usePage } from '@inertiajs/react';
-import { PropsWithChildren, ReactNode, useEffect, useState } from 'react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
+import { Bell, CalendarDays, CheckCheck } from 'lucide-react';
+import {
+    PropsWithChildren,
+    ReactNode,
+    useCallback,
+    useEffect,
+    useRef,
+    useState,
+} from 'react';
+import Swal from 'sweetalert2';
+import 'sweetalert2/dist/sweetalert2.min.css';
 
 interface NavItem {
     label: string;
@@ -21,6 +31,47 @@ const roleLabels: Record<UserRole, string> = {
     admin: 'Administrator',
     owner: 'Dog owner',
 };
+
+/**
+ * Flash keys the console knows how to confirm. An action's controller sets one
+ * of these with `->with('status', ...)`, and the toast below turns it into a
+ * sentence. Unknown keys still confirm, just with the generic fallback.
+ */
+const flashMessages: Record<string, string> = {
+    'staff-created': 'Staff member added.',
+    'staff-updated': 'Staff member updated.',
+    'staff-deleted': 'Staff member removed.',
+    'service-created': 'Service added.',
+    'service-updated': 'Service updated.',
+    'service-activated': 'Service restored.',
+    'service-deactivated': 'Service retired.',
+    'settings-saved': 'Clinic settings saved.',
+    'owner-updated': 'Owner details updated.',
+    'owner-deactivated': 'Dog owner deactivated.',
+    'owner-activated': 'Dog owner reactivated.',
+    'appointment-confirmed': 'Appointment confirmed.',
+    'appointment-cancelled': 'Appointment cancelled.',
+    'appointment-completed': 'Appointment marked completed.',
+    'appointment-no-show': 'Appointment marked as a no-show.',
+};
+
+/** Compact "weekday, date · time" label for a booking request. */
+function requestWhen(notification: AdminNotification): string {
+    if (!notification.date) {
+        return '';
+    }
+
+    const date = new Date(`${notification.date}T00:00:00`);
+    const day = Number.isNaN(date.getTime())
+        ? notification.date
+        : date.toLocaleDateString('en-US', {
+              weekday: 'short',
+              month: 'short',
+              day: 'numeric',
+          });
+
+    return notification.time ? `${day} · ${notification.time}` : day;
+}
 
 /**
  * The console navigation, split by what the signed-in role can actually reach.
@@ -55,7 +106,7 @@ function navGroupsFor(role: UserRole): NavGroup[] {
                 ...(isAdmin
                     ? [
                           {
-                              label: 'Staff accounts',
+                              label: 'Staff',
                               href: route('admin.staff.index'),
                               pattern: 'admin.staff.*',
                               icon: 'shield' as IconName,
@@ -113,6 +164,168 @@ function initials(name: string): string {
 }
 
 /**
+ * The console topbar's notification bell.
+ *
+ * The clinic's only notification is a booking request: a visit still in the
+ * "Requested" state, due today or later. The feed arrives through Inertia's
+ * shared props, and opening the panel marks the requests as seen so the badge
+ * clears until the next one arrives.
+ */
+function AdminNotificationBell({
+    notifications,
+    unread,
+}: {
+    notifications: AdminNotification[];
+    unread: number;
+}) {
+    const [open, setOpen] = useState(false);
+    const wrapperRef = useRef<HTMLDivElement>(null);
+
+    const close = useCallback(() => setOpen(false), []);
+
+    /* Outside clicks and Escape close the panel, like the account menu. */
+    useEffect(() => {
+        if (!open) {
+            return;
+        }
+
+        const handlePointerDown = (event: MouseEvent) => {
+            if (!wrapperRef.current?.contains(event.target as Node)) {
+                close();
+            }
+        };
+
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') {
+                close();
+            }
+        };
+
+        document.addEventListener('mousedown', handlePointerDown);
+        document.addEventListener('keydown', handleKeyDown);
+
+        return () => {
+            document.removeEventListener('mousedown', handlePointerDown);
+            document.removeEventListener('keydown', handleKeyDown);
+        };
+    }, [open, close]);
+
+    const markAllRead = () => {
+        router.patch(
+            route('admin.notifications.read'),
+            {},
+            {
+                preserveScroll: true,
+                preserveState: true,
+                onSuccess: close,
+            },
+        );
+    };
+
+    return (
+        <div ref={wrapperRef} className="relative shrink-0">
+            <button
+                type="button"
+                onClick={() => setOpen((value) => !value)}
+                aria-label={
+                    unread > 0
+                        ? `Notifications, ${unread} new appointment ${
+                              unread === 1 ? 'request' : 'requests'
+                          }`
+                        : 'Notifications'
+                }
+                aria-expanded={open}
+                className="relative flex h-10 w-10 items-center justify-center rounded-full border border-[#1a3d1a]/10 bg-white text-[#1a3d1a] transition-colors duration-200 hover:bg-[#EFFDF0] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1a3d1a]"
+            >
+                <Bell className="h-5 w-5" />
+                {unread > 0 && (
+                    <span className="absolute -right-1 -top-1 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-[#E86A10] px-1 text-[0.64rem] font-semibold text-white ring-2 ring-white">
+                        {unread > 9 ? '9+' : unread}
+                    </span>
+                )}
+            </button>
+
+            {open && (
+                <div className="absolute right-0 z-50 mt-2 w-[min(22rem,calc(100vw-2rem))] animate-dropdown overflow-hidden rounded-2xl border border-[#1a3d1a]/10 bg-white shadow-2xl shadow-[#1a3d1a]/10">
+                    <div className="flex items-center justify-between gap-3 border-b border-[#1a3d1a]/10 px-5 py-3.5">
+                        <h2 className="text-sm font-semibold text-[#1a3d1a]">
+                            Incoming appointments
+                        </h2>
+                        {unread > 0 && (
+                            <span className="rounded-full bg-[#E86A10]/10 px-2.5 py-1 text-[0.68rem] font-semibold text-[#E86A10]">
+                                {unread} new
+                            </span>
+                        )}
+                    </div>
+
+                    {notifications.length === 0 ? (
+                        <p className="px-5 py-6 text-sm leading-relaxed text-[#1a3d1a]/55">
+                            No booking requests waiting. New online requests
+                            will appear here as they come in.
+                        </p>
+                    ) : (
+                        <ul className="max-h-[60vh] divide-y divide-[#1a3d1a]/5 overflow-y-auto">
+                            {notifications.map((notification) => (
+                                <li
+                                    key={notification.id}
+                                    className="px-5 py-3.5"
+                                >
+                                    <div className="flex items-center justify-between gap-3">
+                                        <span className="inline-flex items-center gap-1.5 rounded-full bg-[#EFFDF0] px-2 py-0.5 text-[0.62rem] font-semibold text-[#1a3d1a]/70">
+                                            <CalendarDays className="h-3 w-3" />
+                                            {requestWhen(notification)}
+                                        </span>
+                                        <span className="rounded-full bg-[#E86A10]/10 px-2 py-0.5 text-[0.62rem] font-bold uppercase tracking-[0.1em] text-[#E86A10]">
+                                            {notification.status ?? 'Requested'}
+                                        </span>
+                                    </div>
+                                    <p className="mt-1.5 text-sm font-semibold text-[#1a3d1a]">
+                                        {notification.service ?? 'Visit'}
+                                    </p>
+                                    <p className="mt-0.5 text-xs text-[#1a3d1a]/55">
+                                        {[
+                                            notification.dog,
+                                            notification.owner
+                                                ? `for ${notification.owner}`
+                                                : null,
+                                        ]
+                                            .filter(Boolean)
+                                            .join(' · ') ||
+                                            'Client details missing'}
+                                    </p>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+
+                    <div className="flex items-center justify-between gap-2 border-t border-[#1a3d1a]/10 p-2">
+                        <Link
+                            href={route('admin.operations.dashboard')}
+                            onClick={close}
+                            className="flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold text-[#1a3d1a] transition-colors duration-150 hover:bg-[#EFFDF0] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1a3d1a]"
+                        >
+                            <CalendarDays className="h-4 w-4 text-[#1a3d1a]/50" />
+                            Open operations
+                        </Link>
+
+                        {unread > 0 && (
+                            <button
+                                type="button"
+                                onClick={markAllRead}
+                                className="flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold text-[#1a3d1a] transition-colors duration-150 hover:bg-[#EFFDF0] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1a3d1a]"
+                            >
+                                <CheckCheck className="h-4 w-4 text-[#1a3d1a]/50" />
+                                Mark read
+                            </button>
+                        )}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
+/**
  * The console chrome shared by clinic staff: a dark sidebar that collapses into
  * a drawer below `lg`, a sticky topbar carrying the breadcrumb and the account
  * menu, and a page heading above the content.
@@ -135,10 +348,41 @@ export default function StaffLayout({
     /** Rendered to the right of the heading, e.g. the page's main actions. */
     actions?: ReactNode;
 }>) {
-    const user = usePage().props.auth.user;
+    const { auth, adminNotifications, flash } = usePage<PageProps>().props;
+    const user = auth.user;
     const url = usePage().url;
 
     const [sidebarOpen, setSidebarOpen] = useState(false);
+
+    /*
+     * Every console action that finishes with a flash message confirms itself
+     * here, so a page does not have to render its own success banner. Errors
+     * are usually validation or a refused action (deleting yourself), which
+     * the console has no inline surface for.
+     */
+    useEffect(() => {
+        if (flash?.status) {
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: 'success',
+                title: flashMessages[flash.status] ?? 'Done.',
+                showConfirmButton: false,
+                timer: 2800,
+                timerProgressBar: true,
+            });
+        } else if (flash?.error) {
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: 'error',
+                title: flash.error,
+                showConfirmButton: false,
+                timer: 3800,
+                timerProgressBar: true,
+            });
+        }
+    }, [flash?.status, flash?.error]);
 
     const isAdmin = user.role === 'admin';
     const navGroups = navGroupsFor(user.role);
@@ -177,7 +421,7 @@ export default function StaffLayout({
     }, [sidebarOpen]);
 
     return (
-        <div className="min-h-screen bg-[#EFFDF0] font-inter text-[#1a3d1a] antialiased">
+        <div className="min-h-screen bg-white font-inter text-[#1a3d1a] antialiased">
             {/* Dimmed backdrop. Stays mounted so it can fade both ways. */}
             <div
                 aria-hidden="true"
@@ -218,7 +462,7 @@ export default function StaffLayout({
                     </button>
                 </div>
 
-                <nav className="flex-1 overflow-y-auto px-3 pb-6">
+                <nav className="no-scrollbar flex-1 overflow-y-auto px-3 pb-6">
                     {navGroups.map((group) => (
                         <div key={group.title} className="mt-6 first:mt-1">
                             <p className="px-3 pb-2 text-[0.66rem] font-bold uppercase tracking-[0.16em] text-[#EFFDF0]/40">
@@ -289,7 +533,7 @@ export default function StaffLayout({
             </aside>
 
             <div className="lg:pl-72">
-                <header className="sticky top-0 z-30 border-b border-[#1a3d1a]/10 bg-[#EFFDF0]/85 backdrop-blur-md">
+                <header className="sticky top-0 z-30 border-b border-[#1a3d1a]/10 bg-white/95 backdrop-blur-md">
                     <div className="flex h-20 items-center gap-3 px-4 sm:px-6 lg:px-10">
                         <button
                             type="button"
@@ -315,6 +559,13 @@ export default function StaffLayout({
                                 {heading}
                             </span>
                         </nav>
+
+                        {isAdmin && adminNotifications && (
+                            <AdminNotificationBell
+                                notifications={adminNotifications.notifications}
+                                unread={adminNotifications.unreadNotifications}
+                            />
+                        )}
 
                         <Menu as="div" className="relative shrink-0">
                             <MenuButton className="flex items-center gap-2.5 rounded-full border border-[#1a3d1a]/10 bg-white py-1.5 pl-1.5 pr-3 text-left transition-colors duration-200 hover:border-[#1a3d1a]/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1a3d1a]">

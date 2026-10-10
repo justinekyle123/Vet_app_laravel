@@ -6,12 +6,14 @@ import {
     PortalDog,
     PortalService,
     PortalServiceCategory,
+    PublicTeamMember,
 } from '@/types';
 import { currency } from '@/utils/format';
 import { Link } from '@inertiajs/react';
 import { ArrowRight, Clock, Search, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import BookingModal from './Partials/BookingModal';
+import CareTeamSection from './Partials/CareTeamSection';
 import { OwnerHero, SectionLabel } from './Partials/OwnerHero';
 
 /**
@@ -25,10 +27,12 @@ import { OwnerHero, SectionLabel } from './Partials/OwnerHero';
 export default function Services({
     categories,
     dogs,
+    team,
     bookingWindowDays,
 }: PageProps<{
     categories: PortalServiceCategory[];
     dogs: PortalDog[];
+    team: PublicTeamMember[];
     bookingWindowDays: number;
 }>) {
     const [query, setQuery] = useState('');
@@ -309,9 +313,14 @@ export default function Services({
             <BookingModal
                 service={bookingService}
                 dogs={dogs}
+                team={team}
                 show={bookingOpen}
                 onClose={() => setBookingOpen(false)}
             />
+
+            <div className="mt-12">
+                <CareTeamSection team={team} />
+            </div>
 
             {bookingWindowDays > 0 && (
                 <p className="mt-10 text-center text-xs text-[#1a3d1a]/40">

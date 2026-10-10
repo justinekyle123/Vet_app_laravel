@@ -16,6 +16,9 @@ export interface StaffMember {
     name: string;
     email: string;
     role: StaffRole;
+    specialization?: string | null;
+    is_active?: boolean;
+    image?: string | null;
 }
 
 

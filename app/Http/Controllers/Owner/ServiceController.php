@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\DogOwner;
 use App\Models\Service;
 use App\Services\Portal\BookingAvailability;
+use App\Services\Portal\CareTeam;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -21,7 +22,7 @@ use Inertia\Response;
  */
 class ServiceController extends Controller
 {
-    public function index(Request $request): Response
+    public function index(Request $request, CareTeam $careTeam): Response
     {
         /** @var DogOwner $owner */
         $owner = $request->user();
@@ -45,12 +46,18 @@ class ServiceController extends Controller
                             'duration_minutes' => $service->duration_minutes,
                             'price' => $service->price,
                             'image' => $service->imageUrl(),
+                            // The role the clinic books for this service, so the
+                            // page can show who might see the dog.
+                            'provider_role' => $service->providerRole()->value,
                         ])
                         ->values()
                         ->all(),
                 ])
                 ->values()
                 ->all(),
+            // The care team, so an owner can see who could take their booking
+            // and read each member's details before they choose.
+            'team' => $careTeam->presentAll()->all(),
             // Only dogs the booking form can actually pick: an inactive dog
             // has been retired from the account and should not be scheduled.
             'dogs' => $owner->dogs()

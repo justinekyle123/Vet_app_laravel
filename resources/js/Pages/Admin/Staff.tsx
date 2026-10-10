@@ -1,12 +1,18 @@
 import {
+    dangerButtonClass,
+    primaryButtonClass,
     rowButtonClass,
     secondaryButtonClass,
 } from '@/Components/buttonStyles';
 import Icon from '@/Components/Icon';
+import Pagination from '@/Components/Pagination';
 import Panel, { SoonState } from '@/Components/Panel';
 import StaffLayout from '@/Layouts/StaffLayout';
-import { Link } from '@inertiajs/react';
+import { Paginated } from '@/types';
+import { Link, router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
+import Swal from 'sweetalert2';
+import 'sweetalert2/dist/sweetalert2.min.css';
 import ResetStaffPasswordForm, {
     StaffMember,
 } from './Partials/ResetStaffPasswordForm';
@@ -34,22 +40,61 @@ function initials(name: string): string {
     );
 }
 
-export default function Staff({ staff }: { staff: StaffMember[] }) {
+export default function Staff({ staff }: { staff: Paginated<StaffMember> }) {
     const [selected, setSelected] = useState<StaffMember | null>(null);
+    const currentUser = usePage().props.auth.user;
+
+    /*
+     * Removing a profile is destructive, so it goes through a themed SweetAlert
+     * rather than a bare browser confirm. The DB nulls the staff reference on
+     * past appointments, so the history stays — the copy says so.
+     */
+    const confirmDelete = (member: StaffMember) => {
+        Swal.fire({
+            title: `Remove ${member.name}?`,
+            text: 'This deletes the profile from the care team. Past appointments keep their record, but this cannot be undone.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Delete',
+            cancelButtonText: 'Cancel',
+            confirmButtonColor: '#b3261e',
+            cancelButtonColor: '#1a3d1a',
+            reverseButtons: true,
+            focusCancel: true,
+        }).then((result) => {
+            if (result.isConfirmed) {
+                router.delete(route('admin.staff.destroy', member.id), {
+                    preserveScroll: true,
+                });
+            }
+        });
+    };
 
     return (
         <StaffLayout
-            title="Staff Accounts"
-            heading="Staff accounts"
-            description="Reset a staff member's password when they are locked out or still on a default one."
+            title="Staff"
+            heading="Staff"
+            description="Add the clinic's vets and groomers, review their details, and reset a password when they are locked out."
             actions={
-                <Link
-                    href={route('admin.dashboard')}
-                    className={secondaryButtonClass}
-                >
-                    <Icon name="arrowRight" className="h-4 w-4 rotate-180" />
-                    Back to overview
-                </Link>
+                <>
+                    <Link
+                        href={route('admin.dashboard')}
+                        className={secondaryButtonClass}
+                    >
+                        <Icon
+                            name="arrowRight"
+                            className="h-4 w-4 rotate-180"
+                        />
+                        Back to overview
+                    </Link>
+                    <Link
+                        href={route('admin.staff.create')}
+                        className={primaryButtonClass}
+                    >
+                        <Icon name="plus" className="h-4 w-4" />
+                        Add vet or groomer
+                    </Link>
+                </>
             }
         >
             <Panel
@@ -58,18 +103,18 @@ export default function Staff({ staff }: { staff: StaffMember[] }) {
                 flush
                 action={
                     <span className="text-xs font-medium text-[#1a3d1a]/45">
-                        {staff.length}{' '}
-                        {staff.length === 1 ? 'account' : 'accounts'}
+                        {staff.total}{' '}
+                        {staff.total === 1 ? 'account' : 'accounts'}
                     </span>
                 }
             >
-                {staff.length === 0 ? (
+                {staff.data.length === 0 ? (
                     <div className="p-5">
                         <SoonState message="No staff profiles exist yet. Administrators, veterinarians, and groomers will be listed here." />
                     </div>
                 ) : (
                     <ul className="divide-y divide-[#1a3d1a]/10">
-                        {staff.map((member) => (
+                        {staff.data.map((member) => (
                             <li
                                 key={member.id}
                                 className="flex flex-col gap-3 px-5 py-4 transition-colors duration-150 hover:bg-[#EFFDF0]/60 sm:flex-row sm:items-center sm:justify-between"
@@ -85,15 +130,38 @@ export default function Staff({ staff }: { staff: StaffMember[] }) {
                                         <p className="truncate text-xs text-[#1a3d1a]/55">
                                             {member.email}
                                         </p>
+                                        {member.specialization && (
+                                            <p className="truncate text-xs text-[#1a3d1a]/45">
+                                                {member.specialization}
+                                            </p>
+                                        )}
                                     </div>
                                 </div>
 
-                                <div className="flex shrink-0 items-center gap-3">
+                                <div className="flex shrink-0 flex-wrap items-center gap-2">
+                                    {member.is_active === false && (
+                                        <span className="rounded-full bg-[#1a3d1a]/10 px-2.5 py-1 text-[0.68rem] font-semibold text-[#1a3d1a]/55">
+                                            Inactive
+                                        </span>
+                                    )}
                                     <span
                                         className={`rounded-full px-2.5 py-1 text-[0.68rem] font-semibold ${roleBadges[member.role]}`}
                                     >
                                         {roleLabels[member.role]}
                                     </span>
+                                    <Link
+                                        href={route(
+                                            'admin.staff.edit',
+                                            member.id,
+                                        )}
+                                        className={rowButtonClass}
+                                    >
+                                        <Icon
+                                            name="pencil"
+                                            className="h-3.5 w-3.5"
+                                        />
+                                        Edit
+                                    </Link>
                                     <button
                                         type="button"
                                         onClick={() => setSelected(member)}
@@ -105,11 +173,27 @@ export default function Staff({ staff }: { staff: StaffMember[] }) {
                                         />
                                         Reset password
                                     </button>
+                                    {/* The signed-in admin cannot remove themselves. */}
+                                    {member.id !== currentUser.id && (
+                                        <button
+                                            type="button"
+                                            onClick={() => confirmDelete(member)}
+                                            className={dangerButtonClass}
+                                        >
+                                            <Icon
+                                                name="trash"
+                                                className="h-3.5 w-3.5"
+                                            />
+                                            Delete
+                                        </button>
+                                    )}
                                 </div>
                             </li>
                         ))}
                     </ul>
                 )}
+
+                <Pagination page={staff} />
             </Panel>
 
             <ResetStaffPasswordForm

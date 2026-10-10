@@ -1,15 +1,15 @@
-import { primaryButtonClass, rowButtonClass } from '@/Components/buttonStyles';
+import { rowButtonClass } from '@/Components/buttonStyles';
 import Icon from '@/Components/Icon';
+import Pagination from '@/Components/Pagination';
 import Panel, { EmptyState } from '@/Components/Panel';
 import StatusPill from '@/Components/StatusPill';
 import StaffLayout from '@/Layouts/StaffLayout';
+import { Paginated } from '@/types';
 import { currency } from '@/utils/format';
-import { Link } from '@inertiajs/react';
-import { useState } from 'react';
-import ServiceForm, {
-    ServiceCategoryOption,
-    ServiceRecord,
-} from './Partials/ServiceForm';
+import { Link, router } from '@inertiajs/react';
+import Swal from 'sweetalert2';
+import 'sweetalert2/dist/sweetalert2.min.css';
+import { ServiceCategoryOption, ServiceRecord } from './Partials/ServiceForm';
 
 const filters = [
     { value: 'all', label: 'All' },
@@ -22,31 +22,53 @@ type Filter = (typeof filters)[number]['value'];
 export default function Services({
     services,
     categories,
+    filter,
+    counts,
 }: {
-    services: ServiceRecord[];
+    services: Paginated<ServiceRecord>;
     categories: ServiceCategoryOption[];
+    filter: Filter;
+    counts: { offered: number; total: number };
 }) {
-    const [filter, setFilter] = useState<Filter>('all');
-    const [editing, setEditing] = useState<ServiceRecord | null>(null);
-    const [modalOpen, setModalOpen] = useState(false);
+    const applyFilter = (value: Filter) => {
+        router.get(
+            route('admin.services.index'),
+            value === 'all' ? {} : { filter: value },
+            { preserveState: true, preserveScroll: true, replace: true },
+        );
+    };
 
-    const visible = services.filter((service) => {
-        if (filter === 'active') {
-            return service.is_active;
-        }
+    /*
+     * Retiring a service changes what clients can book, so it goes through a
+     * themed SweetAlert rather than firing the moment the button is pressed.
+     */
+    const confirmToggle = (service: ServiceRecord) => {
+        const retiring = service.is_active;
 
-        if (filter === 'retired') {
-            return !service.is_active;
-        }
-
-        return true;
-    });
-
-    const offered = services.filter((service) => service.is_active).length;
-
-    const openForm = (service: ServiceRecord | null) => {
-        setEditing(service);
-        setModalOpen(true);
+        Swal.fire({
+            title: retiring
+                ? `Retire ${service.service_name}?`
+                : `Restore ${service.service_name}?`,
+            text: retiring
+                ? 'It will be hidden from booking. Past appointments and invoices keep their record.'
+                : 'It will reappear on the booking menu.',
+            icon: retiring ? 'warning' : 'question',
+            showCancelButton: true,
+            confirmButtonText: retiring ? 'Retire' : 'Restore',
+            cancelButtonText: 'Cancel',
+            confirmButtonColor: retiring ? '#b3261e' : '#1a3d1a',
+            cancelButtonColor: '#1a3d1a',
+            reverseButtons: true,
+            focusCancel: true,
+        }).then((result) => {
+            if (result.isConfirmed) {
+                router.patch(
+                    route('admin.services.toggle', service.id),
+                    {},
+                    { preserveScroll: true },
+                );
+            }
+        });
     };
 
     return (
@@ -55,14 +77,13 @@ export default function Services({
             heading="Services"
             description="The clinic's service menu — what the desk can book, how long each visit takes, and what it costs."
             actions={
-                <button
-                    type="button"
-                    onClick={() => openForm(null)}
-                    className={primaryButtonClass}
+                <Link
+                    href={route('admin.services.create')}
+                    className="inline-flex items-center gap-2 rounded-full bg-[#1a3d1a] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#2a5a2a]"
                 >
                     <Icon name="plus" className="h-4 w-4" />
                     Add service
-                </button>
+                </Link>
             }
         >
             <Panel
@@ -71,7 +92,7 @@ export default function Services({
                 flush
                 action={
                     <span className="text-xs font-medium text-[#1a3d1a]/45">
-                        {offered} of {services.length} offered
+                        {counts.offered} of {counts.total} offered
                     </span>
                 }
             >
@@ -91,7 +112,7 @@ export default function Services({
                                 key={tab.value}
                                 type="button"
                                 aria-pressed={filter === tab.value}
-                                onClick={() => setFilter(tab.value)}
+                                onClick={() => applyFilter(tab.value)}
                                 className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1a3d1a] ${
                                     filter === tab.value
                                         ? 'bg-white text-[#1a3d1a] shadow-sm'
@@ -104,12 +125,12 @@ export default function Services({
                     </div>
                 </div>
 
-                {visible.length === 0 ? (
+                {services.data.length === 0 ? (
                     <div className="p-5">
                         <EmptyState
                             icon="scissors"
                             message={
-                                services.length === 0
+                                counts.total === 0
                                     ? 'No services on the menu yet. Add a consultation, vaccination, or grooming service to get started.'
                                     : 'No services in this view. Switch the filter to see the rest of the menu.'
                             }
@@ -117,7 +138,7 @@ export default function Services({
                     </div>
                 ) : (
                     <ul className="divide-y divide-[#1a3d1a]/10">
-                        {visible.map((service) => (
+                        {services.data.map((service) => (
                             <li
                                 key={service.id}
                                 className="flex flex-col gap-3 px-5 py-4 transition-colors duration-150 hover:bg-[#EFFDF0]/60 sm:flex-row sm:items-center sm:justify-between"
@@ -161,9 +182,11 @@ export default function Services({
                                 </div>
 
                                 <div className="flex shrink-0 items-center gap-2">
-                                    <button
-                                        type="button"
-                                        onClick={() => openForm(service)}
+                                    <Link
+                                        href={route(
+                                            'admin.services.edit',
+                                            service.id,
+                                        )}
                                         className={rowButtonClass}
                                     >
                                         <Icon
@@ -171,35 +194,29 @@ export default function Services({
                                             className="h-3.5 w-3.5"
                                         />
                                         Edit
-                                    </button>
+                                    </Link>
 
-                                    <Link
-                                        href={route(
-                                            'admin.services.toggle',
-                                            service.id,
-                                        )}
-                                        method="patch"
-                                        as="button"
-                                        preserveScroll
+                                    <button
+                                        type="button"
+                                        onClick={() => confirmToggle(service)}
                                         className={rowButtonClass}
                                     >
+                                        <Icon
+                                            name="check"
+                                            className="h-3.5 w-3.5"
+                                        />
                                         {service.is_active
                                             ? 'Retire'
                                             : 'Restore'}
-                                    </Link>
+                                    </button>
                                 </div>
                             </li>
                         ))}
                     </ul>
                 )}
-            </Panel>
 
-            <ServiceForm
-                service={editing}
-                categories={categories}
-                show={modalOpen}
-                onClose={() => setModalOpen(false)}
-            />
+                <Pagination page={services} />
+            </Panel>
         </StaffLayout>
     );
 }

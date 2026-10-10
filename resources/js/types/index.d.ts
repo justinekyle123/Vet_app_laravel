@@ -37,6 +37,29 @@ export interface PortalProps {
     unreadNotifications: number;
 }
 
+/**
+ * One booking request awaiting confirmation, as the admin console bell lists
+ * it. Mirrors `AdminNotifications::shared()`.
+ */
+export interface AdminNotification {
+    id: number;
+    date: string | null;
+    time: string | null;
+    dog: string | null;
+    owner: string | null;
+    service: string | null;
+    status: string | null;
+}
+
+/**
+ * Shared state for the admin console topbar. Null for guests and non-admin
+ * accounts, who have no console notification feed.
+ */
+export interface AdminNotificationsProps {
+    notifications: AdminNotification[];
+    unreadNotifications: number;
+}
+
 /** One of the owner's own dogs, as the portal lists it. */
 export interface PortalDog {
     id: number;
@@ -77,6 +100,11 @@ export interface PortalService {
     price: string | null;
     /** Resolved photo URL, null when the clinic has not set one. */
     image: string | null;
+    /**
+     * The staff role the clinic books for this service: grooming goes to a
+     * groomer, every other discipline to a veterinarian.
+     */
+    provider_role: 'veterinarian' | 'groomer';
 }
 
 /** One published help question, as the floating FAQ button lists it. */
@@ -121,14 +149,17 @@ export interface PublicStats {
 }
 
 /**
- * A client-facing staff member on the landing page's care team. `image` is null
- * for anyone without a portrait, which the page renders as an initials
+ * A client-facing staff member on the landing page's care team and in the
+ * owner portal. `role` is the human-readable label and `role_value` the raw
+ * role, which the portal matches against a service's `provider_role`. `image`
+ * is null for anyone without a portrait, which the page renders as an initials
  * monogram.
  */
 export interface PublicTeamMember {
     id: number;
     name: string;
     role: string;
+    role_value: StaffRole;
     specialization: string | null;
     background: string | null;
     experience_years: number | null;
@@ -198,6 +229,13 @@ export type PageProps<
     };
     /** Shared from HandleInertiaRequests; drives the portal navbar. */
     portal?: PortalProps | null;
+    /** Shared from HandleInertiaRequests; drives the admin notification bell. */
+    adminNotifications?: AdminNotificationsProps | null;
+    /** One-shot flash messages, surfaced as SweetAlert toasts in the console. */
+    flash?: {
+        status: string | null;
+        error: string | null;
+    };
     /** Shared from HandleInertiaRequests; gates the Google sign-in button. */
     firebase?: {
         /** Server master switch (FIREBASE_ENABLED); false hides every surface. */

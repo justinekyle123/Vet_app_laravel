@@ -3,6 +3,8 @@
 namespace App\Http\Middleware;
 
 use App\Models\DogOwner;
+use App\Models\Staff;
+use App\Services\Admin\AdminNotifications;
 use App\Services\Portal\PortalNotifications;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
@@ -47,6 +49,21 @@ class HandleInertiaRequests extends Middleware
              */
             'portal' => $this->portalProps($request),
             /*
+             * The admin console topbar's notification bell. Administrators
+             * are told about booking requests still awaiting confirmation;
+             * everyone else gets null rather than an empty shell.
+             */
+            'adminNotifications' => $this->adminNotificationsProps($request),
+            /*
+             * One-shot flash messages. The console turns these into SweetAlert
+             * toasts, so an action taken on one page confirms itself on the
+             * next render.
+             */
+            'flash' => [
+                'status' => $request->session()->get('status'),
+                'error' => $request->session()->get('error'),
+            ],
+            /*
              * Both halves of the Firebase setup are required before the
              * sign-in screens can offer Google: the server needs a project id
              * to verify tokens against, and the browser needs a web app config
@@ -82,6 +99,27 @@ class HandleInertiaRequests extends Middleware
             // Owners report the single implicit "owner" role; staff report
             // whatever their `staff.role` column holds.
             'role' => $user->isOwner() ? 'owner' : $user->role->value,
+        ];
+    }
+
+    /**
+     * The admin console's notification feed, or null for non-administrators.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function adminNotificationsProps(Request $request): ?array
+    {
+        $user = $request->user();
+
+        if (! $user instanceof Staff || ! $user->isAdmin()) {
+            return null;
+        }
+
+        $notifications = app(AdminNotifications::class);
+
+        return [
+            'notifications' => $notifications->shared(),
+            'unreadNotifications' => $notifications->unreadCount(),
         ];
     }
 

@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Staff;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Staff\SaveOwnerRequest;
 use App\Models\DogOwner;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
@@ -40,8 +39,8 @@ class OwnerController extends Controller
             ->orderBy('first_name')
             ->paginate(10)
             ->withQueryString()
-            // The list rows are shaped like the show and edit payloads, so the
-            // link targets have an `id` rather than the raw `owner_id` column.
+            // The list rows are shaped like the show payload, so the link
+            // targets have an `id` rather than the raw `owner_id` column.
             ->through(fn (DogOwner $owner): array => $this->ownerPayload($owner) + [
                 'dogs_count' => $owner->dogs_count,
             ]);
@@ -78,22 +77,6 @@ class OwnerController extends Controller
         ]);
     }
 
-    public function edit(DogOwner $owner): Response
-    {
-        return Inertia::render('Staff/Owners/Edit', [
-            'owner' => $this->ownerPayload($owner),
-        ]);
-    }
-
-    public function update(SaveOwnerRequest $request, DogOwner $owner): RedirectResponse
-    {
-        $owner->update($request->validated());
-
-        return redirect()
-            ->route('owners.show', $owner)
-            ->with('status', 'owner-updated');
-    }
-
     public function deactivate(DogOwner $owner): RedirectResponse
     {
         $owner->update(['is_active' => false]);
@@ -109,7 +92,7 @@ class OwnerController extends Controller
     }
 
     /**
-     * The columns the owner forms and detail page render.
+     * The columns the owner detail page renders.
      *
      * @return array<string, mixed>
      */
