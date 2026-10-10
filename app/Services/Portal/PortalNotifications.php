@@ -12,14 +12,15 @@ use Illuminate\Support\Collection;
  *
  * The schema's `notifications` table records how a message was delivered
  * (channel, status, sent_at) but has no per-user "read" flag, so what the owner
- * has already seen is tracked per browser session. That keeps the unread badge
- * honest without adding a column the database dump does not define — the same
- * trade-off the schema forces on the rest of the portal.
+ * has already seen is tracked per browser session. The bookmark is the newest
+ * notification id the owner has seen rather than a timestamp: `created_at` is
+ * written by the database, which can sit in a different time zone than PHP, so
+ * comparing it against `now()` would let the badge stick forever.
  */
 class PortalNotifications
 {
-    /** Session key holding when the owner last opened the bell. */
-    public const SEEN_AT_SESSION_KEY = 'portal.notifications_seen_at';
+    /** Session key holding the newest notification id the owner has seen. */
+    public const SEEN_ID_SESSION_KEY = 'portal.notifications_seen_id';
 
     /** How many notifications the dropdown keeps in memory. */
     public const DROPDOWN_LIMIT = 8;
@@ -45,25 +46,31 @@ class PortalNotifications
     /**
      * How many notifications have arrived since the owner last looked.
      *
-     * With no recorded visit every message counts as unseen, so a fresh
-     * session still shows the badge.
+     * Ids are monotonic, so anything newer than the bookmark is unseen. With no
+     * bookmark a fresh session counts every message, which still shows the
+     * badge.
      */
     public function unreadCount(DogOwner $owner): int
     {
-        $seenAt = session(self::SEEN_AT_SESSION_KEY);
+        $seenId = (int) session(self::SEEN_ID_SESSION_KEY, 0);
 
         return Notification::query()
             ->where('owner_id', $owner->owner_id)
-            ->when($seenAt !== null, fn ($query) => $query->where('created_at', '>', $seenAt))
+            ->where('notification_id', '>', $seenId)
             ->count();
     }
 
     /**
-     * Mark everything the owner has as seen, by moving the session bookmark.
+     * Mark everything the owner has as seen, by moving the session bookmark to
+     * their newest notification id.
      */
-    public function markAllRead(Request $request): void
+    public function markAllRead(DogOwner $owner, Request $request): void
     {
-        $request->session()->put(self::SEEN_AT_SESSION_KEY, now());
+        $latestId = (int) Notification::query()
+            ->where('owner_id', $owner->owner_id)
+            ->max('notification_id');
+
+        $request->session()->put(self::SEEN_ID_SESSION_KEY, $latestId);
     }
 
     /**

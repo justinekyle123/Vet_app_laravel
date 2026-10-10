@@ -50,6 +50,13 @@ class StaffFactory extends Factory
         ]);
     }
 
+    public function groomer(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => StaffRole::Groomer,
+        ]);
+    }
+
     public function inactive(): static
     {
         return $this->state(fn (array $attributes) => [

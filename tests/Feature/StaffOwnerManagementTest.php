@@ -69,22 +69,31 @@ test('staff can view an owner with their dogs', function () {
         );
 });
 
-test('staff can update an owner', function () {
+test('admins can no longer edit an owner\'s details', function () {
     $owner = DogOwner::factory()->create(['address' => 'Old Town']);
+    $admin = Staff::factory()->admin()->create();
 
-    $this->actingAs(Staff::factory()->admin()->create())
-        ->patch(route('owners.update', $owner), [
-            'first_name' => $owner->first_name,
-            'last_name' => $owner->last_name,
+    // The edit screen is gone, so there is nothing to open.
+    $this->actingAs($admin)
+        ->get("/owners/{$owner->owner_id}/edit")
+        ->assertNotFound();
+
+    // And the update endpoint is gone too, so the record cannot be rewritten
+    // by calling the old URL directly.
+    $this->actingAs($admin)
+        ->patch("/owners/{$owner->owner_id}", [
+            'first_name' => 'Changed',
+            'last_name' => 'Owner',
             'email' => $owner->email,
             'phone_number' => $owner->phone_number,
             'address' => 'New Town',
             'is_active' => true,
         ])
-        ->assertSessionHasNoErrors()
-        ->assertRedirect(route('owners.show', $owner));
+        // The URI still matches the show route, so Laravel answers 405.
+        ->assertStatus(405);
 
-    expect($owner->fresh()->address)->toBe('New Town');
+    expect($owner->fresh()->address)->toBe('Old Town')
+        ->and($owner->fresh()->first_name)->toBe($owner->first_name);
 });
 
 test('staff can deactivate and reactivate an owner', function () {

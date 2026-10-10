@@ -8,9 +8,16 @@ import { Paginated } from '@/types';
 import { initials } from '@/utils/format';
 import { Link, router } from '@inertiajs/react';
 import { FormEventHandler, useState } from 'react';
-import { OwnerRecord } from './Partials/OwnerForm';
 
-interface OwnerRow extends OwnerRecord {
+/** One row of the client list: the owner payload plus their dog count. */
+interface OwnerRow {
+    id: number;
+    first_name: string;
+    last_name: string;
+    email: string | null;
+    phone_number: string | null;
+    address: string | null;
+    is_active: boolean;
     dogs_count: number;
 }
 
@@ -190,12 +197,12 @@ export default function Index({
                                         <td className="whitespace-nowrap px-5 py-3.5 text-right">
                                             <Link
                                                 href={route(
-                                                    'owners.edit',
+                                                    'owners.show',
                                                     owner.id,
                                                 )}
                                                 className={rowButtonClass}
                                             >
-                                                Edit
+                                                View
                                             </Link>
                                         </td>
                                     </tr>

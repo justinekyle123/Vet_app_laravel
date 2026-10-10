@@ -28,6 +28,7 @@
     },
     "dependencies": {
         "firebase": "^12.19.0",
-        "lucide-react": "^1.48.0"
+        "lucide-react": "^1.48.0",
+        "sweetalert2": "^11.26.25"
     }
 }

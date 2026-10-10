@@ -27,6 +27,17 @@
 }
 
 @layer utilities {
+    /* Hide a native scrollbar while keeping the element scrollable. The
+       console sidebar never shows a visible scroll track. */
+    .no-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+
+    .no-scrollbar::-webkit-scrollbar {
+        display: none;
+    }
+
     /* Soft vertical fade so marquee content dissolves at the edges
        instead of being cut off mid-letter. */
     .mask-fade-x {

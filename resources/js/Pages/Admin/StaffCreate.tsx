@@ -3,29 +3,27 @@ import Icon from '@/Components/Icon';
 import Panel from '@/Components/Panel';
 import StaffLayout from '@/Layouts/StaffLayout';
 import { Link } from '@inertiajs/react';
-import OwnerForm, { OwnerRecord } from './Partials/OwnerForm';
+import StaffForm, { StaffRoleOption } from './Partials/StaffForm';
 
-export default function Edit({ owner }: { owner: OwnerRecord }) {
-    const fullName = `${owner.first_name} ${owner.last_name}`;
-
+export default function StaffCreate({ roles }: { roles: StaffRoleOption[] }) {
     return (
         <StaffLayout
-            title={`Edit ${fullName}`}
-            heading={`Edit ${fullName}`}
-            description="Update this client's contact details and status."
+            title="Add Staff"
+            heading="Add a vet or groomer"
+            description="Create a care team profile with the details dog owners see when they pick a service."
             actions={
                 <Link
-                    href={route('owners.show', owner.id)}
+                    href={route('admin.staff.index')}
                     className={secondaryButtonClass}
                 >
                     <Icon name="arrowRight" className="h-4 w-4 rotate-180" />
-                    Back to client
+                    Back to staff
                 </Link>
             }
         >
             <div className="max-w-3xl">
-                <Panel title="Owner details" icon="user">
-                    <OwnerForm owner={owner} />
+                <Panel title="Profile details" icon="user">
+                    <StaffForm roles={roles} />
                 </Panel>
             </div>
         </StaffLayout>

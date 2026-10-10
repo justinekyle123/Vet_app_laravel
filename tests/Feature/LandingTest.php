@@ -8,7 +8,6 @@ use App\Models\DogOwner;
 use App\Models\RatingFeedback;
 use App\Models\Service;
 use App\Models\Staff;
-use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia as Assert;
 
 /*
@@ -154,9 +153,7 @@ test('an image path resolves to a url and an empty one stays null', function () 
     expect($service->imageUrl())->toBeNull();
 
     $service->image_path = 'services/wellness-exam.jpg';
-    expect($service->imageUrl())->toBe(
-        Storage::disk('public')->url('services/wellness-exam.jpg'),
-    );
+    expect($service->imageUrl())->toBe('/storage/services/wellness-exam.jpg');
 
     $service->image_path = 'https://cdn.test/wellness-exam.jpg';
     expect($service->imageUrl())->toBe('https://cdn.test/wellness-exam.jpg');
@@ -181,7 +178,7 @@ test('the landing page carries a photo for services and the care team', function
         ->where('team.0.name', 'Clara Mendoza')
         ->where('team.0.role', 'Veterinarian')
         ->where('team.0.specialization', 'Internal medicine')
-        ->where('team.0.image', Storage::disk('public')->url('staff/clara.jpg'))
+        ->where('team.0.image', '/storage/staff/clara.jpg')
     );
 });
 
@@ -218,14 +215,17 @@ test('the landing page menu is grouped by category', function () {
 test('the seeded care team is every client-facing member, vets first', function () {
     $this->seed();
 
+    // The administrator is provisioned with the clinic and is no part of the
+    // care team, so the seeded trio is the two vets and the groomer.
     $this->get('/')->assertInertia(fn (Assert $page) => $page
         ->component('Welcome')
-        ->has('team', 4)
+        ->has('team', 3)
         ->where('team.0.name', 'Clara Mendoza')
         ->where('team.0.role', 'Veterinarian')
+        ->where('team.0.role_value', 'veterinarian')
         ->where('team.1.role', 'Veterinarian')
         ->where('team.2.role', 'Groomer')
-        ->where('team.3.role', 'Front Desk')
+        ->where('team.2.role_value', 'groomer')
         ->where('team.0.image', 'https://picsum.photos/seed/myvet-mendoza/600/800.jpg')
     );
 });

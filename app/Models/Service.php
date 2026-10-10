@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\StaffRole;
 use App\Models\Concerns\HasImage;
 use Database\Factories\ServiceFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -61,5 +62,22 @@ class Service extends Model
     public function appointments(): HasMany
     {
         return $this->hasMany(Appointment::class, 'service_id', 'service_id');
+    }
+
+    /**
+     * The staff role the clinic books for this service.
+     *
+     * Grooming is the one discipline handled by groomers; every other category
+     * is medical work and goes to a veterinarian. The owner portal uses this to
+     * show the care team the client can expect, and the booking flow uses the
+     * same rule, so the two never disagree.
+     */
+    public function providerRole(): StaffRole
+    {
+        $category = strtolower((string) $this->category?->category_name);
+
+        return str_contains($category, 'groom')
+            ? StaffRole::Groomer
+            : StaffRole::Veterinarian;
     }
 }

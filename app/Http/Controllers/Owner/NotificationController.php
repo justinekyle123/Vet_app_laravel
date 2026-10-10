@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Owner;
 
 use App\Http\Controllers\Controller;
+use App\Models\DogOwner;
 use App\Services\Portal\PortalNotifications;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -19,7 +20,10 @@ class NotificationController extends Controller
         Request $request,
         PortalNotifications $notifications,
     ): RedirectResponse {
-        $notifications->markAllRead($request);
+        /** @var DogOwner $owner */
+        $owner = $request->user();
+
+        $notifications->markAllRead($owner, $request);
 
         return back();
     }
