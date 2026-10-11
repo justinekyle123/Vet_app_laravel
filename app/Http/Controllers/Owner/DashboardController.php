@@ -49,7 +49,9 @@ class DashboardController extends Controller
             'upcoming' => $upcoming,
             'stats' => [
                 'dogs' => $dogs->count(),
-                'upcoming' => count($upcoming),
+                // Counted, not counted-from-the-preview: the home page shows the
+                // next few visits but reports every one still booked.
+                'upcoming' => $appointments->upcomingCount($owner),
                 'unread' => $notifications->unreadCount($owner),
             ],
         ]);

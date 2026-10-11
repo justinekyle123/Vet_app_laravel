@@ -4,12 +4,14 @@ namespace App\Http\Controllers\Owner;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Owner\StoreAppointmentRequest;
+use App\Http\Requests\Owner\StoreReviewRequest;
 use App\Models\Appointment;
 use App\Models\AppointmentStatus;
 use App\Models\DogOwner;
 use App\Models\Service;
 use App\Services\Portal\BookingAvailability;
 use App\Services\Portal\OwnerAppointments;
+use App\Services\Portal\ServiceReviews;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -27,10 +29,67 @@ class AppointmentController extends Controller
         /** @var DogOwner $owner */
         $owner = $request->user();
 
+        /*
+         * The history filter is applied in the query rather than in the page,
+         * so it spans the owner's whole record and not just the rows already
+         * loaded. An unknown value falls back to showing everything.
+         */
+        $filter = (string) $request->query('history', 'all');
+
+        if (! in_array($filter, OwnerAppointments::HISTORY_FILTERS, true)) {
+            $filter = 'all';
+        }
+
         return Inertia::render('Owner/Appointments', [
             'upcoming' => $appointments->upcoming($owner),
-            'past' => $appointments->past($owner),
+            'past' => $appointments->past($owner, filter: $filter),
+            'historyFilter' => $filter,
+            'summary' => $appointments->summary($owner),
         ]);
+    }
+
+    /**
+     * Rate a visit the clinic has already carried out.
+     *
+     * Only the owner's own completed visits can be reviewed, only once, and
+     * only by the client the visit belongs to: another client's appointment is
+     * invisible here rather than forbidden.
+     */
+    public function review(
+        StoreReviewRequest $request,
+        Appointment $appointment,
+        ServiceReviews $reviews,
+    ): RedirectResponse {
+        /** @var DogOwner $owner */
+        $owner = $request->user();
+
+        abort_unless($appointment->owner_id === $owner->owner_id, 404);
+
+        if ($appointment->status?->status_name !== 'Completed') {
+            throw ValidationException::withMessages([
+                'rating' => 'Only a completed visit can be reviewed.',
+            ]);
+        }
+
+        if ($appointment->feedback()->exists()) {
+            throw ValidationException::withMessages([
+                'rating' => 'This visit already has your review.',
+            ]);
+        }
+
+        $data = $request->validated();
+        $comment = trim((string) ($data['comment'] ?? ''));
+
+        $reviews->record(
+            $owner,
+            $appointment,
+            (int) $data['rating'],
+            $comment === '' ? null : $comment,
+        );
+
+        return redirect()
+            ->route('owner.appointments.index')
+            ->with('status', 'review-submitted');
     }
 
     /**

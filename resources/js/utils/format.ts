@@ -33,6 +33,28 @@ export function currency(value: string | number | null): string {
     });
 }
 
+/**
+ * Date and time together, for records where both matter — a message, a reply,
+ * anything with a moment attached rather than a calendar day.
+ */
+export function dateTime(iso: string | null): string {
+    if (!iso) {
+        return '—';
+    }
+
+    const date = new Date(iso);
+
+    return Number.isNaN(date.getTime())
+        ? '—'
+        : date.toLocaleString('en-US', {
+              month: 'short',
+              day: 'numeric',
+              year: 'numeric',
+              hour: 'numeric',
+              minute: '2-digit',
+          });
+}
+
 /** Exact calendar date, for records where "3 weeks ago" would be imprecise. */
 export function longDate(iso: string | null): string {
     if (!iso) {

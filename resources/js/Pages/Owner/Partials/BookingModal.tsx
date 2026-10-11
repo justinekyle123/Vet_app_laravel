@@ -12,7 +12,7 @@ import { CalendarDays, Clock, X } from 'lucide-react';
 import { FormEventHandler, useEffect, useMemo, useState } from 'react';
 import {
     PortalDog,
-    PortalService,
+    PortalServiceSummary,
     PublicTeamMember,
     ServiceAvailability,
 } from '@/types';
@@ -34,8 +34,12 @@ export default function BookingModal({
     show,
     onClose,
 }: {
-    /** Null while the modal is closed; the service being booked otherwise. */
-    service: PortalService | null;
+    /**
+     * Null while the modal is closed; the service being booked otherwise. Only
+     * the summary fields are read, so the menu card and the service's own page
+     * can both hand it their service.
+     */
+    service: PortalServiceSummary | null;
     dogs: PortalDog[];
     /** The clinic's care team, so the owner sees who could take the visit. */
     team: PublicTeamMember[];

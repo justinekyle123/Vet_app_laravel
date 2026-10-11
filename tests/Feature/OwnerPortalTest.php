@@ -68,8 +68,11 @@ test('the portal home previews only the next three visits', function () {
     $this->actingAs($owner)
         ->get(route('owner.dashboard'))
         ->assertInertia(fn (Assert $page) => $page
+            // The list previews the next three visits...
             ->has('upcoming', 3)
-            ->where('stats.upcoming', 3)
+            // ...while the stat counts every visit still going ahead, so a
+            // client with a fuller diary is not told they have three.
+            ->where('stats.upcoming', 4)
         );
 });
 
