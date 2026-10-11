@@ -4,12 +4,16 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * A concern raised by an owner, tracked through to resolution.
  */
 class Complaint extends Model
 {
+    /** The statuses a complaint is finished under. */
+    public const SETTLED = ['Resolved', 'Closed'];
+
     protected $table = 'complaints';
 
     protected $primaryKey = 'complaint_id';
@@ -56,5 +60,24 @@ class Complaint extends Model
     public function assignee(): BelongsTo
     {
         return $this->belongsTo(Staff::class, 'assigned_to', 'staff_id');
+    }
+
+    /**
+     * The conversation on this complaint, oldest first.
+     */
+    public function messages(): HasMany
+    {
+        return $this->hasMany(ComplaintMessage::class, 'complaint_id', 'complaint_id')
+            ->orderBy('created_at')
+            ->orderBy('message_id');
+    }
+
+    /**
+     * True once the clinic has answered the complaint for good. A settled
+     * thread stays readable on both sides but is no longer waiting on anyone.
+     */
+    public function isSettled(): bool
+    {
+        return in_array($this->status, self::SETTLED, true);
     }
 }

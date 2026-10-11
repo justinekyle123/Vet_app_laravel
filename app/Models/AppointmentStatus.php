@@ -11,10 +11,17 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class AppointmentStatus extends Model
 {
     /**
+     * The statuses a visit is still going ahead under: booked and not yet
+     * carried out. It is this set, not the calendar alone, that decides
+     * whether a visit belongs in a client's "upcoming" list.
+     */
+    public const SCHEDULED = ['Requested', 'Confirmed'];
+
+    /**
      * The statuses a booking can still be cancelled from. Once a visit is
      * completed, cancelled, or missed it is history, not something to undo.
      */
-    public const CANCELLABLE = ['Requested', 'Confirmed'];
+    public const CANCELLABLE = self::SCHEDULED;
 
     protected $table = 'appointment_status';
 

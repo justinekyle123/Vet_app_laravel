@@ -1,6 +1,8 @@
 <?php
 
+use App\Http\Controllers\Admin\ComplaintController as AdminComplaintController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Admin\FaqController as AdminFaqController;
 use App\Http\Controllers\Admin\NotificationController as AdminNotificationController;
 use App\Http\Controllers\Admin\OperationsAppointmentController;
 use App\Http\Controllers\Admin\OperationsDashboardController;
@@ -12,8 +14,10 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\LandingController;
 use App\Http\Controllers\Owner\AccountController as OwnerAccountController;
 use App\Http\Controllers\Owner\AppointmentController as OwnerAppointmentController;
+use App\Http\Controllers\Owner\ComplaintController as OwnerComplaintController;
 use App\Http\Controllers\Owner\DashboardController as OwnerDashboardController;
 use App\Http\Controllers\Owner\DogController as OwnerDogController;
+use App\Http\Controllers\Owner\FaqChatController as OwnerFaqChatController;
 use App\Http\Controllers\Owner\FaqController as OwnerFaqController;
 use App\Http\Controllers\Owner\NotificationController as OwnerNotificationController;
 use App\Http\Controllers\Owner\SearchController as OwnerSearchController;
@@ -89,6 +93,28 @@ Route::middleware(['auth:owner,staff', 'role:admin'])
         Route::patch('notifications/read', AdminNotificationController::class)
             ->name('notifications.read');
 
+        /*
+         * The help questions behind the portal's floating FAQ button.
+         * Publishing is what puts an answer in front of clients; deleting a
+         * question is safe because nothing references a faq row.
+         */
+        Route::get('faqs', [AdminFaqController::class, 'index'])->name('faqs.index');
+        Route::get('faqs/create', [AdminFaqController::class, 'create'])->name('faqs.create');
+        Route::post('faqs', [AdminFaqController::class, 'store'])->name('faqs.store');
+        Route::get('faqs/{faq}/edit', [AdminFaqController::class, 'edit'])->name('faqs.edit');
+        Route::patch('faqs/{faq}', [AdminFaqController::class, 'update'])->name('faqs.update');
+        Route::patch('faqs/{faq}/toggle', [AdminFaqController::class, 'toggle'])->name('faqs.toggle');
+        Route::delete('faqs/{faq}', [AdminFaqController::class, 'destroy'])->name('faqs.destroy');
+
+        /*
+         * The complaints inbox: what clients have raised through the portal,
+         * the conversation with them, and where each one stands.
+         */
+        Route::get('complaints', [AdminComplaintController::class, 'index'])->name('complaints.index');
+        Route::get('complaints/{complaint}', [AdminComplaintController::class, 'show'])->name('complaints.show');
+        Route::post('complaints/{complaint}/messages', [AdminComplaintController::class, 'reply'])->name('complaints.reply');
+        Route::patch('complaints/{complaint}', [AdminComplaintController::class, 'update'])->name('complaints.update');
+
         Route::get('reports', AdminReportController::class)->name('reports.index');
 
         Route::get('settings', [AdminSettingController::class, 'edit'])->name('settings.edit');
@@ -141,6 +167,11 @@ Route::middleware(['auth:owner,staff', 'role:owner'])
         Route::get('services/{service}/availability', [OwnerServiceController::class, 'availability'])
             ->name('services.availability');
 
+        // One service in full: its price, length, rating, and every published
+        // review, the way a shop item page reads.
+        Route::get('services/{service}', [OwnerServiceController::class, 'show'])
+            ->name('services.show');
+
         Route::get('appointments', [OwnerAppointmentController::class, 'index'])->name('appointments.index');
         Route::post('appointments', [OwnerAppointmentController::class, 'store'])->name('appointments.store');
 
@@ -148,11 +179,31 @@ Route::middleware(['auth:owner,staff', 'role:owner'])
         Route::patch('appointments/{appointment}/cancel', [OwnerAppointmentController::class, 'cancel'])
             ->name('appointments.cancel');
 
+        // Rates a visit the clinic has already carried out.
+        Route::post('appointments/{appointment}/review', [OwnerAppointmentController::class, 'review'])
+            ->name('appointments.review');
+
         // Powers the navbar's search box; returns JSON, not an Inertia page.
         Route::get('search', OwnerSearchController::class)->name('search');
 
-        // Powers the floating FAQ button; returns JSON, not an Inertia page.
+        // Powers the floating FAQ button's browse view; JSON, not a page.
         Route::get('faqs', OwnerFaqController::class)->name('faqs');
+
+        /*
+         * The FAQ chat: the client asks in their own words and gets the
+         * desk's published answer back, so the help button is a conversation
+         * instead of a list they have to search.
+         */
+        Route::get('faqs/chat', [OwnerFaqChatController::class, 'start'])->name('faqs.chat');
+        Route::post('faqs/ask', [OwnerFaqChatController::class, 'ask'])->name('faqs.ask');
+
+        /*
+         * The help panel's complaint threads. Also JSON: the panel stays open
+         * while a client writes, reads the reply, and writes again.
+         */
+        Route::get('complaints', [OwnerComplaintController::class, 'index'])->name('complaints.index');
+        Route::post('complaints', [OwnerComplaintController::class, 'store'])->name('complaints.store');
+        Route::post('complaints/{complaint}/messages', [OwnerComplaintController::class, 'reply'])->name('complaints.reply');
 
         Route::patch('notifications/read', [OwnerNotificationController::class, 'markAllRead'])
             ->name('notifications.read');

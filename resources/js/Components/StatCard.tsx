@@ -17,6 +17,11 @@ interface StatCardProps {
     /** Small caption under the value. */
     hint?: string;
     accent?: StatAccent;
+    /**
+     * The value rendered as written instead of counted up — for a figure that
+     * is not a plain number, such as a formatted amount.
+     */
+    display?: string;
 }
 
 export default function StatCard({
@@ -25,6 +30,7 @@ export default function StatCard({
     icon,
     hint,
     accent = 'brand',
+    display,
 }: StatCardProps) {
     const styles = accentStyles[accent];
 
@@ -44,7 +50,7 @@ export default function StatCard({
             </div>
 
             <p className="mt-3 font-serif-display text-[2rem] leading-none text-[#1a3d1a]">
-                <CountUp end={value} />
+                {display ?? <CountUp end={value} />}
             </p>
 
             {hint && (

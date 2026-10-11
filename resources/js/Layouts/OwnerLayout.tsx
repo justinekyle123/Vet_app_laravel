@@ -1,10 +1,6 @@
+import PortalHelpPanel from '@/Components/PortalHelpPanel';
 import Spinner from '@/Components/Spinner';
-import {
-    PageProps,
-    PortalFaqCategory,
-    PortalNotification,
-    User,
-} from '@/types';
+import { PageProps, PortalNotification, User } from '@/types';
 import { initials } from '@/utils/format';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import {
@@ -65,6 +61,17 @@ const SEARCH_SECTIONS: { key: keyof SearchGroups; title: string }[] = [
     { key: 'appointments', title: 'Appointments' },
     { key: 'services', title: 'Services' },
 ];
+
+/**
+ * Flash keys the portal knows how to confirm, in the client's own words. An
+ * unknown key shows nothing rather than a message written for staff.
+ */
+const portalFlashMessages: Record<string, string> = {
+    'appointment-requested':
+        'Visit requested — the clinic will confirm it shortly.',
+    'appointment-cancelled': 'Visit cancelled.',
+    'review-submitted': 'Thank you — your review is saved to the visit.',
+};
 
 /**
  * Closes a dropdown when the pointer lands outside it or Escape is pressed.
@@ -432,183 +439,6 @@ function AccountMenu({ user }: { user: User }) {
     );
 }
 
-/**
- * The floating help button, pinned to the bottom-right of every portal page.
- * Opening it lazily loads the clinic's published questions — grouped the way
- * the front desk files them — and each one expands in place.
- */
-function FaqButton() {
-    const [open, setOpen] = useState(false);
-    const [categories, setCategories] = useState<PortalFaqCategory[] | null>(
-        null,
-    );
-    const [loading, setLoading] = useState(false);
-    const [expanded, setExpanded] = useState<number | null>(null);
-
-    /* Load the questions the first time the panel is opened. */
-    useEffect(() => {
-        if (!open || categories !== null) {
-            return;
-        }
-
-        let cancelled = false;
-        setLoading(true);
-
-        fetch(route('owner.faqs'), {
-            headers: { Accept: 'application/json' },
-            credentials: 'same-origin',
-        })
-            .then(
-                (response) =>
-                    response.json() as Promise<{
-                        categories: PortalFaqCategory[];
-                    }>,
-            )
-            .then((data) => {
-                if (!cancelled) {
-                    setCategories(data.categories);
-                }
-            })
-            .catch(() => {
-                // A failed load is just an empty panel; the button still closes.
-                if (!cancelled) {
-                    setCategories([]);
-                }
-            })
-            .finally(() => {
-                if (!cancelled) {
-                    setLoading(false);
-                }
-            });
-
-        return () => {
-            cancelled = true;
-        };
-    }, [open, categories]);
-
-    /* Escape closes the panel, like the header's own dropdowns. */
-    useEffect(() => {
-        if (!open) {
-            return;
-        }
-
-        const handleKeyDown = (event: KeyboardEvent) => {
-            if (event.key === 'Escape') {
-                setOpen(false);
-            }
-        };
-
-        document.addEventListener('keydown', handleKeyDown);
-
-        return () => document.removeEventListener('keydown', handleKeyDown);
-    }, [open]);
-
-    return (
-        <div className="fixed bottom-5 right-4 z-40 flex flex-col items-end gap-3 sm:bottom-6 sm:right-6">
-            {open && (
-                <div
-                    id="portal-faq"
-                    className="w-[min(24rem,calc(100vw-2rem))] animate-dropdown overflow-hidden rounded-2xl border border-[#1a3d1a]/10 bg-white shadow-2xl shadow-[#1a3d1a]/15"
-                >
-                    <div className="flex items-center justify-between gap-3 border-b border-[#1a3d1a]/10 bg-[#EFFDF0]/70 px-5 py-3.5">
-                        <h2 className="text-sm font-semibold text-[#1a3d1a]">
-                            Frequently asked questions
-                        </h2>
-                        <button
-                            type="button"
-                            onClick={() => setOpen(false)}
-                            aria-label="Close FAQs"
-                            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[#1a3d1a]/50 transition-colors duration-200 hover:bg-white hover:text-[#1a3d1a] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1a3d1a]"
-                        >
-                            <X className="h-4 w-4" />
-                        </button>
-                    </div>
-
-                    <div className="max-h-[60vh] overflow-y-auto p-2">
-                        {loading && categories === null ? (
-                            <p className="flex items-center gap-2 px-4 py-6 text-sm text-[#1a3d1a]/55">
-                                <Spinner className="h-4 w-4" />
-                                Loading questions…
-                            </p>
-                        ) : categories && categories.length > 0 ? (
-                            categories.map((category) => (
-                                <div key={category.name} className="py-1">
-                                    <p className="px-3 pb-1 pt-2 text-[0.66rem] font-bold uppercase tracking-[0.14em] text-[#1a3d1a]/40">
-                                        {category.name}
-                                    </p>
-                                    <ul>
-                                        {category.faqs.map((faq) => (
-                                            <li key={faq.id}>
-                                                <button
-                                                    type="button"
-                                                    onClick={() =>
-                                                        setExpanded(
-                                                            (current) =>
-                                                                current ===
-                                                                faq.id
-                                                                    ? null
-                                                                    : faq.id,
-                                                        )
-                                                    }
-                                                    aria-expanded={
-                                                        expanded === faq.id
-                                                    }
-                                                    className="flex w-full items-start justify-between gap-3 rounded-xl px-3 py-2.5 text-left transition-colors duration-150 hover:bg-[#EFFDF0] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1a3d1a]"
-                                                >
-                                                    <span className="text-sm font-medium text-[#1a3d1a]">
-                                                        {faq.question}
-                                                    </span>
-                                                    <ChevronDown
-                                                        className={`mt-0.5 h-4 w-4 shrink-0 text-[#1a3d1a]/40 transition-transform duration-200 ${
-                                                            expanded === faq.id
-                                                                ? 'rotate-180'
-                                                                : ''
-                                                        }`}
-                                                    />
-                                                </button>
-                                                {expanded === faq.id && (
-                                                    <p className="px-3 pb-3 text-sm leading-relaxed text-[#1a3d1a]/60">
-                                                        {faq.answer}
-                                                    </p>
-                                                )}
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </div>
-                            ))
-                        ) : (
-                            <p className="px-4 py-6 text-sm leading-relaxed text-[#1a3d1a]/55">
-                                No help articles yet. Call the front desk and
-                                they will be glad to help.
-                            </p>
-                        )}
-                    </div>
-
-                    <p className="border-t border-[#1a3d1a]/10 bg-[#EFFDF0]/40 px-5 py-3 text-xs leading-relaxed text-[#1a3d1a]/55">
-                        Still stuck? Call the front desk — they can change or
-                        cancel a booking for you.
-                    </p>
-                </div>
-            )}
-
-            <button
-                type="button"
-                onClick={() => setOpen((value) => !value)}
-                aria-label="Frequently asked questions"
-                aria-expanded={open}
-                aria-controls="portal-faq"
-                className="flex h-14 w-14 items-center justify-center rounded-full bg-[#1a3d1a] text-white shadow-xl shadow-[#1a3d1a]/30 transition-colors duration-200 hover:bg-[#2a5a2a] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1a3d1a] focus-visible:ring-offset-2"
-            >
-                {open ? (
-                    <X className="h-6 w-6" />
-                ) : (
-                    <HelpCircle className="h-6 w-6" />
-                )}
-            </button>
-        </div>
-    );
-}
-
 export default function OwnerLayout({
     title,
     heading,
@@ -623,11 +453,35 @@ export default function OwnerLayout({
     description?: string;
     actions?: ReactNode;
 }>) {
-    const { auth, portal } = usePage<PageProps>().props;
+    const { auth, portal, flash } = usePage<PageProps>().props;
     const user = auth.user;
 
     const [mobileOpen, setMobileOpen] = useState(false);
     const headerRef = useRef<HTMLElement>(null);
+
+    /*
+     * A finished action confirms itself: the controllers flash a status, and
+     * the banner below says what happened in the client's own words. Both the
+     * banner and the timer are cleared by the next navigation.
+     */
+    const [toast, setToast] = useState<string | null>(null);
+
+    useEffect(() => {
+        const message = flash?.status
+            ? (portalFlashMessages[flash.status] ?? null)
+            : (flash?.error ?? null);
+
+
+        if (!message) {
+            return;
+        }
+
+        setToast(message);
+
+        const timer = setTimeout(() => setToast(null), 6000);
+
+        return () => clearTimeout(timer);
+    }, [flash?.status, flash?.error]);
 
     /* The mobile panel sits inside the header, so one ref covers both. */
     useEffect(() => {
@@ -997,7 +851,18 @@ export default function OwnerLayout({
                 <div className={heading ? 'mt-8' : ''}>{children}</div>
             </main>
 
-            <FaqButton />
+            {/* Bottom-left, so it never sits under the help button. */}
+            {toast && (
+                <div
+                    role="status"
+                    aria-live="polite"
+                    className="fixed bottom-5 left-4 z-40 max-w-[min(24rem,calc(100vw-2rem))] animate-dropdown rounded-2xl bg-[#1a3d1a] px-5 py-3.5 text-sm font-medium text-white shadow-xl shadow-[#1a3d1a]/25 sm:bottom-6 sm:left-6"
+                >
+                    {toast}
+                </div>
+            )}
+
+            <PortalHelpPanel />
 
             <Head title={title} />
         </div>

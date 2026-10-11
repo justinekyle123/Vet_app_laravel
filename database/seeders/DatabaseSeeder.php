@@ -151,7 +151,7 @@ class DatabaseSeeder extends Seeder
             AppointmentStatus::firstOrCreate(['status_name' => $status]);
         }
 
-        foreach (['Bookings', 'Billing', 'Visits', 'Account'] as $name) {
+        foreach (['Bookings', 'Billing', 'Visits', 'Reviews', 'Account', 'Get in touch'] as $name) {
             FaqCategory::firstOrCreate(['category_name' => $name]);
         }
     }
@@ -168,19 +168,42 @@ class DatabaseSeeder extends Seeder
                 ['How do I book a visit?', 'Open Services, pick the care your dog needs, then choose a day and time. The front desk confirms every request, and you can follow its status here.'],
                 ['Can I cancel a booking?', 'Yes. Any upcoming visit has a Cancel button on the appointments page, as long as the clinic has not already marked it complete.'],
                 ['How soon can I book?', 'The calendar only offers days the clinic has free slots on, usually within the next few weeks. For anything urgent, call the front desk.'],
+                ['How do I know the clinic has confirmed my booking?', 'Every request starts out as Requested. Once the desk accepts it the visit turns Confirmed and a message arrives in the bell at the top of the page. Your appointments page shows which of the two a visit is in.'],
+                ['Can I book for more than one dog at a time?', 'Book one visit per dog. Each visit gets its own slot and its own record, so the vet has time for every dog you bring.'],
+                ['Can I book a service again?', 'Yes. Every visit in your history has a Book again button that takes you back to the calendar for the same service.'],
+                ['Can I move a booking to another day?', 'Yes. Cancel the visit from your appointments page, which costs nothing, and book the day you want from Services.'],
+                ['What if I arrive late or miss a visit?', 'Call the desk as soon as you can and they will tell you whether the slot can still be used. A visit nobody turns up for is marked No-show: it is not charged, but the time is gone and you will need to book again.'],
             ],
             'Visits' => [
                 ['What should I bring?', 'Your dog\'s vaccination record if you have it, and any medication they are taking. A leash or carrier keeps everyone safe in the waiting room.'],
                 ['How long is a visit?', 'Each service lists its own length on the menu, from a 15-minute booster to a full groom.'],
                 ['Can I stay with my dog?', 'For most consultations, yes. For procedures under anaesthesia the team will ask you to wait in reception and will call you when your dog is awake.'],
+                ['Will my dog see a veterinarian or a groomer?', 'Vet care and diagnostics are booked with a veterinarian, and grooming with a groomer. Each service on the menu names the member of the team it is booked against.'],
+                ['What should I do in an emergency?', 'Call the clinic instead of booking online and the team will tell you whether to come straight in. Booking a normal visit first would only slow your dog down.'],
             ],
             'Billing' => [
                 ['When do I pay?', 'Payment is taken at the desk when the visit is finished. The price of each service is shown on the menu before you book.'],
                 ['Which payment methods do you accept?', 'Cash, card, GCash, and bank transfer.'],
+                ['How much will a visit cost?', 'Every service on the menu shows its own price before you book it, and your appointments page adds up what you have spent on the visits the clinic has completed.'],
+                ['Am I charged if I cancel?', 'No. Cancelling an upcoming visit is free, and only visits the clinic has carried out are billed.'],
+                ['Can I get a statement of what I have paid?', 'Ask the desk and they can print one. The same figures sit under Your record at the top of your appointments page.'],
+            ],
+            'Reviews' => [
+                ['How do I rate a visit?', 'Once the clinic has marked a visit complete, that row on your appointments page offers a rate button. Choose your stars and add a comment if you want to.'],
+                ['Who can see my review?', 'Your review is published on the service it was about, under your first name and the initial of your surname, and the clinic reads it too.'],
+                ['Can I change a review after leaving it?', 'A visit can be rated once. If something in a review needs correcting, send the clinic a message from the help button and they will sort it out with you.'],
             ],
             'Account' => [
-                ['How do I add another dog?', 'Open \"My account & dogs\" from the menu and add the new dog there.'],
+                ['How do I add another dog?', 'Open \"My account & dogs\" from the profile menu and add the new dog there.'],
                 ['I forgot my password.', 'Use the forgot-password link on the sign-in page, or call the front desk and they will help you back in.'],
+                ['How do I change my email address or phone number?', 'Your details and your dogs are on the same page: open \"My account & dogs\" from the profile menu and edit them there.'],
+                ['What does the Booster due badge mean?', 'It is your dog\'s vaccination flag. Once the clinic has given the booster, tick Vaccinated on the \"My account & dogs\" page and the home page will show the dog as up to date.'],
+                ['Where do the messages from the clinic appear?', 'In the bell at the top of every portal page. Opening it lists them newest first and clears the unread count.'],
+            ],
+            'Get in touch' => [
+                ['How do I ask the clinic a question?', 'Use the help button at the bottom-right of any portal page. Ask your question there and it is answered from these pages; the same panel has a Complaints side if you would rather write to a person.'],
+                ['How do I complain about a visit?', 'Open the help button, choose Complaints, and write what happened. You can point the complaint at the visit it is about so the desk has the context, and their reply lands in the same thread.'],
+                ['How long does a reply to a complaint take?', 'The desk reads complaints during opening hours and answers them in the thread. You will see the reply when you open the help panel, and the thread stays there until the complaint is settled.'],
             ],
         ];
 

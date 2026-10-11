@@ -83,16 +83,29 @@ export interface PortalAppointment {
     dog: string | null;
     dog_id: number | null;
     service: string | null;
+    /** Kept so a past visit can be booked again from its own row. */
+    service_id: number | null;
     duration_minutes: number | null;
     price: string | null;
     staff: string | null;
     notes: string | null;
     /** True while the visit can still be cancelled (requested or confirmed). */
     cancellable: boolean;
+    /** True for a completed visit the client has not reviewed yet. */
+    reviewable: boolean;
+    /** The client's own review of this visit, once they have left one. */
+    feedback: PortalFeedback | null;
 }
 
-/** A service on the clinic's active menu. */
-export interface PortalService {
+/** An owner's rating of one completed visit, as the portal shows it back. */
+export interface PortalFeedback {
+    rating: number;
+    comment: string | null;
+    date: string | null;
+}
+
+/** The service fields the menu card and the service page both carry. */
+export interface PortalServiceSummary {
     id: number;
     service_name: string;
     description: string | null;
@@ -105,6 +118,54 @@ export interface PortalService {
      * groomer, every other discipline to a veterinarian.
      */
     provider_role: 'veterinarian' | 'groomer';
+    /** Average published rating, or null before anyone has rated it. */
+    rating: number | null;
+    /** How many published reviews that average covers. */
+    rating_count: number;
+}
+
+/** A service on the clinic's active menu, with the comments its card previews. */
+export interface PortalService extends PortalServiceSummary {
+    /** The most recent published reviews, newest first. */
+    reviews: PortalReview[];
+}
+
+/**
+ * One service's rating in full, as its own page breaks it down: the spread
+ * behind the average, and how many clients were happy with it.
+ */
+export interface ServiceSummary {
+    rating: number | null;
+    count: number;
+    /** How many reviews gave each score, keyed 5 down to 1. */
+    distribution: Record<string, number>;
+    /** Share of clients who rated four stars or more; null with no reviews. */
+    satisfied: number | null;
+}
+
+/**
+ * A service on its own page: the shared fields, the spread behind its average,
+ * and what this client's own history with it looks like.
+ */
+export interface PortalServiceDetail
+    extends PortalServiceSummary,
+        ServiceSummary {
+    category: string | null;
+    /** The date this client last had the service, if they ever have. */
+    last_visit: string | null;
+}
+
+/** One published review of a service, as a card or its page lists it. */
+export interface PortalReview {
+    id: number;
+    rating: number;
+    comment: string | null;
+    /** First name and initial only — the clinic never publishes a full name. */
+    client: string | null;
+    /** When the review was written. */
+    date: string | null;
+    /** The date of the visit it came from, so a reader can judge it. */
+    visited_on: string | null;
 }
 
 /** One published help question, as the floating FAQ button lists it. */
@@ -120,6 +181,83 @@ export interface PortalFaqCategory {
     faqs: PortalFaq[];
 }
 
+/** One published question the FAQ chat offers as a next step. */
+export interface FaqQuestion {
+    id: number;
+    question: string;
+}
+
+/** One answer the FAQ chat matched against what the client asked. */
+export interface FaqMatch {
+    id: number;
+    question: string;
+    answer: string;
+    category: string | null;
+    /** 0–1: how much of the client's question this answer covers. */
+    score: number;
+}
+
+/**
+ * What the FAQ chat sends back for one question. `found` is false when the
+ * clinic has published nothing that covers it, which the panel turns into an
+ * offer to raise a complaint instead.
+ */
+export interface FaqAnswer {
+    found: boolean;
+    /** The chat's own line, above the answers or in place of them. */
+    reply: string;
+    matches: FaqMatch[];
+    suggestions: FaqQuestion[];
+}
+
+/** Opening the FAQ chat: the greeting and what the desk can answer. */
+export interface FaqChatStart {
+    greeting: string;
+    suggestions: FaqQuestion[];
+}
+
+/** One message in a complaint thread, as the help panel renders it. */
+export interface PortalComplaintMessage {
+    id: number;
+    body: string;
+    /** True when the client wrote it rather than the clinic. */
+    from_owner: boolean;
+    /** True for the reader's own side of the conversation. */
+    mine: boolean;
+    /** Who wrote it: the client's name, or the staff member's. */
+    author: string | null;
+    at: string | null;
+}
+
+/** A complaint a client raised, with the conversation so far. */
+export interface PortalComplaintThread {
+    id: number;
+    subject: string;
+    description: string;
+    status: string;
+    priority: ComplaintPriority;
+    /** True once the clinic considers the complaint finished. */
+    settled: boolean;
+    opened_at: string | null;
+    updated_at: string | null;
+    messages_count: number;
+    client: string | null;
+    client_id: number | null;
+    appointment_id: number | null;
+    visit_on: string | null;
+    resolution_notes: string | null;
+    assigned_to: string | null;
+    messages: PortalComplaintMessage[];
+}
+
+export type ComplaintPriority = 'Low' | 'Medium' | 'High';
+
+/** One of the client's own visits, as the complaint form offers it. */
+export interface ComplaintVisitOption {
+    id: number;
+    label: string;
+}
+
 /** Services grouped under their category for the menu page. */
 export interface PortalServiceCategory {
     name: string;
@@ -130,8 +268,12 @@ export interface PortalServiceCategory {
  * A service on the landing page, with the category the desk files it under and
  * its own picture. `image` is null when none is set, and the page falls back to
  * the clinic's own artwork.
+ *
+ * The landing page shows one clinic-wide rating rather than a score per
+ * service, so the per-service rating fields are not sent with it.
  */
-export interface PublicService extends PortalService {
+export interface PublicService
+    extends Omit<PortalServiceSummary, 'rating' | 'rating_count'> {
     category: string;
 }
 

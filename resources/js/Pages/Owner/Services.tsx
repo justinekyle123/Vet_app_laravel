@@ -1,5 +1,9 @@
 import { EmptyState } from '@/Components/Panel';
-import { primaryButtonClass } from '@/Components/buttonStyles';
+import StarRating from '@/Components/StarRating';
+import {
+    primaryButtonClass,
+    secondaryButtonClass,
+} from '@/Components/buttonStyles';
 import OwnerLayout from '@/Layouts/OwnerLayout';
 import {
     PageProps,
@@ -10,19 +14,97 @@ import {
 } from '@/types';
 import { currency } from '@/utils/format';
 import { Link } from '@inertiajs/react';
-import { ArrowRight, Clock, Search, X } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { ArrowRight, ChevronDown, Clock, Search, X } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import BookingModal from './Partials/BookingModal';
 import CareTeamSection from './Partials/CareTeamSection';
 import { OwnerHero, SectionLabel } from './Partials/OwnerHero';
 
 /**
+ * What other clients said about one service: its average, how many reviews
+ * that covers, and the latest comments behind a disclosure so a card stays
+ * compact until someone wants to read them.
+ */
+function ServiceReputation({ service }: { service: PortalService }) {
+    const [open, setOpen] = useState(false);
+    const hasReviews = service.rating !== null && service.rating_count > 0;
+
+    if (!hasReviews) {
+        return (
+            <p className="text-xs text-[#1a3d1a]/45">
+                No reviews yet — be the first to rate this service.
+            </p>
+        );
+    }
+
+    return (
+        <div>
+            <div className="flex flex-wrap items-center gap-2">
+                <StarRating value={service.rating ?? 0} size="sm" />
+                <span className="text-xs font-semibold text-[#1a3d1a]">
+                    {service.rating}/5
+                </span>
+                <button
+                    type="button"
+                    onClick={() => setOpen((current) => !current)}
+                    aria-expanded={open}
+                    className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold text-[#1a3d1a]/60 transition-colors duration-150 hover:bg-[#EFFDF0] hover:text-[#1a3d1a] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1a3d1a]"
+                >
+                    {service.rating_count}{' '}
+                    {service.rating_count === 1 ? 'review' : 'reviews'}
+                    <ChevronDown
+                        className={`h-3.5 w-3.5 transition-transform duration-200 ${
+                            open ? 'rotate-180' : ''
+                        }`}
+                    />
+                </button>
+            </div>
+
+            {open && (
+                <ul className="mt-3 space-y-3">
+                    {service.reviews.map((review) => (
+                        <li
+                            key={review.id}
+                            className="rounded-xl bg-[#EFFDF0]/70 px-3.5 py-3"
+                        >
+                            <div className="flex flex-wrap items-center gap-2">
+                                <StarRating
+                                    value={review.rating}
+                                    size="sm"
+                                />
+                                {review.client && (
+                                    <span className="text-xs font-semibold text-[#1a3d1a]/70">
+                                        {review.client}
+                                    </span>
+                                )}
+                            </div>
+                            {review.comment && (
+                                <p className="mt-1.5 text-xs leading-relaxed text-[#1a3d1a]/60">
+                                    “{review.comment}”
+                                </p>
+                            )}
+                        </li>
+                    ))}
+                    {service.rating_count > service.reviews.length && (
+                        <li className="text-xs text-[#1a3d1a]/45">
+                            Showing the {service.reviews.length} most recent of{' '}
+                            {service.rating_count} reviews.
+                        </li>
+                    )}
+                </ul>
+            )}
+        </div>
+    );
+}
+
+/**
  * The clinic's service menu, as a client sees it.
  *
  * Each card carries an `id` so the navbar search can deep-link straight to a
- * match, and a Book action that opens the calendar-backed booking modal.
- * Retired services never reach this page — the controller filters them out
- * before the props are built.
+ * match, a Book action that opens the calendar-backed booking modal, and a way
+ * through to the service's own page, which breaks its rating down and lists
+ * every review behind it. Retired services never reach this page — the
+ * controller filters them out before the props are built.
  */
 export default function Services({
     categories,
@@ -41,6 +123,38 @@ export default function Services({
         null,
     );
     const [bookingOpen, setBookingOpen] = useState(false);
+    const openedFromLink = useRef(false);
+
+    /*
+     * "Book again" on a past visit arrives as ?book=<service id>, so the menu
+     * opens that service's calendar straight away instead of making the client
+     * find it again in the grid.
+     */
+    useEffect(() => {
+        if (openedFromLink.current) {
+            return;
+        }
+
+        openedFromLink.current = true;
+
+        const requested = Number.parseInt(
+            new URLSearchParams(window.location.search).get('book') ?? '',
+            10,
+        );
+
+        if (Number.isNaN(requested)) {
+            return;
+        }
+
+        const match = categories
+            .flatMap((category) => category.services)
+            .find((service) => service.id === requested);
+
+        if (match) {
+            setBookingService(match);
+            setBookingOpen(true);
+        }
+    }, [categories]);
 
     const term = query.trim().toLowerCase();
 
@@ -231,7 +345,14 @@ export default function Services({
                                                 id={`service-${service.id}`}
                                                 className="group flex h-full scroll-mt-28 flex-col overflow-hidden rounded-2xl border border-[#1a3d1a]/10 bg-white shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-[#1a3d1a]/20 hover:shadow-lg hover:shadow-[#1a3d1a]/5"
                                             >
-                                                <div className="relative h-40 shrink-0 overflow-hidden">
+                                                <Link
+                                                    href={route(
+                                                        'owner.services.show',
+                                                        service.id,
+                                                    )}
+                                                    aria-label={`View details for ${service.service_name}`}
+                                                    className="relative block h-40 shrink-0 overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#1a3d1a]"
+                                                >
                                                     {service.image ? (
                                                         <img
                                                             src={service.image}
@@ -257,13 +378,19 @@ export default function Services({
                                                     <h3 className="absolute inset-x-4 bottom-4 line-clamp-2 font-serif-display text-2xl leading-tight text-white">
                                                         {service.service_name}
                                                     </h3>
-                                                </div>
+                                                </Link>
 
                                                 <div className="flex flex-1 flex-col p-5">
                                                     <p className="line-clamp-3 text-sm leading-relaxed text-[#1a3d1a]/60">
                                                         {service.description ??
                                                             'Ask the clinic for details.'}
                                                     </p>
+
+                                                    <div className="mt-4">
+                                                        <ServiceReputation
+                                                            service={service}
+                                                        />
+                                                    </div>
 
                                                     <dl className="mt-auto mb-5 grid grid-cols-2 gap-x-4 gap-y-3 border-t border-[#1a3d1a]/10 pt-5">
                                                         <div>
@@ -287,18 +414,32 @@ export default function Services({
                                                         </div>
                                                     </dl>
 
-                                                    <button
-                                                        type="button"
-                                                        onClick={() =>
-                                                            openBooking(
-                                                                service,
-                                                            )
-                                                        }
-                                                        className="flex items-center justify-between border-t border-[#1a3d1a]/10 pt-4 text-sm font-semibold text-[#1a3d1a] transition-colors duration-200 hover:text-[#E86A10] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1a3d1a]"
-                                                    >
-                                                        Book this service
-                                                        <ArrowRight className="h-4 w-4 text-[#E86A10] transition-transform duration-200 group-hover:translate-x-1" />
-                                                    </button>
+                                                    {/* Two ways on: read the service in
+                                                        full, or go straight to its
+                                                        calendar. */}
+                                                    <div className="flex items-center gap-2 border-t border-[#1a3d1a]/10 pt-4">
+                                                        <Link
+                                                            href={route(
+                                                                'owner.services.show',
+                                                                service.id,
+                                                            )}
+                                                            className={`${secondaryButtonClass} flex-1 px-3 py-2 text-xs`}
+                                                        >
+                                                            View details
+                                                        </Link>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() =>
+                                                                openBooking(
+                                                                    service,
+                                                                )
+                                                            }
+                                                            className={`${primaryButtonClass} flex-1 px-3 py-2 text-xs`}
+                                                        >
+                                                            Book
+                                                            <ArrowRight className="h-4 w-4" />
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             </article>
                                         ))}
