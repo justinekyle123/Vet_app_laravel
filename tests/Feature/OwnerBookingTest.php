@@ -180,6 +180,121 @@ test('a cancelled visit frees its slot again', function () {
     expect(collect($response->json("times.{$date}"))->pluck('value'))->toContain('09:00');
 });
 
+/** A visit already on the books for a dog and service, in the given state. */
+function existingVisit(DogOwner $owner, Dog $dog, Service $service, string $status, string $date, string $time = '09:00'): Appointment
+{
+    return Appointment::create([
+        'owner_id' => $owner->owner_id,
+        'dog_id' => $dog->dog_id,
+        'service_id' => $service->service_id,
+        'appointment_date' => $date,
+        'appointment_time' => $time,
+        'status_id' => AppointmentStatus::firstOrCreate(['status_name' => $status])->status_id,
+    ]);
+}
+
+test('an owner cannot book a service their dog already has upcoming', function () {
+    $owner = DogOwner::factory()->create();
+    $dog = Dog::factory()->create(['owner_id' => $owner->owner_id]);
+    $service = Service::factory()->create(['duration_minutes' => 30]);
+    $date = nextOpenDay();
+
+    existingVisit($owner, $dog, $service, 'Requested', $date);
+
+    $this->actingAs($owner)
+        ->post(route('owner.appointments.store'), [
+            'service_id' => $service->service_id,
+            'dog_id' => $dog->dog_id,
+            'appointment_date' => $date,
+            'appointment_time' => '10:00',
+        ])
+        ->assertSessionHasErrors('service_id');
+
+    expect(Appointment::query()->count())->toBe(1);
+});
+
+test('a second dog can book a service another dog already has upcoming', function () {
+    $owner = DogOwner::factory()->create();
+    $first = Dog::factory()->create(['owner_id' => $owner->owner_id]);
+    $second = Dog::factory()->create(['owner_id' => $owner->owner_id]);
+    $service = Service::factory()->create(['duration_minutes' => 30]);
+    $date = nextOpenDay();
+
+    existingVisit($owner, $first, $service, 'Requested', $date);
+
+    $this->actingAs($owner)
+        ->post(route('owner.appointments.store'), [
+            'service_id' => $service->service_id,
+            'dog_id' => $second->dog_id,
+            'appointment_date' => $date,
+            'appointment_time' => '10:00',
+        ])
+        ->assertSessionHasNoErrors();
+
+    expect(Appointment::query()->count())->toBe(2);
+});
+
+test('an owner can book a different service while another is upcoming', function () {
+    $owner = DogOwner::factory()->create();
+    $dog = Dog::factory()->create(['owner_id' => $owner->owner_id]);
+    $booked = Service::factory()->create(['duration_minutes' => 30]);
+    $other = Service::factory()->create(['duration_minutes' => 30]);
+    $date = nextOpenDay();
+
+    existingVisit($owner, $dog, $booked, 'Confirmed', $date);
+
+    $this->actingAs($owner)
+        ->post(route('owner.appointments.store'), [
+            'service_id' => $other->service_id,
+            'dog_id' => $dog->dog_id,
+            'appointment_date' => $date,
+            'appointment_time' => '10:00',
+        ])
+        ->assertSessionHasNoErrors();
+
+    expect(Appointment::query()->count())->toBe(2);
+});
+
+test('a completed visit frees the service for booking again', function () {
+    $owner = DogOwner::factory()->create();
+    $dog = Dog::factory()->create(['owner_id' => $owner->owner_id]);
+    $service = Service::factory()->create(['duration_minutes' => 30]);
+    $date = nextOpenDay();
+
+    existingVisit($owner, $dog, $service, 'Completed', today()->toDateString());
+
+    $this->actingAs($owner)
+        ->post(route('owner.appointments.store'), [
+            'service_id' => $service->service_id,
+            'dog_id' => $dog->dog_id,
+            'appointment_date' => $date,
+            'appointment_time' => '09:00',
+        ])
+        ->assertSessionHasNoErrors();
+
+    expect(Appointment::query()->count())->toBe(2);
+});
+
+test('a cancelled visit frees the service for booking again', function () {
+    $owner = DogOwner::factory()->create();
+    $dog = Dog::factory()->create(['owner_id' => $owner->owner_id]);
+    $service = Service::factory()->create(['duration_minutes' => 30]);
+    $date = nextOpenDay();
+
+    existingVisit($owner, $dog, $service, 'Cancelled', $date);
+
+    $this->actingAs($owner)
+        ->post(route('owner.appointments.store'), [
+            'service_id' => $service->service_id,
+            'dog_id' => $dog->dog_id,
+            'appointment_date' => $date,
+            'appointment_time' => '09:00',
+        ])
+        ->assertSessionHasNoErrors();
+
+    expect(Appointment::query()->count())->toBe(2);
+});
+
 test('staff cannot book through the owner portal', function () {
     $this->actingAs(Staff::factory()->frontDesk()->create())
         ->post(route('owner.appointments.store'), [

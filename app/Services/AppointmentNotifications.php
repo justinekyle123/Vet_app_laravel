@@ -4,25 +4,33 @@ namespace App\Services;
 
 use App\Models\Appointment;
 use App\Models\Notification;
+use App\Services\Sms\SmsGateway;
 
 /**
- * The messages the clinic logs for an owner when a booking changes state.
+ * The messages the clinic sends an owner when a booking changes state.
  *
  * Rows land in the clinic's own `notifications` log, which is exactly what the
  * owner portal's bell reads from, so a decision made at the console surfaces on
- * the client's next visit without any extra delivery channel.
+ * the client's next visit. When the Android SMS Gateway is configured the same
+ * message is also texted to the owner's mobile, and the logged channel records
+ * which of the two deliveries actually carried it.
  */
 class AppointmentNotifications
 {
-    /** The delivery channel recorded for an in-console message. */
-    private const CHANNEL = 'Push';
+    /** The delivery channel recorded when a text was actually sent. */
+    private const SMS_CHANNEL = 'SMS';
+
+    /** The delivery channel recorded when only the portal received it. */
+    private const PUSH_CHANNEL = 'Push';
+
+    public function __construct(private SmsGateway $sms) {}
 
     /**
      * The owner's requested visit has been accepted.
      */
     public function confirmed(Appointment $appointment): void
     {
-        $this->record($appointment, sprintf(
+        $this->deliver($appointment, sprintf(
             'Good news: your %s on %s at %s is confirmed.',
             $this->subject($appointment),
             $this->date($appointment),
@@ -35,7 +43,7 @@ class AppointmentNotifications
      */
     public function declined(Appointment $appointment): void
     {
-        $this->record($appointment, sprintf(
+        $this->deliver($appointment, sprintf(
             'Sorry: your %s request for %s at %s could not be accepted. Call the clinic to rebook.',
             $this->subject($appointment),
             $this->date($appointment),
@@ -48,7 +56,7 @@ class AppointmentNotifications
      */
     public function cancelled(Appointment $appointment): void
     {
-        $this->record($appointment, sprintf(
+        $this->deliver($appointment, sprintf(
             'Your %s on %s at %s has been cancelled by the clinic.',
             $this->subject($appointment),
             $this->date($appointment),
@@ -57,14 +65,35 @@ class AppointmentNotifications
     }
 
     /**
-     * Log one delivered message against the owner and the visit it concerns.
+     * Text the owner (when possible) and log one row against the owner and the
+     * visit it concerns.
+     *
+     * The text is attempted first so the logged channel and status describe the
+     * delivery that actually happened. A failed or skipped text still leaves the
+     * message in the portal, recorded as a "Sent" push, so the owner is never
+     * left without the update.
      */
-    private function record(Appointment $appointment, string $message): void
+    private function deliver(Appointment $appointment, string $message): void
     {
+        if ($this->sms->isConfigured()) {
+            $sent = $this->sms->send($appointment->owner?->phone_number, $message);
+
+            Notification::create([
+                'owner_id' => $appointment->owner_id,
+                'appointment_id' => $appointment->appointment_id,
+                'channel' => self::SMS_CHANNEL,
+                'message' => $message,
+                'status' => $sent ? 'Sent' : 'Failed',
+                'sent_at' => $sent ? now() : null,
+            ]);
+
+            return;
+        }
+
         Notification::create([
             'owner_id' => $appointment->owner_id,
             'appointment_id' => $appointment->appointment_id,
-            'channel' => self::CHANNEL,
+            'channel' => self::PUSH_CHANNEL,
             'message' => $message,
             'status' => 'Sent',
             'sent_at' => now(),
