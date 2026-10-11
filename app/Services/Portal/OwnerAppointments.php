@@ -62,6 +62,24 @@ class OwnerAppointments
     }
 
     /**
+     * Whether one of the owner's dogs already has a visit for this service that
+     * is still going ahead.
+     *
+     * A dog should not be booked for the same service twice over: the request
+     * is refused until the earlier visit is completed, or called off. A
+     * cancelled or missed visit is history and frees the service again.
+     */
+    public function hasUpcomingService(DogOwner $owner, int $dogId, int $serviceId): bool
+    {
+        return $this->query($owner)
+            ->where('dog_id', $dogId)
+            ->where('service_id', $serviceId)
+            ->whereDate('appointment_date', '>=', today())
+            ->whereIn('status_id', $this->statusIds(AppointmentStatus::SCHEDULED))
+            ->exists();
+    }
+
+    /**
      * Everything that has already happened or been called off, most recent
      * first. `$filter` narrows it to the completed visits or the cancelled and
      * missed ones.

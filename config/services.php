@@ -35,4 +35,22 @@ return [
         ],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Android SMS Gateway
+    |--------------------------------------------------------------------------
+    |
+    | Credentials for the SMS Gateway for Android cloud API (capcom6), which
+    | relays a message through an Android phone running the gateway app. The
+    | username and password are the ones shown in that app's cloud settings.
+    |
+    */
+
+    'sms_gateway' => [
+        'url' => env('SMS_GATEWAY_URL', 'https://sms.capcom.me/api/3rdparty/v1'),
+        'username' => env('SMS_GATEWAY_USERNAME'),
+        'password' => env('SMS_GATEWAY_PASSWORD'),
+        'enabled' => env('SMS_GATEWAY_ENABLED', true),
+    ],
+
 ];

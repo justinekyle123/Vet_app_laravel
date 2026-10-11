@@ -203,6 +203,9 @@ export default function BookingModal({
                     onSubmit={submit}
                     className="max-h-[70vh] overflow-y-auto p-6"
                 >
+                    {/* A service the chosen dog already has booked for it. */}
+                    <InputError className="mb-5" message={errors.service_id} />
+
                     <fieldset>
                         <legend className={labelClass}>Which dog?</legend>
                         <div className="mt-2.5 grid grid-cols-1 gap-2 sm:grid-cols-2">

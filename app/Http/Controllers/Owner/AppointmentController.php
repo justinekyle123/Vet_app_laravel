@@ -99,16 +99,27 @@ class AppointmentController extends Controller
      * a service, day, and time, and the desk confirms it. The slot is re-checked
      * here so a request cannot slip into a window that filled up since the
      * calendar was loaded.
+     *
+     * A dog cannot be booked for the same service twice while an earlier visit
+     * is still going ahead: the duplicate is refused until that visit is
+     * completed or called off.
      */
     public function store(
         StoreAppointmentRequest $request,
         BookingAvailability $availability,
+        OwnerAppointments $appointments,
     ): RedirectResponse {
         /** @var DogOwner $owner */
         $owner = $request->user();
         $data = $request->validated();
 
         $service = Service::query()->findOrFail($data['service_id']);
+
+        if ($appointments->hasUpcomingService($owner, (int) $data['dog_id'], $service->service_id)) {
+            throw ValidationException::withMessages([
+                'service_id' => "This dog already has an upcoming {$service->service_name} visit. You can book it again once that visit is completed.",
+            ]);
+        }
 
         if (! $availability->isBookable($service, $data['appointment_date'], $data['appointment_time'])) {
             throw ValidationException::withMessages([
