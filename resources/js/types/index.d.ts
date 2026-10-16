@@ -29,12 +29,28 @@ export interface PortalNotification {
 }
 
 /**
+ * One channel the clinic accepts an online payment through, as
+ * `config/payments.php` lists it. The portal renders exactly this list and the
+ * server accepts nothing else.
+ */
+export interface PaymentMethodOption {
+    /** The name recorded against the payment, e.g. "GCash". */
+    name: string;
+    /** One line on when a client would use it. */
+    description: string;
+    /** Which picture the portal draws for it. */
+    icon: 'wallet' | 'card' | 'bank';
+}
+
+/**
  * Shared state for the owner portal navbar. Null for guests and staff, who
  * have no notification feed of their own.
  */
 export interface PortalProps {
     notifications: PortalNotification[];
     unreadNotifications: number;
+    /** The channels the portal can take a payment through. */
+    paymentMethods: PaymentMethodOption[];
 }
 
 /**
@@ -52,11 +68,40 @@ export interface AdminNotification {
 }
 
 /**
+ * One payment taken in the portal, as the console lists it — in the bell and on
+ * the operations page, so a payment reads the same in both places. Mirrors
+ * `PortalPayments::paymentSummary()`.
+ */
+export interface AdminPayment {
+    id: number;
+    amount: string;
+    method: string | null;
+    reference: string | null;
+    paid_at: string | null;
+    /** True when the money arrived before the visit was due. */
+    advance: boolean;
+    /** Where the visit stands now this payment is on it. */
+    state: SettlementState;
+    price: string | null;
+    paid_total: string | null;
+    balance: string | null;
+    owner: string | null;
+    owner_id: number | null;
+    dog: string | null;
+    service: string | null;
+    visit_on: string | null;
+    visit_time: string | null;
+    visit_status: string | null;
+}
+
+/**
  * Shared state for the admin console topbar. Null for guests and non-admin
  * accounts, who have no console notification feed.
  */
 export interface AdminNotificationsProps {
     notifications: AdminNotification[];
+    /** Payments taken in the portal, newest first. */
+    payments: AdminPayment[];
     unreadNotifications: number;
 }
 
@@ -91,10 +136,39 @@ export interface PortalAppointment {
     notes: string | null;
     /** True while the visit can still be cancelled (requested or confirmed). */
     cancellable: boolean;
+    /** True while the portal should still offer to take a payment. */
+    payable: boolean;
+    /** The money on this visit: price, paid, balance, and what may be paid. */
+    settlement: PortalSettlement;
     /** True for a completed visit the client has not reviewed yet. */
     reviewable: boolean;
     /** The client's own review of this visit, once they have left one. */
     feedback: PortalFeedback | null;
+}
+
+/** Where a visit stands on money: nothing taken, part of it, or settled. */
+export type SettlementState = 'unpaid' | 'part' | 'paid';
+
+/**
+ * The money on one visit, as the portal shows it back. A visit can collect
+ * several payments — a deposit ahead of the day, the balance at the desk — so
+ * this is the settled picture rather than a single row. `last_payment.reference`
+ * is the number the client's wallet or bank gave them, when they cared to add
+ * it, so the desk can match the payment against its own statement.
+ */
+export interface PortalSettlement {
+    price: string;
+    paid: string;
+    balance: string;
+    state: SettlementState;
+    /** True while the visit is still ahead, so part of it may be paid now. */
+    advance: boolean;
+    last_payment: {
+        method: string | null;
+        amount: string;
+        reference: string | null;
+        paid_at: string | null;
+    } | null;
 }
 
 /** An owner's rating of one completed visit, as the portal shows it back. */

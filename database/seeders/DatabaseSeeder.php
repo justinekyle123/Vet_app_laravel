@@ -143,7 +143,7 @@ class DatabaseSeeder extends Seeder
             ServiceCategory::firstOrCreate(['category_name' => $category['category_name']], $category);
         }
 
-        foreach (['Cash', 'Card', 'GCash', 'Bank Transfer'] as $method) {
+        foreach (['Cash', 'Card', 'GCash', 'Maya', 'Bank Transfer'] as $method) {
             PaymentMethod::firstOrCreate(['method_name' => $method]);
         }
 
@@ -182,8 +182,8 @@ class DatabaseSeeder extends Seeder
                 ['What should I do in an emergency?', 'Call the clinic instead of booking online and the team will tell you whether to come straight in. Booking a normal visit first would only slow your dog down.'],
             ],
             'Billing' => [
-                ['When do I pay?', 'Payment is taken at the desk when the visit is finished. The price of each service is shown on the menu before you book.'],
-                ['Which payment methods do you accept?', 'Cash, card, GCash, and bank transfer.'],
+                ['When do I pay?', 'You can pay for a confirmed or completed visit from your appointments page, or settle up at the desk when the visit is finished. The price of each service is shown on the menu before you book.'],
+                ['Which payment methods do you accept?', 'Cash, card, GCash, Maya, and bank transfer. GCash, Maya, card, and bank transfer can all be used from your appointments page.'],
                 ['How much will a visit cost?', 'Every service on the menu shows its own price before you book it, and your appointments page adds up what you have spent on the visits the clinic has completed.'],
                 ['Am I charged if I cancel?', 'No. Cancelling an upcoming visit is free, and only visits the clinic has carried out are billed.'],
                 ['Can I get a statement of what I have paid?', 'Ask the desk and they can print one. The same figures sit under Your record at the top of your appointments page.'],

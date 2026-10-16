@@ -20,6 +20,7 @@ use App\Http\Controllers\Owner\DogController as OwnerDogController;
 use App\Http\Controllers\Owner\FaqChatController as OwnerFaqChatController;
 use App\Http\Controllers\Owner\FaqController as OwnerFaqController;
 use App\Http\Controllers\Owner\NotificationController as OwnerNotificationController;
+use App\Http\Controllers\Owner\PaymentController as OwnerPaymentController;
 use App\Http\Controllers\Owner\SearchController as OwnerSearchController;
 use App\Http\Controllers\Owner\ServiceController as OwnerServiceController;
 use App\Http\Controllers\ProfileController;
@@ -182,6 +183,14 @@ Route::middleware(['auth:owner,staff', 'role:owner'])
         // Rates a visit the clinic has already carried out.
         Route::post('appointments/{appointment}/review', [OwnerAppointmentController::class, 'review'])
             ->name('appointments.review');
+
+        /*
+         * Pays for a confirmed or completed visit. The clinic takes the
+         * payment itself, so this is the whole trip: the owner picks a
+         * channel, the payment is recorded, and they stay on the page.
+         */
+        Route::post('appointments/{appointment}/pay', [OwnerPaymentController::class, 'store'])
+            ->name('payments.store');
 
         // Powers the navbar's search box; returns JSON, not an Inertia page.
         Route::get('search', OwnerSearchController::class)->name('search');

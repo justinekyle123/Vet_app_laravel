@@ -1,8 +1,9 @@
 import Icon, { IconName } from '@/Components/Icon';
-import { AdminNotification, PageProps, UserRole } from '@/types';
+import { AdminNotification, AdminPayment, PageProps, UserRole } from '@/types';
+import { currency, dateTime } from '@/utils/format';
 import { Menu, MenuButton, MenuItem, MenuItems } from '@headlessui/react';
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import { Bell, CalendarDays, CheckCheck } from 'lucide-react';
+import { Banknote, Bell, CalendarDays, CheckCheck } from 'lucide-react';
 import {
     PropsWithChildren,
     ReactNode,
@@ -182,19 +183,27 @@ function initials(name: string): string {
     );
 }
 
+/** Money that arrived ahead of the visit, or after the service. */
+function paymentTiming(payment: AdminPayment): string {
+    return payment.advance ? 'Paid ahead' : 'Paid after the visit';
+}
+
 /**
  * The console topbar's notification bell.
  *
- * The clinic's only notification is a booking request: a visit still in the
- * "Requested" state, due today or later. The feed arrives through Inertia's
- * shared props, and opening the panel marks the requests as seen so the badge
+ * Two things land here: a booking request — a visit still in the "Requested"
+ * state, due today or later — and a payment the client made in their portal,
+ * whether they paid ahead of the visit or after it. The feed arrives through
+ * Inertia's shared props, and opening the panel marks both as seen so the badge
  * clears until the next one arrives.
  */
 function AdminNotificationBell({
     notifications,
+    payments,
     unread,
 }: {
     notifications: AdminNotification[];
+    payments: AdminPayment[];
     unread: number;
 }) {
     const [open, setOpen] = useState(false);
@@ -248,9 +257,7 @@ function AdminNotificationBell({
                 onClick={() => setOpen((value) => !value)}
                 aria-label={
                     unread > 0
-                        ? `Notifications, ${unread} new appointment ${
-                              unread === 1 ? 'request' : 'requests'
-                          }`
+                        ? `Notifications, ${unread} new`
                         : 'Notifications'
                 }
                 aria-expanded={open}
@@ -268,7 +275,7 @@ function AdminNotificationBell({
                 <div className="absolute right-0 z-50 mt-2 w-[min(22rem,calc(100vw-2rem))] animate-dropdown overflow-hidden rounded-2xl border border-[#1a3d1a]/10 bg-white shadow-2xl shadow-[#1a3d1a]/10">
                     <div className="flex items-center justify-between gap-3 border-b border-[#1a3d1a]/10 px-5 py-3.5">
                         <h2 className="text-sm font-semibold text-[#1a3d1a]">
-                            Incoming appointments
+                            Notifications
                         </h2>
                         {unread > 0 && (
                             <span className="rounded-full bg-[#E86A10]/10 px-2.5 py-1 text-[0.68rem] font-semibold text-[#E86A10]">
@@ -277,13 +284,60 @@ function AdminNotificationBell({
                         )}
                     </div>
 
-                    {notifications.length === 0 ? (
+                    {notifications.length === 0 && payments.length === 0 ? (
                         <p className="px-5 py-6 text-sm leading-relaxed text-[#1a3d1a]/55">
-                            No booking requests waiting. New online requests
-                            will appear here as they come in.
+                            Nothing waiting. Booking requests and the payments
+                            clients make in their portal will appear here as
+                            they come in.
                         </p>
                     ) : (
                         <ul className="max-h-[60vh] divide-y divide-[#1a3d1a]/5 overflow-y-auto">
+                            {payments.map((payment) => (
+                                <li
+                                    key={`payment-${payment.id}`}
+                                    className="border-l-2 border-l-[#E86A10] px-5 py-3.5"
+                                >
+                                    <div className="flex items-center justify-between gap-3">
+                                        <span className="inline-flex items-center gap-1.5 rounded-full bg-[#E86A10]/10 px-2 py-0.5 text-[0.62rem] font-semibold text-[#E86A10]">
+                                            <Banknote className="h-3 w-3" />
+                                            {paymentTiming(payment)}
+                                        </span>
+                                        <span className="font-serif-display text-base text-[#1a3d1a]">
+                                            {currency(payment.amount)}
+                                        </span>
+                                    </div>
+
+                                    <p className="mt-1.5 text-sm font-semibold text-[#1a3d1a]">
+                                        Paid with{' '}
+                                        {payment.method ?? 'the portal'}
+                                        {payment.reference
+                                            ? ` · Ref ${payment.reference}`
+                                            : ''}
+                                    </p>
+
+                                    <p className="mt-0.5 text-xs leading-relaxed text-[#1a3d1a]/55">
+                                        {[
+                                            payment.service ?? 'Visit',
+                                            payment.dog
+                                                ? `for ${payment.dog}`
+                                                : null,
+                                            payment.owner,
+                                        ]
+                                            .filter(Boolean)
+                                            .join(' · ')}
+                                    </p>
+
+                                    <p className="mt-0.5 text-xs leading-relaxed text-[#1a3d1a]/45">
+                                        {payment.state === 'paid'
+                                            ? `Visit paid in full (${currency(payment.price)})`
+                                            : `${currency(payment.balance)} still due on the ${currency(payment.price)} visit`}
+                                        {payment.paid_at
+                                            ? ` · ${dateTime(payment.paid_at)}`
+                                            : ''}
+                                    </p>
+                                </li>
+                            ))}
+
                             {notifications.map((notification) => (
                                 <li
                                     key={notification.id}
@@ -582,6 +636,7 @@ export default function StaffLayout({
                         {isAdmin && adminNotifications && (
                             <AdminNotificationBell
                                 notifications={adminNotifications.notifications}
+                                payments={adminNotifications.payments}
                                 unread={adminNotifications.unreadNotifications}
                             />
                         )}

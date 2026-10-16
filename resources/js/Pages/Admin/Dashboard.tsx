@@ -51,6 +51,21 @@ const statHints: Record<string, string> = {
     owners: 'Client portal accounts',
 };
 
+const statImages = [
+    {
+        src: 'https://polo-pecan-73837341.figma.site/_assets/v11/8d44b25186ef45a5789c74668fb781cea4e1ff49.png',
+        alt: 'A dog being examined at the clinic',
+    },
+    {
+        src: 'https://polo-pecan-73837341.figma.site/_assets/v11/96745c4e72ad5c5208e53a885df797fd82cd854a.png?h=1024',
+        alt: 'A happy pet at the clinic',
+    },
+    {
+        src: 'https://polo-pecan-73837341.figma.site/_assets/v11/81bd2e7a66b58f3d8f3ad78fd1ebf01af8dfdee1.png',
+        alt: 'A patient resting after a visit',
+    },
+];
+
 /** First letters of the first two words, for the row avatars. */
 function initials(name: string): string {
     const parts = name.trim().split(/\s+/).slice(0, 2);
@@ -168,7 +183,7 @@ export default function AdminDashboard({
                     aria-label="Account totals"
                     className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4"
                 >
-                    {cards.map((card) => (
+                    {cards.map((card, index) => (
                         <StatCard
                             key={card.label}
                             label={card.label}
@@ -176,6 +191,7 @@ export default function AdminDashboard({
                             icon={card.icon}
                             accent={card.accent}
                             hint={card.hint}
+                            image={statImages[index]}
                         />
                     ))}
                 </section>

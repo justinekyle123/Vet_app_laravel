@@ -10,6 +10,15 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class Payment extends Model
 {
+    /** The states the schema allows for `payment_status`. */
+    public const STATUS_PENDING = 'Pending';
+
+    public const STATUS_PAID = 'Paid';
+
+    public const STATUS_REFUNDED = 'Refunded';
+
+    public const STATUS_FAILED = 'Failed';
+
     protected $table = 'payments';
 
     protected $primaryKey = 'payment_id';
@@ -25,7 +34,7 @@ class Payment extends Model
         'method_id',
         'amount',
         'payment_status',
-        'gateway_reference',
+        'reference',
         'paid_at',
     ];
 
@@ -55,5 +64,10 @@ class Payment extends Model
     public function method(): BelongsTo
     {
         return $this->belongsTo(PaymentMethod::class, 'method_id', 'method_id');
+    }
+
+    public function isPaid(): bool
+    {
+        return $this->payment_status === self::STATUS_PAID;
     }
 }

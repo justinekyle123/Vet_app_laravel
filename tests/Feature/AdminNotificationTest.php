@@ -90,6 +90,66 @@ test('marking requests read clears the badge even with a skewed database clock',
         );
 });
 
+test('the admin console bell lists the payments clients make in their portal', function () {
+    $visit = bookRequest(today()->addDays(3)->toDateString(), 'Confirmed');
+    $price = (float) $visit->service->price;
+    $paid = round($price / 2, 2);
+
+    $this->actingAs($visit->owner)
+        ->post(route('owner.payments.store', $visit), [
+            'method' => 'GCash',
+            'amount' => $paid,
+            'reference' => 'DEP-9',
+        ])
+        ->assertSessionHasNoErrors();
+
+    $admin = Staff::factory()->admin()->create();
+
+    $this->actingAs($admin)
+        ->get(route('admin.dashboard'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('adminNotifications.payments', 1)
+            ->where('adminNotifications.payments.0.amount', number_format($paid, 2, '.', ''))
+            ->where('adminNotifications.payments.0.method', 'GCash')
+            ->where('adminNotifications.payments.0.reference', 'DEP-9')
+            ->where('adminNotifications.payments.0.owner', $visit->owner->fullName())
+            ->where('adminNotifications.payments.0.dog', $visit->dog->dog_name)
+            // Paid ahead of the visit, and the rest is still owed on it.
+            ->where('adminNotifications.payments.0.advance', true)
+            ->where('adminNotifications.payments.0.state', 'part')
+            ->where('adminNotifications.payments.0.balance', number_format($price - $paid, 2, '.', ''))
+            ->where('adminNotifications.unreadNotifications', 1)
+        );
+});
+
+test('a payment the admin has looked at stops counting as unread', function () {
+    $visit = bookRequest(today()->addDays(3)->toDateString(), 'Confirmed');
+
+    $this->actingAs($visit->owner)
+        ->post(route('owner.payments.store', $visit), ['method' => 'Maya'])
+        ->assertSessionHasNoErrors();
+
+    $admin = Staff::factory()->admin()->create();
+
+    $this->actingAs($admin)
+        ->get(route('admin.dashboard'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('adminNotifications.unreadNotifications', 1)
+        );
+
+    $this->actingAs($admin)
+        ->patch(route('admin.notifications.read'))
+        ->assertRedirect();
+
+    $this->actingAs($admin)
+        ->get(route('admin.dashboard'))
+        // Still listed, no longer new.
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('adminNotifications.payments', 1)
+            ->where('adminNotifications.unreadNotifications', 0)
+        );
+});
+
 test('non-admin accounts have no console notification feed', function () {
     $this->actingAs(Staff::factory()->veterinarian()->create())
         ->get(route('profile.edit'))

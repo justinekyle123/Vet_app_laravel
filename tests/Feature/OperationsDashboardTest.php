@@ -5,9 +5,35 @@ use App\Models\AppointmentStatus;
 use App\Models\Dog;
 use App\Models\DogOwner;
 use App\Models\Notification;
+use App\Models\Payment;
+use App\Models\PaymentMethod;
 use App\Models\Service;
 use App\Models\Staff;
 use Inertia\Testing\AssertableInertia as Assert;
+
+/** A payment the clinic has taken for a visit, in the given channel. */
+function opsPayment(
+    Appointment $visit,
+    string $amount = '100.00',
+    string $method = 'GCash',
+    ?string $reference = null,
+): Payment {
+    return Payment::create([
+        'appointment_id' => $visit->appointment_id,
+        'owner_id' => $visit->owner_id,
+        'method_id' => PaymentMethod::firstOrCreate(['method_name' => $method])->method_id,
+        'amount' => $amount,
+        'payment_status' => 'Paid',
+        'reference' => $reference,
+        'paid_at' => now(),
+    ]);
+}
+
+/** An amount as the page carries it. */
+function opsMoney(float $value): string
+{
+    return number_format($value, 2, '.', '');
+}
 
 /**
  * Books a visit for the operations desk. The lookups the schema insists on are
@@ -106,6 +132,107 @@ test('the operations totals ignore the active filters', function () {
             ->where('stats.completed_today', 1)
             ->where('stats.cancelled_today', 1)
         );
+});
+
+test('the operations page shows the money taken and what is still owed', function () {
+    $owner = DogOwner::factory()->create();
+    $visit = opsVisit($owner, today()->addDay()->toDateString(), 'Confirmed');
+    $price = (float) $visit->service->price;
+    // A part payment — a quarter of the visit — made ahead of the day.
+    $paid = opsMoney(round($price / 4, 2));
+    $left = opsMoney($price - (float) $paid);
+
+    opsPayment($visit, $paid, 'GCash', 'DEP-42');
+
+    $this->actingAs(Staff::factory()->admin()->create())
+        ->get(route('admin.operations.dashboard'))
+        ->assertInertia(fn (Assert $page) => $page
+            // The visit itself carries its money story.
+            ->where('upcoming.0.settlement.state', 'part')
+            ->where('upcoming.0.settlement.price', opsMoney($price))
+            ->where('upcoming.0.settlement.paid', $paid)
+            ->where('upcoming.0.settlement.balance', $left)
+            ->where('upcoming.0.settlement.advance', true)
+            // and the desk is told who to ask if it needs cancelling.
+            ->where('upcoming.0.can_cancel', false)
+            ->where('upcoming.0.cancel_blocked_by_payment', true)
+            // The transaction, as the desk reads it back.
+            ->has('transactions', 1)
+            ->where('transactions.0.amount', $paid)
+            ->where('transactions.0.method', 'GCash')
+            ->where('transactions.0.reference', 'DEP-42')
+            ->where('transactions.0.owner', $owner->fullName())
+            ->where('transactions.0.dog', 'Rex')
+            ->where('transactions.0.advance', true)
+            ->where('transactions.0.state', 'part')
+            ->where('transactions.0.balance', $left)
+            // The money totals, and who owes the rest.
+            ->where('money.collected_today', $paid)
+            ->where('money.part_paid', 1)
+            ->where('money.owing', 1)
+            ->where('money.outstanding', $left)
+            ->has('debts', 1)
+            ->where('debts.0.owner', $owner->fullName())
+            ->where('debts.0.balance', $left)
+            ->where('debts.0.advance', true)
+        );
+});
+
+test('a fully settled visit leaves nothing outstanding', function () {
+    $owner = DogOwner::factory()->create();
+    $visit = opsVisit($owner, today()->addDay()->toDateString(), 'Confirmed');
+
+    opsPayment($visit, opsMoney((float) $visit->service->price));
+
+    $this->actingAs(Staff::factory()->admin()->create())
+        ->get(route('admin.operations.dashboard'))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('upcoming.0.settlement.state', 'paid')
+            ->where('upcoming.0.settlement.balance', '0.00')
+            // Paid in full is still paid: only the client can call it off.
+            ->where('upcoming.0.can_cancel', false)
+            ->where('upcoming.0.cancel_blocked_by_payment', true)
+            ->where('money.owing', 0)
+            ->where('money.outstanding', '0.00')
+            ->has('debts', 0)
+        );
+});
+
+test('an admin cannot cancel a visit the client has already paid for', function () {
+    $owner = DogOwner::factory()->create();
+    $visit = opsVisit($owner, today()->addDay()->toDateString(), 'Confirmed');
+
+    // Part paid, then fully paid: either way the visit is the client's to call
+    // off, so the money can be refunded rather than lost behind their back.
+    $price = (float) $visit->service->price;
+    $part = opsMoney(round($price / 2, 2));
+
+    opsPayment($visit, $part);
+
+    $admin = Staff::factory()->admin()->create();
+
+    $this->actingAs($admin)
+        ->patch(route('admin.operations.appointments.cancel', $visit))
+        ->assertSessionHasErrors('appointment');
+
+    opsPayment($visit, opsMoney($price - (float) $part));
+
+    $this->actingAs($admin)
+        ->patch(route('admin.operations.appointments.cancel', $visit))
+        ->assertSessionHasErrors('appointment');
+
+    expect($visit->fresh()->status->status_name)->toBe('Confirmed');
+});
+
+test('an admin can still cancel a visit nobody has paid for', function () {
+    $owner = DogOwner::factory()->create();
+    $visit = opsVisit($owner, today()->addDay()->toDateString(), 'Confirmed');
+
+    $this->actingAs(Staff::factory()->admin()->create())
+        ->patch(route('admin.operations.appointments.cancel', $visit))
+        ->assertSessionHasNoErrors();
+
+    expect($visit->fresh()->status->status_name)->toBe('Cancelled');
 });
 
 test('an admin can close a confirmed visit as completed', function () {

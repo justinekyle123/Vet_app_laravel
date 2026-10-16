@@ -4,7 +4,8 @@ import Icon from '@/Components/Icon';
 import Panel, { EmptyState, SoonChip, SoonState } from '@/Components/Panel';
 import StatCard from '@/Components/StatCard';
 import StaffLayout from '@/Layouts/StaffLayout';
-import { currency } from '@/utils/format';
+import { AdminPayment, PortalSettlement } from '@/types';
+import { currency, dateTime } from '@/utils/format';
 import { Link, router } from '@inertiajs/react';
 import { FormEventHandler, useState } from 'react';
 import Swal from 'sweetalert2';
@@ -27,10 +28,14 @@ interface DeskAppointment {
     staff: string | null;
     notes: string | null;
     requested_at: string | null;
+    /** The money on this visit: price, paid, balance, and what may be paid. */
+    settlement: PortalSettlement;
     can_confirm: boolean;
     can_complete: boolean;
     can_no_show: boolean;
     can_cancel: boolean;
+    /** True when payment is why cancel is out of reach. */
+    cancel_blocked_by_payment: boolean;
 }
 
 interface DeskStats {
@@ -46,6 +51,33 @@ interface DeskStats {
 interface StatusOption {
     value: string;
     label: string;
+}
+
+/** The clinic's money as the page reads it, mirroring the controller. */
+interface DeskMoney {
+    collected_today: string;
+    outstanding: string;
+    part_paid: number;
+    owing: number;
+    window_days: number;
+}
+
+/** One visit with money still outstanding on it. */
+interface DeskDebt {
+    id: number;
+    owner: string | null;
+    owner_id: number | null;
+    dog: string | null;
+    service: string | null;
+    visit_on: string | null;
+    visit_time: string | null;
+    status: string | null;
+    price: string;
+    paid: string;
+    balance: string;
+    state: PortalSettlement['state'];
+    /** True while the visit is still ahead, so part of it may be paid now. */
+    advance: boolean;
 }
 
 type DeskAction = 'confirm' | 'complete' | 'no-show' | 'cancel';
@@ -135,6 +167,29 @@ const actionCopy: Record<
     },
 };
 
+/**
+ * How much of a visit has been paid for, in as few words as possible — the one
+ * thing the desk needs from a row when a client is standing in front of them.
+ */
+function moneyLabel(settlement: PortalSettlement): string {
+    if (settlement.state === 'paid') {
+        return 'Paid in full';
+    }
+
+    if (settlement.state === 'part') {
+        return `${currency(settlement.paid)} of ${currency(settlement.price)} paid`;
+    }
+
+    return `${currency(settlement.balance)} due`;
+}
+
+/** Tone for the money chip: settled, part-paid, or untouched. */
+const moneyChipClass: Record<PortalSettlement['state'], string> = {
+    paid: 'bg-[#EFFDF0] text-[#2a5a2a]',
+    part: 'bg-[#E86A10]/10 text-[#E86A10]',
+    unpaid: 'bg-[#1a3d1a]/5 text-[#1a3d1a]/55',
+};
+
 export default function FrontDeskDashboard({
     today,
     upcoming,
@@ -142,6 +197,10 @@ export default function FrontDeskDashboard({
     statusOptions,
     stats,
     upcomingLimit,
+    transactions,
+    money,
+    debts,
+    transactionLimit,
 }: {
     today: DeskAppointment[];
     upcoming: DeskAppointment[];
@@ -149,6 +208,10 @@ export default function FrontDeskDashboard({
     statusOptions: StatusOption[];
     stats: DeskStats;
     upcomingLimit: number;
+    transactions: AdminPayment[];
+    money: DeskMoney;
+    debts: DeskDebt[];
+    transactionLimit: number;
 }) {
     const [tab, setTab] = useState<(typeof tabs)[number]['value']>('today');
     const [search, setSearch] = useState(filter.q);
@@ -282,6 +345,44 @@ export default function FrontDeskDashboard({
                         icon="close"
                         accent="accent"
                         hint="Cancelled or no-show today"
+                    />
+                </section>
+
+                {/*
+                    The money the desk is asked about at the counter: what came
+                    in today, and what is still owed on the visits it is working
+                    on.
+                */}
+                <section
+                    aria-label="Money"
+                    className="grid grid-cols-1 gap-4 sm:grid-cols-3"
+                >
+                    <StatCard
+                        label="Collected today"
+                        value={Number.parseFloat(money.collected_today)}
+                        display={currency(money.collected_today)}
+                        icon="flask"
+                        accent="deep"
+                        hint="Payments clients made in their portal today"
+                    />
+                    <StatCard
+                        label="Still to collect"
+                        value={Number.parseFloat(money.outstanding)}
+                        display={currency(money.outstanding)}
+                        icon="sparkles"
+                        accent="accent"
+                        hint={`On ${money.owing} visit${
+                            money.owing === 1 ? '' : 's'
+                        } booked ahead or completed in the last ${
+                            money.window_days
+                        } days`}
+                    />
+                    <StatCard
+                        label="Part-paid visits"
+                        value={money.part_paid}
+                        icon="check"
+                        accent="brand"
+                        hint="Started paying ahead — the rest is due at the desk"
                     />
                 </section>
 
@@ -475,6 +576,16 @@ export default function FrontDeskDashboard({
                                                                 appointment.status
                                                             }
                                                         />
+                                                        <span
+                                                            className={`shrink-0 rounded-full px-2.5 py-0.5 text-[0.62rem] font-semibold ${moneyChipClass[appointment.settlement.state]}`}
+                                                            title={moneyLabel(
+                                                                appointment.settlement,
+                                                            )}
+                                                        >
+                                                            {moneyLabel(
+                                                                appointment.settlement,
+                                                            )}
+                                                        </span>
                                                     </div>
 
                                                     <p className="mt-0.5 truncate text-xs text-[#1a3d1a]/60">
@@ -585,6 +696,22 @@ export default function FrontDeskDashboard({
                                                         >
                                                             No-show
                                                         </button>
+                                                    )}
+
+                                                    {/*
+                                                        A visit with money on
+                                                        it belongs to the
+                                                        client: the clinic does
+                                                        not cancel something
+                                                        they have paid for.
+                                                    */}
+                                                    {appointment.cancel_blocked_by_payment && (
+                                                        <span
+                                                            title="This visit has already been paid for. Ask the client to cancel it from their portal, then refund at the desk."
+                                                            className="rounded-full border border-dashed border-[#1a3d1a]/20 bg-white px-2.5 py-1 text-[0.68rem] font-semibold text-[#1a3d1a]/40"
+                                                        >
+                                                            Client must cancel
+                                                        </span>
                                                     )}
 
                                                     {appointment.can_cancel && (
@@ -702,12 +829,83 @@ export default function FrontDeskDashboard({
                             )}
                         </Panel>
 
+                        {/*
+                            Who still owes the clinic, soonest visit first. The
+                            total sits in the header, so the panel answers
+                            "how much, and from whom" in one look.
+                        */}
                         <Panel
-                            title="Unpaid invoices"
-                            icon="sparkles"
-                            action={<SoonChip />}
+                            title="Still to collect"
+                            icon="flask"
+                            action={
+                                <span className="shrink-0 rounded-full bg-[#E86A10]/10 px-2.5 py-1 text-[0.68rem] font-semibold text-[#E86A10]">
+                                    {currency(money.outstanding)}
+                                </span>
+                            }
                         >
-                            <SoonState message="The unpaid queue will appear here once payments are being recorded at the desk." />
+                            {debts.length === 0 ? (
+                                <EmptyState
+                                    icon="check"
+                                    message="Nothing outstanding: every visit the clinic has taken on has been paid for."
+                                />
+                            ) : (
+                                <ul className="space-y-3">
+                                    {debts.map((debt) => (
+                                        <li
+                                            key={debt.id}
+                                            className="rounded-xl border border-[#1a3d1a]/10 px-3.5 py-3"
+                                        >
+                                            <div className="flex items-start justify-between gap-3">
+                                                <div className="min-w-0">
+                                                    <p className="truncate text-sm font-semibold text-[#1a3d1a]">
+                                                        {debt.owner ??
+                                                            'Client'}
+                                                    </p>
+                                                    <p className="mt-0.5 truncate text-xs text-[#1a3d1a]/55">
+                                                        {[
+                                                            debt.service,
+                                                            debt.dog
+                                                                ? `for ${debt.dog}`
+                                                                : null,
+                                                        ]
+                                                            .filter(Boolean)
+                                                            .join(' · ')}
+                                                    </p>
+                                                </div>
+                                                <span className="shrink-0 font-serif-display text-base text-[#E86A10]">
+                                                    {currency(debt.balance)}
+                                                </span>
+                                            </div>
+
+                                            <p className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[0.68rem] text-[#1a3d1a]/45">
+                                                <span>
+                                                    {shortDate(
+                                                        debt.visit_on,
+                                                    )}{' '}
+                                                    at{' '}
+                                                    {debt.visit_time ?? '—'}
+                                                </span>
+                                                <span>
+                                                    {debt.state === 'part'
+                                                        ? `${currency(debt.paid)} paid so far`
+                                                        : 'Nothing paid yet'}
+                                                </span>
+                                                <span
+                                                    className={
+                                                        debt.advance
+                                                            ? 'font-semibold text-[#2a5a2a]'
+                                                            : 'font-semibold text-[#E86A10]'
+                                                    }
+                                                >
+                                                    {debt.advance
+                                                        ? 'Part payment allowed'
+                                                        : 'Due in full'}
+                                                </span>
+                                            </p>
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
                         </Panel>
 
                         <Panel
@@ -719,6 +917,154 @@ export default function FrontDeskDashboard({
                         </Panel>
                     </div>
                 </div>
+
+                {/*
+                    Every payment the portal has taken, newest first: what came
+                    in, through which channel, for whose visit, and whether that
+                    visit is now settled. This is the sheet the desk reads when
+                    a client asks "did that go through?"
+                */}
+                <Panel
+                    title="Transactions"
+                    icon="flask"
+                    flush
+                    action={
+                        <span className="shrink-0 rounded-full bg-[#EFFDF0] px-2.5 py-1 text-[0.68rem] font-semibold text-[#1a3d1a]/60">
+                            {transactions.length === 0
+                                ? 'Nothing yet'
+                                : `Latest ${transactions.length}`}
+                        </span>
+                    }
+                >
+                    {transactions.length === 0 ? (
+                        <div className="p-5">
+                            <EmptyState
+                                icon="sparkles"
+                                message="No payments yet. When a client pays for a visit from their portal it lands here, with the channel they used and the reference they were given."
+                            />
+                        </div>
+                    ) : (
+                        <div className="overflow-x-auto">
+                            <table className="w-full min-w-[54rem] border-collapse text-left text-sm">
+                                <thead>
+                                    <tr className="border-b border-[#1a3d1a]/10 text-[0.66rem] uppercase tracking-[0.12em] text-[#1a3d1a]/45">
+                                        <th className="px-5 py-3 font-semibold">
+                                            When
+                                        </th>
+                                        <th className="px-5 py-3 font-semibold">
+                                            Client
+                                        </th>
+                                        <th className="px-5 py-3 font-semibold">
+                                            Visit
+                                        </th>
+                                        <th className="px-5 py-3 font-semibold">
+                                            Paid
+                                        </th>
+                                        <th className="px-5 py-3 font-semibold">
+                                            Channel
+                                        </th>
+                                        <th className="px-5 py-3 font-semibold">
+                                            Visit balance
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-[#1a3d1a]/5">
+                                    {transactions.map((payment) => (
+                                        <tr
+                                            key={payment.id}
+                                            className="align-top transition-colors duration-150 hover:bg-[#EFFDF0]/50"
+                                        >
+                                            <td className="px-5 py-3">
+                                                <p className="font-semibold text-[#1a3d1a]">
+                                                    {dateTime(
+                                                        payment.paid_at,
+                                                    )}
+                                                </p>
+                                                <span
+                                                    className={`mt-1 inline-flex rounded-full px-2 py-0.5 text-[0.62rem] font-semibold ${
+                                                        payment.advance
+                                                            ? 'bg-[#EFFDF0] text-[#2a5a2a]'
+                                                            : 'bg-[#1a3d1a]/5 text-[#1a3d1a]/55'
+                                                    }`}
+                                                >
+                                                    {payment.advance
+                                                        ? 'Advance'
+                                                        : 'After the visit'}
+                                                </span>
+                                            </td>
+                                            <td className="px-5 py-3">
+                                                <p className="font-semibold text-[#1a3d1a]">
+                                                    {payment.owner ??
+                                                        'Client'}
+                                                </p>
+                                                <p className="mt-0.5 text-xs text-[#1a3d1a]/55">
+                                                    {payment.dog ?? '—'}
+                                                </p>
+                                            </td>
+                                            <td className="px-5 py-3">
+                                                <p className="text-[#1a3d1a]">
+                                                    {payment.service ??
+                                                        'Visit'}
+                                                </p>
+                                                <p className="mt-0.5 text-xs text-[#1a3d1a]/55">
+                                                    {shortDate(
+                                                        payment.visit_on,
+                                                    )}{' '}
+                                                    at{' '}
+                                                    {payment.visit_time ??
+                                                        '—'}
+                                                </p>
+                                            </td>
+                                            <td className="px-5 py-3 font-serif-display text-base text-[#1a3d1a]">
+                                                {currency(payment.amount)}
+                                            </td>
+                                            <td className="px-5 py-3">
+                                                <p className="text-[#1a3d1a]">
+                                                    {payment.method ?? '—'}
+                                                </p>
+                                                <p className="mt-0.5 max-w-[12rem] truncate text-xs text-[#1a3d1a]/55">
+                                                    {payment.reference
+                                                        ? `Ref ${payment.reference}`
+                                                        : 'No reference given'}
+                                                </p>
+                                            </td>
+                                            <td className="px-5 py-3">
+                                                <span
+                                                    className={`inline-flex rounded-full px-2.5 py-1 text-[0.68rem] font-semibold ${
+                                                        moneyChipClass[
+                                                            payment.state
+                                                        ]
+                                                    }`}
+                                                >
+                                                    {payment.state === 'paid'
+                                                        ? 'Paid in full'
+                                                        : `${currency(
+                                                              payment.balance,
+                                                          )} still due`}
+                                                </span>
+                                                <p className="mt-1 text-xs text-[#1a3d1a]/45">
+                                                    {currency(
+                                                        payment.paid_total,
+                                                    )}{' '}
+                                                    of{' '}
+                                                    {currency(payment.price)}{' '}
+                                                    paid
+                                                </p>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+
+                            {transactions.length === transactionLimit && (
+                                <p className="border-t border-[#1a3d1a]/10 px-5 py-3 text-xs text-[#1a3d1a]/45">
+                                    Showing the {transactionLimit} most recent
+                                    payments.
+                                </p>
+                            )}
+                        </div>
+                    )}
+                </Panel>
             </div>
         </StaffLayout>
     );

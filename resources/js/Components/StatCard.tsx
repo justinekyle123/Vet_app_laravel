@@ -14,6 +14,7 @@ interface StatCardProps {
     label: string;
     value: number;
     icon?: IconName;
+    image?: { src: string; alt: string };
     /** Small caption under the value. */
     hint?: string;
     accent?: StatAccent;
@@ -28,6 +29,7 @@ export default function StatCard({
     label,
     value,
     icon,
+    image,
     hint,
     accent = 'brand',
     display,
@@ -35,7 +37,16 @@ export default function StatCard({
     const styles = accentStyles[accent];
 
     return (
-        <div className="flex flex-col rounded-2xl border border-[#1a3d1a]/10 bg-white p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-[#1a3d1a]/20 hover:shadow-lg hover:shadow-[#1a3d1a]/5">
+        <div className="relative min-h-36 overflow-hidden rounded-2xl border border-[#1a3d1a]/10 bg-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-[#1a3d1a]/20 hover:shadow-lg hover:shadow-[#1a3d1a]/5">
+            {image ? (
+                <img
+                    src={image.src}
+                    alt={image.alt}
+                    draggable={false}
+                    className="absolute inset-y-0 right-0 h-full w-1/2 object-cover"
+                />
+            ) : (
+                <div className="flex h-full flex-col p-5">
             <div className="flex items-start justify-between gap-3">
                 <p className="pt-1 text-[0.7rem] font-semibold uppercase tracking-[0.12em] text-[#1a3d1a]/45">
                     {label}
@@ -57,6 +68,8 @@ export default function StatCard({
                 <p className="mt-2 text-xs leading-relaxed text-[#1a3d1a]/50">
                     {hint}
                 </p>
+            )}
+                </div>
             )}
         </div>
     );

@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use App\Models\DogOwner;
 use App\Models\Staff;
 use App\Services\Admin\AdminNotifications;
+use App\Services\Payments\PortalPayments;
 use App\Services\Portal\PortalNotifications;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
@@ -119,6 +120,11 @@ class HandleInertiaRequests extends Middleware
 
         return [
             'notifications' => $notifications->shared(),
+            /*
+             * Money the portal has taken, so a payment never lands without
+             * somebody at the clinic knowing about it.
+             */
+            'payments' => $notifications->sharedPayments(),
             'unreadNotifications' => $notifications->unreadCount(),
         ];
     }
@@ -141,6 +147,13 @@ class HandleInertiaRequests extends Middleware
         return [
             'notifications' => $notifications->shared($user),
             'unreadNotifications' => $notifications->unreadCount($user),
+            /*
+             * The channels the portal offers to pay with, read from the same
+             * config the payment endpoint validates against — so the checkout
+             * can never offer something the server would refuse, and adding a
+             * channel stays a one-line change.
+             */
+            'paymentMethods' => app(PortalPayments::class)->methods(),
         ];
     }
 }
