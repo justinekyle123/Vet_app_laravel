@@ -5,6 +5,7 @@ namespace App\Services\Portal;
 use App\Models\Appointment;
 use App\Models\AppointmentStatus;
 use App\Models\DogOwner;
+use App\Services\Payments\PortalPayments;
 use Illuminate\Database\Eloquent\Builder;
 
 /**
@@ -27,10 +28,14 @@ class OwnerAppointments
         'staff:staff_id,first_name,last_name',
         'status:status_id,status_name',
         'feedback:feedback_id,appointment_id,rating,comment,created_at',
+        'payments:payment_id,appointment_id,amount,payment_status,reference,paid_at,method_id',
+        'payments.method:method_id,method_name',
     ];
 
     /** The history filters the appointments page offers. */
     public const HISTORY_FILTERS = ['all', 'completed', 'cancelled'];
+
+    public function __construct(private PortalPayments $payments) {}
 
     /**
      * Visits that are still going ahead, soonest first.
@@ -179,6 +184,15 @@ class OwnerAppointments
             'service_id' => $appointment->service_id,
             'duration_minutes' => $appointment->service?->duration_minutes,
             'price' => $appointment->service?->price,
+            /*
+             * The money on this visit: its price, what has been paid, what is
+             * still due, and whether it may be part-paid from here. A visit can
+             * collect several payments, so this is the settled picture rather
+             * than a single row.
+             */
+            'settlement' => $this->payments->settlement($appointment),
+            // Whether the portal should still offer to take a payment.
+            'payable' => $this->payments->isPayable($appointment),
             'staff' => $appointment->staff?->fullName(),
             'notes' => $appointment->notes,
         ];

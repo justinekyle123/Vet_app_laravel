@@ -71,6 +71,8 @@ const portalFlashMessages: Record<string, string> = {
         'Visit requested — the clinic will confirm it shortly.',
     'appointment-cancelled': 'Visit cancelled.',
     'review-submitted': 'Thank you — your review is saved to the visit.',
+    'payment-paid':
+        'Payment received — thank you. The clinic has it on your visit.',
 };
 
 /**

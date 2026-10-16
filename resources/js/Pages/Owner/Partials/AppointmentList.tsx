@@ -8,11 +8,12 @@ import { fieldClass, labelClass } from '@/Components/formStyles';
 import Modal from '@/Components/Modal';
 import Spinner from '@/Components/Spinner';
 import StarRating, { StarPicker } from '@/Components/StarRating';
-import { PortalAppointment } from '@/types';
+import { PageProps, PortalAppointment } from '@/types';
 import { currency } from '@/utils/format';
-import { Link, router, useForm } from '@inertiajs/react';
+import { Link, router, useForm, usePage } from '@inertiajs/react';
 import { CalendarDays, Clock, RotateCcw } from 'lucide-react';
 import { ReactNode, useState } from 'react';
+import PaymentModal from './PaymentModal';
 
 /**
  * One appointment row, shared by the portal dashboard's "next visits" preview
@@ -114,6 +115,11 @@ export default function AppointmentList({
     const [pending, setPending] = useState<PortalAppointment | null>(null);
     const [cancelling, setCancelling] = useState(false);
     const [reviewing, setReviewing] = useState<PortalAppointment | null>(null);
+    const [paying, setPaying] = useState<PortalAppointment | null>(null);
+
+    /* The channels the clinic takes a payment through, shared by the server. */
+    const paymentMethods =
+        usePage<PageProps>().props.portal?.paymentMethods ?? [];
 
     const reviewForm = useForm({ rating: 5, comment: '' });
 
@@ -170,6 +176,7 @@ export default function AppointmentList({
                     const badge = dateBadge(appointment.date);
                     const when = relativeDay(appointment.date);
                     const isUpcoming = appointment.cancellable;
+                    const settlement = appointment.settlement;
 
                     return (
                         <li
@@ -263,6 +270,55 @@ export default function AppointmentList({
                                     status={appointment.status}
                                 />
 
+                                {settlement.state !== 'unpaid' && (
+                                    <span className="flex flex-col items-end gap-0.5">
+                                        <span
+                                            className={`rounded-full px-2.5 py-1 text-[0.68rem] font-semibold ${
+                                                settlement.state === 'paid'
+                                                    ? 'bg-[#EFFDF0] text-[#2a5a2a]'
+                                                    : 'bg-[#E86A10]/10 text-[#E86A10]'
+                                            }`}
+                                        >
+                                            {settlement.state === 'paid'
+                                                ? 'Paid'
+                                                : 'Part paid'}
+                                            {settlement.last_payment?.method
+                                                ? ` · ${settlement.last_payment.method}`
+                                                : ''}
+                                        </span>
+
+                                        <span className="text-[0.62rem] text-[#1a3d1a]/45">
+                                            {currency(settlement.paid)} of{' '}
+                                            {currency(settlement.price)}
+                                            {settlement.state === 'part'
+                                                ? ` · ${currency(settlement.balance)} to go`
+                                                : ''}
+                                        </span>
+
+                                        {settlement.last_payment?.reference && (
+                                            <span className="max-w-[12rem] truncate text-[0.62rem] text-[#1a3d1a]/45">
+                                                Ref{' '}
+                                                {
+                                                    settlement.last_payment
+                                                        .reference
+                                                }
+                                            </span>
+                                        )}
+                                    </span>
+                                )}
+
+                                {appointment.payable && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setPaying(appointment)}
+                                        className="inline-flex items-center gap-1 rounded-full bg-[#E86A10] px-3 py-1 text-[0.68rem] font-semibold text-white transition-colors duration-150 hover:bg-[#E86A10]/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E86A10] disabled:opacity-60"
+                                    >
+                                        {settlement.state === 'part'
+                                            ? 'Pay balance'
+                                            : 'Pay now'}
+                                    </button>
+                                )}
+
                                 {isUpcoming && (
                                     <button
                                         type="button"
@@ -305,6 +361,12 @@ export default function AppointmentList({
                 })}
             </ul>
 
+            <PaymentModal
+                appointment={paying}
+                methods={paymentMethods}
+                onClose={() => setPaying(null)}
+            />
+
             <Modal
                 show={pending !== null}
                 onClose={() => {
@@ -327,6 +389,20 @@ export default function AppointmentList({
                               } will be cancelled. You can book a new time from the services page.`
                             : ''}
                     </p>
+
+                    {/*
+                        Money already paid is not simply lost with the booking:
+                        the desk has to refund it, so the client is told before
+                        they confirm.
+                    */}
+                    {pending && pending.settlement.state !== 'unpaid' && (
+                        <p className="mt-3 rounded-xl bg-[#E86A10]/5 px-3.5 py-2.5 text-xs leading-relaxed text-[#E86A10]">
+                            You have already paid{' '}
+                            {currency(pending.settlement.paid)} towards this
+                            visit. Cancelling it is fine — the clinic will
+                            refund that at the desk.
+                        </p>
+                    )}
 
                     <div className="mt-6 flex flex-wrap justify-end gap-2.5">
                         <button

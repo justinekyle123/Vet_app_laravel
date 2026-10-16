@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Appointment;
 use App\Models\AppointmentStatus;
+use App\Models\Payment;
 use App\Services\AppointmentNotifications;
 use Closure;
 use Illuminate\Http\RedirectResponse;
@@ -23,8 +24,11 @@ use Illuminate\Validation\ValidationException;
 class OperationsAppointmentController extends Controller
 {
     private const CONFIRMABLE = ['Requested'];
+
     private const CANCELLABLE = ['Requested', 'Confirmed'];
+
     private const COMPLETABLE = ['Confirmed'];
+
     private const MISSABLE = ['Confirmed'];
 
     public function confirm(
@@ -46,7 +50,20 @@ class OperationsAppointmentController extends Controller
         // declined request apart from a cancelled confirmed visit.
         $previous = $appointment->status?->status_name;
 
-        $response = $this->transition($appointment, 'Cancelled', self::CANCELLABLE);
+        $response = $this->transition($appointment, 'Cancelled', self::CANCELLABLE, function () use ($appointment) {
+            /*
+             * A visit with money on it is the client's to call off. The clinic
+             * cannot cancel it behind their back: somebody has paid for it — in
+             * part or in full — and the refund is a conversation, not a click.
+             */
+            if (! $this->hasPayment($appointment)) {
+                return;
+            }
+
+            throw ValidationException::withMessages([
+                'appointment' => 'This visit has already been paid for, so the clinic cannot cancel it. Ask the client to cancel it from their portal, then handle the refund at the desk.',
+            ]);
+        });
 
         if ($previous === 'Confirmed') {
             $notifications->cancelled($appointment);
@@ -80,8 +97,8 @@ class OperationsAppointmentController extends Controller
     }
 
     /**
-     * @param list<string> $from
-     * @param (callable(): void)|null $guard Extra check run once the status transition is known to be valid.
+     * @param  list<string>  $from
+     * @param  (callable(): void)|null  $guard  Extra check run once the status transition is known to be valid.
      */
     private function transition(
         Appointment $appointment,
@@ -112,6 +129,16 @@ class OperationsAppointmentController extends Controller
         $appointment->update(['status_id' => $this->statusId($to)]);
 
         return back()->with('status', 'appointment-'.strtolower($to));
+    }
+
+    /**
+     * Whether the clinic has taken any money for a visit, part or full.
+     */
+    private function hasPayment(Appointment $appointment): bool
+    {
+        return $appointment->payments()
+            ->where('payment_status', Payment::STATUS_PAID)
+            ->exists();
     }
 
     /**

@@ -65,6 +65,48 @@ class AppointmentNotifications
     }
 
     /**
+     * The owner has paid for their visit from the portal.
+     *
+     * A part payment says what is still owed, so the client is never left
+     * thinking a split visit is settled.
+     */
+    public function paid(
+        Appointment $appointment,
+        float $amount,
+        float $remaining = 0,
+        bool $settled = true,
+    ): void {
+        $paid = $this->money($amount);
+
+        if (! $settled && $remaining > 0) {
+            $this->deliver($appointment, sprintf(
+                'Thank you: we have received %s towards your %s on %s at %s. %s is still due.',
+                $paid,
+                $this->subject($appointment),
+                $this->date($appointment),
+                $this->time($appointment),
+                $this->money($remaining),
+            ));
+
+            return;
+        }
+
+        $this->deliver($appointment, sprintf(
+            'Thank you: your %s payment for the %s on %s at %s has been received in full.',
+            $paid,
+            $this->subject($appointment),
+            $this->date($appointment),
+            $this->time($appointment),
+        ));
+    }
+
+    /** An amount as the message quotes it. */
+    private function money(float $value): string
+    {
+        return '$'.number_format($value, 2);
+    }
+
+    /**
      * Text the owner (when possible) and log one row against the owner and the
      * visit it concerns.
      *
