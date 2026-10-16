@@ -93,6 +93,13 @@ class HandleInertiaRequests extends Middleware
             return null;
         }
 
+        $profilePhotoUrl = null;
+        
+        // Only dog owners have profile photos
+        if ($user instanceof DogOwner && $user->profile_photo_url) {
+            $profilePhotoUrl = \Illuminate\Support\Facades\Storage::url($user->profile_photo_url);
+        }
+
         return [
             'id' => $user->getAuthIdentifier(),
             'name' => $user->fullName(),
@@ -100,6 +107,7 @@ class HandleInertiaRequests extends Middleware
             // Owners report the single implicit "owner" role; staff report
             // whatever their `staff.role` column holds.
             'role' => $user->isOwner() ? 'owner' : $user->role->value,
+            'profile_photo_url' => $profilePhotoUrl,
         ];
     }
 

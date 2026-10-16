@@ -65,6 +65,37 @@ class AppointmentNotifications
     }
 
     /**
+     * A confirmed visit has been called off, and the clinic is holding money
+     * for the client: the message says how much and where to collect it, so a
+     * refund is never something the owner has to chase up.
+     */
+    public function cancelledWithRefund(Appointment $appointment, float $refunded): void
+    {
+        $this->deliver($appointment, sprintf(
+            'Your %s on %s at %s has been cancelled by the clinic. We are refunding %s — collect it at the front desk, or call the clinic to have it sent back through the channel you paid with.',
+            $this->subject($appointment),
+            $this->date($appointment),
+            $this->time($appointment),
+            $this->money($refunded),
+        ));
+    }
+
+    /**
+     * A request that could not be accepted, with the deposit it carried going
+     * back to the client the same way.
+     */
+    public function declinedWithRefund(Appointment $appointment, float $refunded): void
+    {
+        $this->deliver($appointment, sprintf(
+            'Sorry: your %s request for %s at %s could not be accepted. We are refunding %s — collect it at the front desk, or call the clinic to have it sent back through the channel you paid with.',
+            $this->subject($appointment),
+            $this->date($appointment),
+            $this->time($appointment),
+            $this->money($refunded),
+        ));
+    }
+
+    /**
      * The owner has paid for their visit from the portal.
      *
      * A part payment says what is still owed, so the client is never left

@@ -580,7 +580,7 @@ export default function Welcome({
      * bounced off the guest-only sign-up screen.
      */
     const bookHref = isOwner
-        ? `${ownerPanelHref}#appointments`
+        ? route('owner.booking')
         : isSignedIn
           ? route('dashboard')
           : canRegister

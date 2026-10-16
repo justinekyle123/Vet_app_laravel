@@ -166,9 +166,9 @@ class OwnerAppointments
             // `time` columns come back as HH:MM:SS; the UI only shows HH:MM.
             'time' => substr((string) $appointment->appointment_time, 0, 5),
             'status' => $status,
-            // The portal offers a Cancel action only while the clinic can still
-            // call the visit off.
-            'cancellable' => in_array($status, AppointmentStatus::CANCELLABLE, true),
+            // Owners may move an upcoming visit, but only administrators can
+            // cancel it.
+            'reschedulable' => in_array($status, AppointmentStatus::SCHEDULED, true),
             // A completed visit the client has not reviewed yet can be rated
             // from here; one that already has a review shows it instead.
             'reviewable' => $status === 'Completed' && $feedback === null,

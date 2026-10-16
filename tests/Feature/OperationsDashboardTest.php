@@ -153,9 +153,9 @@ test('the operations page shows the money taken and what is still owed', functio
             ->where('upcoming.0.settlement.paid', $paid)
             ->where('upcoming.0.settlement.balance', $left)
             ->where('upcoming.0.settlement.advance', true)
-            // and the desk is told who to ask if it needs cancelling.
-            ->where('upcoming.0.can_cancel', false)
-            ->where('upcoming.0.cancel_blocked_by_payment', true)
+            // and the desk is warned that calling it off hands money back.
+            ->where('upcoming.0.can_cancel', true)
+            ->where('upcoming.0.refund_on_cancel', true)
             // The transaction, as the desk reads it back.
             ->has('transactions', 1)
             ->where('transactions.0.amount', $paid)
@@ -189,39 +189,111 @@ test('a fully settled visit leaves nothing outstanding', function () {
         ->assertInertia(fn (Assert $page) => $page
             ->where('upcoming.0.settlement.state', 'paid')
             ->where('upcoming.0.settlement.balance', '0.00')
-            // Paid in full is still paid: only the client can call it off.
-            ->where('upcoming.0.can_cancel', false)
-            ->where('upcoming.0.cancel_blocked_by_payment', true)
+            // Paid in full is still paid: calling it off refunds all of it.
+            ->where('upcoming.0.can_cancel', true)
+            ->where('upcoming.0.refund_on_cancel', true)
             ->where('money.owing', 0)
             ->where('money.outstanding', '0.00')
             ->has('debts', 0)
         );
 });
 
-test('an admin cannot cancel a visit the client has already paid for', function () {
+test('cancelling a paid visit refunds the money and tells the owner how to collect it', function () {
     $owner = DogOwner::factory()->create();
     $visit = opsVisit($owner, today()->addDay()->toDateString(), 'Confirmed');
 
-    // Part paid, then fully paid: either way the visit is the client's to call
-    // off, so the money can be refunded rather than lost behind their back.
-    $price = (float) $visit->service->price;
-    $part = opsMoney(round($price / 2, 2));
+    // A deposit ahead of the day: the desk calls the visit off and the money
+    // has to find its way back rather than sitting behind a cancelled visit.
+    $deposit = '250.00';
+    opsPayment($visit, $deposit, 'GCash', 'DEP-77');
 
-    opsPayment($visit, $part);
+    $this->actingAs(Staff::factory()->admin()->create())
+        ->patch(route('admin.operations.appointments.cancel', $visit))
+        ->assertSessionHasNoErrors();
 
-    $admin = Staff::factory()->admin()->create();
+    expect($visit->fresh()->status->status_name)->toBe('Cancelled')
+        // The payment is marked refunded, so the till no longer counts it.
+        ->and($visit->payments()->where('payment_status', 'Refunded')->count())->toBe(1)
+        ->and($visit->payments()->where('payment_status', 'Paid')->count())->toBe(0);
 
-    $this->actingAs($admin)
+    $notice = Notification::query()
+        ->where('appointment_id', $visit->appointment_id)
+        ->first();
+
+    // The owner is told the visit is off, how much is coming back, and where
+    // to collect it — a refund is never something they have to chase.
+    expect($notice)->not->toBeNull()
+        ->and($notice->message)->toContain('cancelled by the clinic')
+        ->and($notice->message)->toContain('$250.00')
+        ->and($notice->message)->toContain('front desk');
+});
+
+test('a declined request hands its deposit back to the client', function () {
+    $owner = DogOwner::factory()->create();
+    $visit = opsVisit($owner, today()->addDay()->toDateString(), 'Requested');
+
+    opsPayment($visit, '150.00', 'Maya', 'REQ-11');
+
+    $this->actingAs(Staff::factory()->admin()->create())
+        ->patch(route('admin.operations.appointments.cancel', $visit))
+        ->assertSessionHasNoErrors();
+
+    $notice = Notification::query()
+        ->where('appointment_id', $visit->appointment_id)
+        ->first();
+
+    expect($visit->fresh()->status->status_name)->toBe('Cancelled')
+        ->and($visit->payments()->where('payment_status', 'Refunded')->exists())->toBeTrue()
+        ->and($notice?->message)->toContain('could not be accepted')
+        ->and($notice?->message)->toContain('$150.00');
+});
+
+test('cancelling a visit nobody has paid for sends no refund details', function () {
+    $owner = DogOwner::factory()->create();
+    $visit = opsVisit($owner, today()->addDay()->toDateString(), 'Confirmed');
+
+    $this->actingAs(Staff::factory()->admin()->create())
+        ->patch(route('admin.operations.appointments.cancel', $visit))
+        ->assertSessionHasNoErrors();
+
+    $notice = Notification::query()
+        ->where('appointment_id', $visit->appointment_id)
+        ->first();
+
+    expect($notice?->message)->toContain('cancelled by the clinic')
+        ->and($notice?->message)->not->toContain('refunding');
+});
+
+test('a refunded visit no longer counts as money the clinic holds', function () {
+    $owner = DogOwner::factory()->create();
+    $visit = opsVisit($owner, today()->addDay()->toDateString(), 'Confirmed');
+
+    opsPayment($visit, '200.00');
+
+    $this->actingAs(Staff::factory()->admin()->create())
+        ->patch(route('admin.operations.appointments.cancel', $visit));
+
+    $this->actingAs(Staff::factory()->admin()->create())
+        ->get(route('admin.operations.dashboard', ['status' => 'all']))
+        ->assertInertia(fn (Assert $page) => $page
+            // The visit still shows what it was worth and what came back.
+            ->where('upcoming.0.settlement.paid', '0.00')
+            ->where('upcoming.0.settlement.refunded', '200.00')
+            // A cancelled visit is nobody's debt, and no longer a refund wait.
+            ->where('upcoming.0.can_cancel', false)
+            ->where('upcoming.0.refund_on_cancel', false)
+        );
+});
+
+test('a visit already carried out cannot be cancelled', function () {
+    $owner = DogOwner::factory()->create();
+    $visit = opsVisit($owner, today()->subDays(2)->toDateString(), 'Completed');
+
+    $this->actingAs(Staff::factory()->admin()->create())
         ->patch(route('admin.operations.appointments.cancel', $visit))
         ->assertSessionHasErrors('appointment');
 
-    opsPayment($visit, opsMoney($price - (float) $part));
-
-    $this->actingAs($admin)
-        ->patch(route('admin.operations.appointments.cancel', $visit))
-        ->assertSessionHasErrors('appointment');
-
-    expect($visit->fresh()->status->status_name)->toBe('Confirmed');
+    expect($visit->fresh()->status->status_name)->toBe('Completed');
 });
 
 test('an admin can still cancel a visit nobody has paid for', function () {

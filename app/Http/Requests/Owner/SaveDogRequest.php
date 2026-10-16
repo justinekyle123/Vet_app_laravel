@@ -30,7 +30,7 @@ class SaveDogRequest extends FormRequest
             'birth_date' => ['nullable', 'date', 'before_or_equal:today'],
             'weight_kg' => ['nullable', 'numeric', 'min:0', 'max:999.99'],
             'is_vaccinated' => ['boolean'],
-            'photo_url' => ['nullable', 'string', 'max:255'],
+            'photo' => ['nullable', 'image', 'mimes:jpeg,jpg,png,gif', 'max:2048'],
             'is_active' => ['boolean'],
         ];
     }

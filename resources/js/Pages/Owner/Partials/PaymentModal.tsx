@@ -53,6 +53,7 @@ export default function PaymentModal({
     const [method, setMethod] = useState(methods[0]?.name ?? '');
     const [amount, setAmount] = useState('');
     const [reference, setReference] = useState('');
+    const [proof, setProof] = useState<File | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [processing, setProcessing] = useState(false);
 
@@ -65,6 +66,7 @@ export default function PaymentModal({
         setMethod(methods[0]?.name ?? '');
         setAmount(settlement?.balance ?? '');
         setReference('');
+        setProof(null);
         setError(null);
     }, [appointment?.id, settlement?.balance, methods]);
 
@@ -89,15 +91,17 @@ export default function PaymentModal({
 
         router.post(
             route('owner.payments.store', appointment.id),
-            { method, amount: validAmount ? entered.toFixed(2) : amount, reference },
+            { method, amount: validAmount ? entered.toFixed(2) : amount, reference, payment_proof: proof },
             {
                 preserveScroll: true,
+                forceFormData: true,
                 onError: (errors) =>
                     setError(
                         errors.payment ??
                             errors.amount ??
                             errors.method ??
                             errors.reference ??
+                            errors.payment_proof ??
                             'The payment could not be recorded. Please try again.',
                     ),
                 onSuccess: () => onClose(),
@@ -280,6 +284,23 @@ export default function PaymentModal({
                     <p className="mt-1.5 text-xs leading-relaxed text-[#1a3d1a]/50">
                         If your wallet or bank showed you one, add it here and
                         the clinic can match your payment straight away.
+                    </p>
+                </div>
+
+                <div className="mt-4">
+                    <label htmlFor="payment-proof" className={labelClass}>
+                        Payment confirmation image
+                    </label>
+                    <input
+                        id="payment-proof"
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        onChange={(event) => setProof(event.target.files?.[0] ?? null)}
+                        disabled={processing}
+                        className={`${fieldClass} file:mr-3 file:rounded-full file:border-0 file:bg-[#1a3d1a] file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-white`}
+                    />
+                    <p className="mt-1.5 text-xs leading-relaxed text-[#1a3d1a]/50">
+                        Upload the screenshot or photo showing this successful payment.
                     </p>
                 </div>
 

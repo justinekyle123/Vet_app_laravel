@@ -15,7 +15,7 @@ import { OwnerHero, SectionLabel } from './Partials/OwnerHero';
 /** Small count chip for a panel header. */
 function CountChip({ count }: { count: number }) {
     return (
-        <span className="rounded-full bg-[#EFFDF0] px-2.5 py-1 text-[0.68rem] font-semibold text-[#1a3d1a]/70">
+        <span className="inline-flex h-6 min-w-[1.5rem] items-center justify-center rounded-full bg-[#1a3d1a]/8 px-2 text-[0.68rem] font-bold tabular-nums text-[#1a3d1a]/70">
             {count}
         </span>
     );
@@ -91,17 +91,18 @@ export default function Appointments({
                 </Link>
             }
         >
+            {/* ── Next visit hero ─────────────────────────────────────── */}
             <OwnerHero
                 eyebrow={next ? 'Next visit' : 'Your visits'}
                 title={next ? (next.service ?? 'Visit') : 'Nothing booked yet'}
                 description={
                     next
                         ? undefined
-                        : "Browse the clinic's services to find a time that suits you, and request a visit in a couple of taps."
+                        : "Browse the clinic's services to see what is available, then call the front desk to arrange a visit."
                 }
                 badge={
                     next ? (
-                        <span className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-semibold text-white ring-1 ring-inset ring-white/15">
+                        <span className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-semibold text-white ring-1 ring-inset ring-white/15 backdrop-blur">
                             {next.status ?? 'Scheduled'}
                         </span>
                     ) : undefined
@@ -111,13 +112,13 @@ export default function Appointments({
                         href={route('owner.services.index')}
                         className={primaryButtonClass}
                     >
-                        Book a service
+                        Browse services
                         <ArrowRight className="h-4 w-4" />
                     </Link>
                 }
             >
                 {next && (
-                    <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-white/75">
+                    <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-white/75">
                         <span className="inline-flex items-center gap-2">
                             <PawPrint className="h-4 w-4 text-[#E86A10]" />
                             {next.dog ?? 'Your dog'}
@@ -133,7 +134,7 @@ export default function Appointments({
                             </span>
                         )}
                         {when && (
-                            <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white ring-1 ring-inset ring-white/15">
+                            <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white ring-1 ring-inset ring-white/15 backdrop-blur">
                                 {when}
                             </span>
                         )}
@@ -141,9 +142,10 @@ export default function Appointments({
                 )}
             </OwnerHero>
 
-            <section className="mt-8">
+            {/* ── At-a-glance stats ───────────────────────────────────── */}
+            <section className="mt-10">
                 <SectionLabel>Your record</SectionLabel>
-                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     <StatCard
                         label="Upcoming visits"
                         value={summary.upcoming}
@@ -178,7 +180,8 @@ export default function Appointments({
                 </div>
             </section>
 
-            <section className="mt-8">
+            {/* ── Upcoming visits ─────────────────────────────────────── */}
+            <section className="mt-10">
                 <SectionLabel>Upcoming</SectionLabel>
                 <Panel
                     title="Upcoming visits"
@@ -201,14 +204,16 @@ export default function Appointments({
                 </Panel>
             </section>
 
-            <section className="mt-8">
+            {/* ── Visit history ───────────────────────────────────────── */}
+            <section className="mt-10">
                 <SectionLabel>History</SectionLabel>
                 <Panel
                     title="Past visits"
                     icon="clock"
                     action={<CountChip count={past.length} />}
                 >
-                    <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                    {/* Filter bar */}
+                    <div className="mb-5 flex flex-col gap-3 border-b border-[#1a3d1a]/8 pb-4 sm:flex-row sm:items-center sm:justify-between">
                         <p className="text-xs leading-relaxed text-[#1a3d1a]/55">
                             Visits the clinic has carried out, plus any that
                             were cancelled or missed.
@@ -217,25 +222,27 @@ export default function Appointments({
                         <div
                             role="group"
                             aria-label="Filter past visits"
-                            className="flex items-center gap-1 rounded-full bg-[#1a3d1a]/5 p-1"
+                            className="inline-flex shrink-0 items-center gap-1 self-start rounded-full bg-[#1a3d1a]/5 p-1 sm:self-auto"
                         >
-                            {historyTabs.map((tab) => (
-                                <button
-                                    key={tab.value}
-                                    type="button"
-                                    aria-pressed={
-                                        historyFilter === tab.value
-                                    }
-                                    onClick={() => applyHistory(tab.value)}
-                                    className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1a3d1a] ${
-                                        historyFilter === tab.value
-                                            ? 'bg-white text-[#1a3d1a] shadow-sm'
-                                            : 'text-[#1a3d1a]/55 hover:text-[#1a3d1a]'
-                                    }`}
-                                >
-                                    {tab.label}
-                                </button>
-                            ))}
+                            {historyTabs.map((tab) => {
+                                const isActive = historyFilter === tab.value;
+
+                                return (
+                                    <button
+                                        key={tab.value}
+                                        type="button"
+                                        aria-pressed={isActive}
+                                        onClick={() => applyHistory(tab.value)}
+                                        className={`relative rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1a3d1a] focus-visible:ring-offset-1 ${
+                                            isActive
+                                                ? 'bg-white text-[#1a3d1a] shadow-sm ring-1 ring-[#1a3d1a]/5'
+                                                : 'text-[#1a3d1a]/55 hover:text-[#1a3d1a]'
+                                        }`}
+                                    >
+                                        {tab.label}
+                                    </button>
+                                );
+                            })}
                         </div>
                     </div>
 

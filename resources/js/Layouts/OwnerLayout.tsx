@@ -379,9 +379,17 @@ function AccountMenu({ user }: { user: User }) {
                 aria-expanded={open}
                 className="flex items-center gap-2 rounded-full border border-[#1a3d1a]/15 bg-white py-1.5 pl-1.5 pr-2.5 transition-colors duration-200 hover:bg-[#EFFDF0] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1a3d1a]"
             >
-                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#1a3d1a] text-xs font-semibold text-white">
-                    {initials(user.name)}
-                </span>
+                {user.profile_photo_url ? (
+                    <img
+                        src={user.profile_photo_url}
+                        alt={user.name}
+                        className="h-8 w-8 rounded-full object-cover ring-2 ring-white"
+                    />
+                ) : (
+                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#1a3d1a] text-xs font-semibold text-white">
+                        {initials(user.name)}
+                    </span>
+                )}
                 <ChevronDown
                     className={`h-4 w-4 text-[#1a3d1a]/40 transition-transform duration-200 ${
                         open ? 'rotate-180' : ''
@@ -392,9 +400,17 @@ function AccountMenu({ user }: { user: User }) {
             {open && (
                 <div className="absolute right-0 top-full z-40 mt-2 w-64 animate-dropdown overflow-hidden rounded-2xl border border-[#1a3d1a]/10 bg-white p-1.5 shadow-2xl shadow-[#1a3d1a]/10">
                     <div className="flex items-center gap-3 px-3 py-2.5">
-                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#1a3d1a] text-sm font-semibold text-white">
-                            {initials(user.name)}
-                        </span>
+                        {user.profile_photo_url ? (
+                            <img
+                                src={user.profile_photo_url}
+                                alt={user.name}
+                                className="h-10 w-10 shrink-0 rounded-full object-cover ring-2 ring-[#1a3d1a]/10"
+                            />
+                        ) : (
+                            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#1a3d1a] text-sm font-semibold text-white">
+                                {initials(user.name)}
+                            </span>
+                        )}
                         <span className="min-w-0">
                             <span className="block truncate text-sm font-semibold text-[#1a3d1a]">
                                 {user.name}
@@ -629,6 +645,11 @@ export default function OwnerLayout({
             pattern: 'owner.services.*',
         },
         {
+            label: 'Book',
+            href: route('owner.booking'),
+            pattern: 'owner.booking',
+        },
+        {
             label: 'Appointments',
             href: route('owner.appointments.index'),
             pattern: 'owner.appointments.*',
@@ -808,9 +829,17 @@ export default function OwnerLayout({
 
                             <div className="border-t border-[#1a3d1a]/10 p-2">
                                 <div className="flex items-center gap-3 px-4 py-3">
-                                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#1a3d1a] text-sm font-semibold text-white">
-                                        {initials(user.name)}
-                                    </span>
+                                    {user.profile_photo_url ? (
+                                        <img
+                                            src={user.profile_photo_url}
+                                            alt={user.name}
+                                            className="h-10 w-10 shrink-0 rounded-full object-cover ring-2 ring-[#1a3d1a]/10"
+                                        />
+                                    ) : (
+                                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#1a3d1a] text-sm font-semibold text-white">
+                                            {initials(user.name)}
+                                        </span>
+                                    )}
                                     <span className="min-w-0">
                                         <span className="block truncate text-sm font-semibold text-[#1a3d1a]">
                                             {user.name}

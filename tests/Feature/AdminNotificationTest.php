@@ -4,8 +4,10 @@ use App\Models\Appointment;
 use App\Models\AppointmentStatus;
 use App\Models\Dog;
 use App\Models\DogOwner;
+use App\Models\Payment;
 use App\Models\Service;
 use App\Models\Staff;
+use Illuminate\Http\UploadedFile;
 use Inertia\Testing\AssertableInertia as Assert;
 
 /**
@@ -100,9 +102,11 @@ test('the admin console bell lists the payments clients make in their portal', f
             'method' => 'GCash',
             'amount' => $paid,
             'reference' => 'DEP-9',
+            'payment_proof' => UploadedFile::fake()->create('gcash-receipt.jpg', 120, 'image/jpeg'),
         ])
         ->assertSessionHasNoErrors();
 
+    $payment = Payment::query()->sole();
     $admin = Staff::factory()->admin()->create();
 
     $this->actingAs($admin)
@@ -110,6 +114,9 @@ test('the admin console bell lists the payments clients make in their portal', f
         ->assertInertia(fn (Assert $page) => $page
             ->has('adminNotifications.payments', 1)
             ->where('adminNotifications.payments.0.amount', number_format($paid, 2, '.', ''))
+            // The desk opens the screenshot itself; the link is relative so it
+            // follows the host the console is served from.
+            ->where('adminNotifications.payments.0.proof_url', '/storage/'.$payment->payment_proof_path)
             ->where('adminNotifications.payments.0.method', 'GCash')
             ->where('adminNotifications.payments.0.reference', 'DEP-9')
             ->where('adminNotifications.payments.0.owner', $visit->owner->fullName())
@@ -126,7 +133,10 @@ test('a payment the admin has looked at stops counting as unread', function () {
     $visit = bookRequest(today()->addDays(3)->toDateString(), 'Confirmed');
 
     $this->actingAs($visit->owner)
-        ->post(route('owner.payments.store', $visit), ['method' => 'Maya'])
+        ->post(route('owner.payments.store', $visit), [
+            'method' => 'Maya',
+            'payment_proof' => UploadedFile::fake()->create('gcash-receipt.jpg', 120, 'image/jpeg'),
+        ])
         ->assertSessionHasNoErrors();
 
     $admin = Staff::factory()->admin()->create();

@@ -37,8 +37,9 @@ const blank = {
     birth_date: '',
     weight_kg: '',
     is_vaccinated: false,
-    photo_url: '',
+    photo: null as File | null,
     is_active: true,
+    _method: 'post',
 };
 
 export default function DogFormModal({
@@ -53,7 +54,7 @@ export default function DogFormModal({
     show: boolean;
     onClose: () => void;
 }) {
-    const { data, setData, post, patch, processing, errors, reset, clearErrors } =
+    const { data, setData, post, processing, errors, reset, clearErrors } =
         useForm(blank);
 
     // Reload the form with the selected dog's values whenever the modal opens.
@@ -73,8 +74,9 @@ export default function DogFormModal({
                 birth_date: dog.birth_date ?? '',
                 weight_kg: dog.weight_kg ?? '',
                 is_vaccinated: Boolean(dog.is_vaccinated),
-                photo_url: dog.photo_url ?? '',
+                photo: null,
                 is_active: Boolean(dog.is_active),
+                _method: 'patch',
             });
         } else {
             reset();
@@ -87,10 +89,11 @@ export default function DogFormModal({
         const options = {
             preserveScroll: true,
             onSuccess: () => onClose(),
+            forceFormData: true,
         };
 
         if (dog) {
-            patch(route('owner.dogs.update', dog.id), options);
+            post(route('owner.dogs.update', dog.id), options);
         } else {
             post(route('owner.dogs.store'), options);
         }
@@ -104,7 +107,7 @@ export default function DogFormModal({
                 </h2>
                 <p className="mt-1.5 text-sm leading-relaxed text-[#1a3d1a]/60">
                     {dog
-                        ? 'Update your dog details and save.'
+                        ? 'Update your dog details and save. Use the account list to deactivate this profile while keeping its history.'
                         : 'Tell us about your dog so the clinic is ready for their visit.'}
                 </p>
 
@@ -202,16 +205,45 @@ export default function DogFormModal({
                     />
 
                     <div className="sm:col-span-2">
-                        <Field
-                            label="Photo URL"
-                            name="photo_url"
-                            value={data.photo_url}
-                            onChange={(event) =>
-                                setData('photo_url', event.target.value)
-                            }
-                            error={errors.photo_url}
-                            hint="Optional. A link to a photo the clinic can show with your dog's record."
-                        />
+                        <label className="block text-sm font-semibold text-[#1a3d1a] mb-2">
+                            Dog Photo
+                        </label>
+                        <div className="flex items-start gap-4">
+                            {dog?.photo_url && !data.photo && (
+                                <div className="flex-shrink-0">
+                                    <img
+                                        src={dog.photo_url}
+                                        alt={dog.dog_name}
+                                        className="h-20 w-20 rounded-lg object-cover border-2 border-[#1a3d1a]/10"
+                                    />
+                                </div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={(e) => {
+                                        const file = e.target.files?.[0];
+                                        if (file) {
+                                            setData('photo', file);
+                                        }
+                                    }}
+                                    className="block w-full text-sm text-[#1a3d1a]/70
+                                        file:mr-4 file:py-2 file:px-4
+                                        file:rounded-md file:border-0
+                                        file:text-sm file:font-semibold
+                                        file:bg-[#1a3d1a]/10 file:text-[#1a3d1a]
+                                        hover:file:bg-[#1a3d1a]/20
+                                        cursor-pointer"
+                                />
+                                {errors.photo && (
+                                    <p className="mt-2 text-sm text-red-600">{errors.photo}</p>
+                                )}
+                                <p className="mt-1.5 text-xs text-[#1a3d1a]/50">
+                                    Optional. Upload a photo of your dog (JPG, PNG or GIF, max 2MB).
+                                </p>
+                            </div>
+                        </div>
                     </div>
                 </div>
 

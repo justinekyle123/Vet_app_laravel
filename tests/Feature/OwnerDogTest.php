@@ -68,6 +68,38 @@ test('an owner cannot edit another owner\'s dog', function () {
     expect($dog->fresh()->dog_name)->not->toBe('Stolen');
 });
 
+test('an owner can deactivate and reactivate their own dog', function () {
+    $owner = DogOwner::factory()->create();
+    $dog = Dog::factory()->create([
+        'owner_id' => $owner->owner_id,
+        'is_active' => true,
+    ]);
+
+    $this->actingAs($owner)
+        ->patch(route('owner.dogs.deactivate', $dog))
+        ->assertSessionHasNoErrors()
+        ->assertRedirect(route('owner.account.edit'));
+
+    expect($dog->fresh()->is_active)->toBeFalse();
+
+    $this->actingAs($owner)
+        ->patch(route('owner.dogs.activate', $dog))
+        ->assertSessionHasNoErrors()
+        ->assertRedirect(route('owner.account.edit'));
+
+    expect($dog->fresh()->is_active)->toBeTrue();
+});
+
+test('an owner cannot change another owner\'s dog status', function () {
+    $dog = Dog::factory()->create(['is_active' => true]);
+
+    $this->actingAs(DogOwner::factory()->create())
+        ->patch(route('owner.dogs.deactivate', $dog))
+        ->assertForbidden();
+
+    expect($dog->fresh()->is_active)->toBeTrue();
+});
+
 test('staff cannot add dogs', function () {
     $this->actingAs(Staff::factory()->admin()->create())
         ->post(route('owner.dogs.store'), [

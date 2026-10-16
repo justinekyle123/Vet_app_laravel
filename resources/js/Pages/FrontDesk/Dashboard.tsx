@@ -34,8 +34,8 @@ interface DeskAppointment {
     can_complete: boolean;
     can_no_show: boolean;
     can_cancel: boolean;
-    /** True when payment is why cancel is out of reach. */
-    cancel_blocked_by_payment: boolean;
+    /** True when calling the visit off hands money back at the desk. */
+    refund_on_cancel: boolean;
 }
 
 interface DeskStats {
@@ -233,7 +233,11 @@ export default function FrontDeskDashboard({
 
         Swal.fire({
             title: copy.title,
-            text: `${appointment.service ?? 'This visit'} for ${appointment.dog ?? 'the client'} on ${when}.`,
+            text: `${appointment.service ?? 'This visit'} for ${appointment.dog ?? 'the client'} on ${when}.${
+                action === 'cancel' && appointment.refund_on_cancel
+                    ? ' The money already paid is refunded at the desk, and the client is told how much to collect.'
+                    : ''
+            }`,
             icon: copy.icon,
             showCancelButton: true,
             confirmButtonText: copy.verb,
@@ -699,18 +703,18 @@ export default function FrontDeskDashboard({
                                                     )}
 
                                                     {/*
-                                                        A visit with money on
-                                                        it belongs to the
-                                                        client: the clinic does
-                                                        not cancel something
-                                                        they have paid for.
+                                                        Money on a visit is no
+                                                        reason to keep it: the
+                                                        desk may call it off
+                                                        and hand the payment
+                                                        back at the counter.
                                                     */}
-                                                    {appointment.cancel_blocked_by_payment && (
+                                                    {appointment.refund_on_cancel && (
                                                         <span
-                                                            title="This visit has already been paid for. Ask the client to cancel it from their portal, then refund at the desk."
-                                                            className="rounded-full border border-dashed border-[#1a3d1a]/20 bg-white px-2.5 py-1 text-[0.68rem] font-semibold text-[#1a3d1a]/40"
+                                                            title="This visit has already been paid for. Calling it off refunds the money at the desk, and the client's message says how much to collect."
+                                                            className="rounded-full border border-dashed border-[#E86A10]/30 bg-white px-2.5 py-1 text-[0.68rem] font-semibold text-[#E86A10]"
                                                         >
-                                                            Client must cancel
+                                                            Refund at desk
                                                         </span>
                                                     )}
 
@@ -1027,6 +1031,16 @@ export default function FrontDeskDashboard({
                                                         ? `Ref ${payment.reference}`
                                                         : 'No reference given'}
                                                 </p>
+                                                {payment.proof_url && (
+                                                    <a
+                                                        href={payment.proof_url}
+                                                        target="_blank"
+                                                        rel="noreferrer"
+                                                        className="mt-1 inline-block text-xs font-semibold text-[#E86A10] hover:underline"
+                                                    >
+                                                        View proof image
+                                                    </a>
+                                                )}
                                             </td>
                                             <td className="px-5 py-3">
                                                 <span

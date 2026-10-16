@@ -1,6 +1,5 @@
 import AppointmentStatusChip from '@/Components/AppointmentStatusChip';
 import {
-    dangerButtonClass,
     primaryButtonClass,
     secondaryButtonClass,
 } from '@/Components/buttonStyles';
@@ -8,21 +7,26 @@ import { fieldClass, labelClass } from '@/Components/formStyles';
 import Modal from '@/Components/Modal';
 import Spinner from '@/Components/Spinner';
 import StarRating, { StarPicker } from '@/Components/StarRating';
-import { PageProps, PortalAppointment } from '@/types';
+import { PortalAppointment, ServiceAvailability } from '@/types';
 import { currency } from '@/utils/format';
-import { Link, router, useForm, usePage } from '@inertiajs/react';
-import { CalendarDays, Clock, RotateCcw } from 'lucide-react';
-import { ReactNode, useState } from 'react';
-import PaymentModal from './PaymentModal';
+import { useForm } from '@inertiajs/react';
+import { CalendarDays, Clock } from 'lucide-react';
+import { ReactNode, useEffect, useMemo, useState } from 'react';
+import BookingCalendar from './BookingCalendar';
 
 /**
  * One appointment row, shared by the portal dashboard's "next visits" preview
  * and the full appointments page so a booking always reads the same way.
  *
  * A visit the clinic has not carried out yet — requested or confirmed — can be
- * cancelled here, behind a confirmation so a stray tap does not lose a booking.
- * A completed visit can be rated in place, and any past visit can be booked
- * again for the same service.
+ * rescheduled here, behind a confirmation so a stray tap does not lose a
+ * booking, and a completed visit can be rated in place.
+ *
+ * Rescheduling reads the clinic's own calendar: the client picks a day from the
+ * month grid and a time from the slots still free on it. Times that have
+ * already gone, and days the clinic has nothing left on, are simply not
+ * offered — the visit being moved is left out of the clash check so the slot it
+ * already holds can be kept or handed back.
  */
 
 /**
@@ -112,16 +116,64 @@ export default function AppointmentList({
     /** Optional call to action shown with the empty message. */
     emptyAction?: ReactNode;
 }) {
-    const [pending, setPending] = useState<PortalAppointment | null>(null);
-    const [cancelling, setCancelling] = useState(false);
+    const [rescheduling, setRescheduling] = useState<PortalAppointment | null>(null);
     const [reviewing, setReviewing] = useState<PortalAppointment | null>(null);
-    const [paying, setPaying] = useState<PortalAppointment | null>(null);
-
-    /* The channels the clinic takes a payment through, shared by the server. */
-    const paymentMethods =
-        usePage<PageProps>().props.portal?.paymentMethods ?? [];
-
+    const [availability, setAvailability] = useState<ServiceAvailability | null>(null);
+    const [loadingAvailability, setLoadingAvailability] = useState(false);
     const reviewForm = useForm({ rating: 5, comment: '' });
+    const rescheduleForm = useForm({ appointment_date: '', appointment_time: '' });
+
+    // The grid the reschedule sheet draws: fetched when the sheet opens, with
+    // this visit left out so its own slot stays selectable.
+    useEffect(() => {
+        if (!rescheduling?.service_id) {
+            setAvailability(null);
+            return;
+        }
+
+        let cancelled = false;
+        setLoadingAvailability(true);
+
+        fetch(
+            `${route('owner.services.availability', rescheduling.service_id)}?ignore=${rescheduling.id}`,
+            { headers: { Accept: 'application/json' }, credentials: 'same-origin' },
+        )
+            .then((response) => response.json())
+            .then((payload: ServiceAvailability) => {
+                if (!cancelled) {
+                    setAvailability(payload);
+                }
+            })
+            .catch(() => {
+                if (!cancelled) {
+                    setAvailability({ windowDays: 0, dates: [], times: {} });
+                }
+            })
+            .finally(() => {
+                if (!cancelled) {
+                    setLoadingAvailability(false);
+                }
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [rescheduling?.id, rescheduling?.service_id]);
+
+    const availableDates = useMemo(
+        () => new Set(availability?.dates ?? []),
+        [availability],
+    );
+
+    const slotsForChosenDay = useMemo(
+        () =>
+            rescheduleForm.data.appointment_date
+                ? (availability?.times[
+                      rescheduleForm.data.appointment_date
+                  ] ?? [])
+                : [],
+        [availability, rescheduleForm.data.appointment_date],
+    );
 
     const closeReview = () => {
         setReviewing(null);
@@ -151,20 +203,23 @@ export default function AppointmentList({
         );
     }
 
-    const confirmCancel = () => {
-        if (!pending) {
+    const closeReschedule = () => {
+        setRescheduling(null);
+        setAvailability(null);
+        rescheduleForm.reset();
+        rescheduleForm.clearErrors();
+    };
+
+    const submitReschedule = () => {
+        if (!rescheduling) {
             return;
         }
 
-        setCancelling(true);
-
-        router.patch(
-            route('owner.appointments.cancel', pending.id),
-            {},
+        rescheduleForm.patch(
+            route('owner.appointments.reschedule', rescheduling.id),
             {
                 preserveScroll: true,
-                onSuccess: () => setPending(null),
-                onFinish: () => setCancelling(false),
+                onSuccess: () => closeReschedule(),
             },
         );
     };
@@ -175,7 +230,7 @@ export default function AppointmentList({
                 {appointments.map((appointment) => {
                     const badge = dateBadge(appointment.date);
                     const when = relativeDay(appointment.date);
-                    const isUpcoming = appointment.cancellable;
+                    const isUpcoming = appointment.reschedulable;
                     const settlement = appointment.settlement;
 
                     return (
@@ -307,27 +362,19 @@ export default function AppointmentList({
                                     </span>
                                 )}
 
-                                {appointment.payable && (
-                                    <button
-                                        type="button"
-                                        onClick={() => setPaying(appointment)}
-                                        className="inline-flex items-center gap-1 rounded-full bg-[#E86A10] px-3 py-1 text-[0.68rem] font-semibold text-white transition-colors duration-150 hover:bg-[#E86A10]/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E86A10] disabled:opacity-60"
-                                    >
-                                        {settlement.state === 'part'
-                                            ? 'Pay balance'
-                                            : 'Pay now'}
-                                    </button>
-                                )}
-
                                 {isUpcoming && (
                                     <button
                                         type="button"
-                                        onClick={() =>
-                                            setPending(appointment)
-                                        }
-                                        className="rounded-full px-2.5 py-1 text-[0.68rem] font-semibold text-[#b3261e] transition-colors duration-150 hover:bg-[#b3261e]/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#b3261e]"
+                                        onClick={() => {
+                                            setRescheduling(appointment);
+                                            rescheduleForm.setData({
+                                                appointment_date: appointment.date ?? '',
+                                                appointment_time: appointment.time ?? '',
+                                            });
+                                        }}
+                                        className="rounded-full px-2.5 py-1 text-[0.68rem] font-semibold text-[#1a3d1a]/70 transition-colors duration-150 hover:bg-[#EFFDF0] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1a3d1a]"
                                     >
-                                        Cancel
+                                        Reschedule
                                     </button>
                                 )}
 
@@ -344,83 +391,147 @@ export default function AppointmentList({
                                     </button>
                                 )}
 
-                                {!isUpcoming && appointment.service_id && (
-                                    <Link
-                                        href={route('owner.services.index', {
-                                            book: appointment.service_id,
-                                        })}
-                                        className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[0.68rem] font-semibold text-[#1a3d1a]/70 transition-colors duration-150 hover:bg-[#EFFDF0] hover:text-[#1a3d1a] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1a3d1a]"
-                                    >
-                                        <RotateCcw className="h-3 w-3" />
-                                        Book again
-                                    </Link>
-                                )}
                             </div>
                         </li>
                     );
                 })}
             </ul>
 
-            <PaymentModal
-                appointment={paying}
-                methods={paymentMethods}
-                onClose={() => setPaying(null)}
-            />
-
             <Modal
-                show={pending !== null}
+                show={rescheduling !== null}
                 onClose={() => {
-                    if (!cancelling) {
-                        setPending(null);
+                    if (!rescheduleForm.processing) {
+                        closeReschedule();
                     }
                 }}
-                maxWidth="md"
+                maxWidth="lg"
             >
                 <div className="p-6">
                     <h2 className="font-serif-display text-xl leading-tight text-[#1a3d1a]">
-                        Cancel this visit?
+                        Reschedule this visit
                     </h2>
                     <p className="mt-2 text-sm leading-relaxed text-[#1a3d1a]/60">
-                        {pending
-                            ? `${pending.service ?? 'This visit'} for ${
-                                  pending.dog ?? 'your dog'
-                              } on ${fullDate(pending.date)} at ${
-                                  pending.time ?? 'the booked time'
-                              } will be cancelled. You can book a new time from the services page.`
+                        {rescheduling
+                            ? `${rescheduling.service ?? 'This visit'} for ${rescheduling.dog ?? 'your dog'}. Pick a new day and time from what the clinic still has open.`
                             : ''}
                     </p>
 
-                    {/*
-                        Money already paid is not simply lost with the booking:
-                        the desk has to refund it, so the client is told before
-                        they confirm.
-                    */}
-                    {pending && pending.settlement.state !== 'unpaid' && (
-                        <p className="mt-3 rounded-xl bg-[#E86A10]/5 px-3.5 py-2.5 text-xs leading-relaxed text-[#E86A10]">
-                            You have already paid{' '}
-                            {currency(pending.settlement.paid)} towards this
-                            visit. Cancelling it is fine — the clinic will
-                            refund that at the desk.
-                        </p>
+                    {loadingAvailability ? (
+                        <div className="mt-5 flex h-64 items-center justify-center gap-2 rounded-2xl border border-[#1a3d1a]/10 text-sm text-[#1a3d1a]/55">
+                            <Spinner className="h-4 w-4" /> Checking the clinic's
+                            calendar...
+                        </div>
+                    ) : (
+                        <div className="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2">
+                            <div>
+                                <p className={labelClass}>New day</p>
+                                <div className="mt-2">
+                                    <BookingCalendar
+                                        availableDates={availableDates}
+                                        selected={
+                                            rescheduleForm.data
+                                                .appointment_date || null
+                                        }
+                                        onSelect={(date) => {
+                                            rescheduleForm.setData(
+                                                'appointment_date',
+                                                date,
+                                            );
+                                            rescheduleForm.setData(
+                                                'appointment_time',
+                                                '',
+                                            );
+                                        }}
+                                    />
+                                </div>
+                                {rescheduleForm.errors.appointment_date && (
+                                    <p className="mt-1.5 text-xs text-[#b3261e]">
+                                        {rescheduleForm.errors.appointment_date}
+                                    </p>
+                                )}
+                            </div>
+
+                            <div>
+                                <p className={labelClass}>New time</p>
+
+                                {!rescheduleForm.data.appointment_date ? (
+                                    <p className="mt-2 rounded-2xl border border-dashed border-[#1a3d1a]/15 px-4 py-6 text-sm text-[#1a3d1a]/50">
+                                        Pick a day first.
+                                    </p>
+                                ) : slotsForChosenDay.length === 0 ? (
+                                    <p className="mt-2 rounded-2xl border border-dashed border-[#1a3d1a]/15 px-4 py-6 text-sm text-[#1a3d1a]/50">
+                                        No times are left on that day. Choose
+                                        another day.
+                                    </p>
+                                ) : (
+                                    <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                                        {slotsForChosenDay.map((slot) => {
+                                            const chosen =
+                                                rescheduleForm.data
+                                                    .appointment_time ===
+                                                slot.value;
+
+                                            return (
+                                                <button
+                                                    type="button"
+                                                    key={slot.value}
+                                                    onClick={() =>
+                                                        rescheduleForm.setData(
+                                                            'appointment_time',
+                                                            slot.value,
+                                                        )
+                                                    }
+                                                    aria-pressed={chosen}
+                                                    className={`rounded-xl border px-2 py-2 text-sm font-semibold transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1a3d1a] ${
+                                                        chosen
+                                                            ? 'border-[#1a3d1a] bg-[#1a3d1a] text-white shadow-md shadow-[#1a3d1a]/20'
+                                                            : 'border-[#1a3d1a]/12 bg-white text-[#1a3d1a]/70 hover:-translate-y-0.5 hover:border-[#1a3d1a]/30 hover:text-[#1a3d1a] hover:shadow-sm'
+                                                    }`}
+                                                >
+                                                    {slot.label}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+
+                                {rescheduleForm.errors.appointment_time && (
+                                    <p className="mt-1.5 text-xs text-[#b3261e]">
+                                        {rescheduleForm.errors.appointment_time}
+                                    </p>
+                                )}
+
+                                <p className="mt-3 text-[0.68rem] leading-relaxed text-[#1a3d1a]/45">
+                                    Times that have already passed, and times
+                                    the clinic has taken, are not offered.
+                                </p>
+                            </div>
+                        </div>
                     )}
 
                     <div className="mt-6 flex flex-wrap justify-end gap-2.5">
                         <button
                             type="button"
-                            onClick={() => setPending(null)}
-                            disabled={cancelling}
+                            onClick={closeReschedule}
+                            disabled={rescheduleForm.processing}
                             className={secondaryButtonClass}
                         >
-                            Keep visit
+                            Keep current time
                         </button>
                         <button
                             type="button"
-                            onClick={confirmCancel}
-                            disabled={cancelling}
-                            className={dangerButtonClass}
+                            onClick={submitReschedule}
+                            disabled={
+                                rescheduleForm.processing ||
+                                !rescheduleForm.data.appointment_date ||
+                                !rescheduleForm.data.appointment_time
+                            }
+                            className={primaryButtonClass}
                         >
-                            {cancelling && <Spinner className="h-4 w-4" />}
-                            Cancel visit
+                            {rescheduleForm.processing && (
+                                <Spinner className="h-4 w-4" />
+                            )}
+                            Save new time
                         </button>
                     </div>
                 </div>

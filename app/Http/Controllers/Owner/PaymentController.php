@@ -8,6 +8,7 @@ use App\Models\DogOwner;
 use App\Services\Payments\PortalPayments;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
@@ -61,19 +62,28 @@ class PaymentController extends Controller
             'method' => ['required', 'string', Rule::in($payments->methodNames())],
             'amount' => ['nullable', 'numeric', 'min:0.01'],
             'reference' => ['nullable', 'string', 'max:60'],
+            'payment_proof' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
         ], [
             'method.required' => 'Choose how you would like to pay.',
             'method.in' => 'That payment method is not one the clinic offers.',
             'amount.numeric' => 'Enter the amount as a number, for example 1500 or 1500.50.',
             'amount.min' => 'Enter how much you would like to pay.',
             'reference.max' => 'A reference number is at most 60 characters.',
+            'payment_proof.required' => 'Upload a screenshot or photo of your payment confirmation.',
+            'payment_proof.image' => 'The payment proof must be an image.',
+            'payment_proof.max' => 'Payment proof must be 5 MB or smaller.',
         ]);
+
+        /** @var UploadedFile $proof */
+        $proof = $validated['payment_proof'];
+        $proofPath = $proof->store('payment-proofs', 'public');
 
         $payment = $payments->pay(
             $appointment,
             $validated['method'],
             isset($validated['amount']) ? (float) $validated['amount'] : null,
             $validated['reference'] ?? null,
+            $proofPath,
         );
 
         if ($payment === null) {

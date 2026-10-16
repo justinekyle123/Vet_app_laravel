@@ -188,47 +188,11 @@ test('the appointments page splits upcoming from past and hides other owners', f
         );
 });
 
-test('an owner can cancel their own upcoming visit', function () {
-    $owner = DogOwner::factory()->create();
-    $dog = Dog::factory()->create(['owner_id' => $owner->owner_id]);
-    $visit = bookPortalVisit($owner, $dog, today()->addDays(2)->toDateString(), 'Confirmed');
-
-    $this->actingAs($owner)
-        ->patch(route('owner.appointments.cancel', $visit))
-        ->assertSessionHasNoErrors()
-        ->assertRedirect(route('owner.appointments.index'));
-
-    expect($visit->fresh()->status->status_name)->toBe('Cancelled');
-});
-
-test('an owner cannot cancel another client\'s visit', function () {
-    $owner = DogOwner::factory()->create();
-    $other = DogOwner::factory()->create();
-    $visit = bookPortalVisit(
-        $other,
-        Dog::factory()->create(['owner_id' => $other->owner_id]),
-        today()->addDay()->toDateString(),
-    );
-
-    $this->actingAs($owner)
-        ->patch(route('owner.appointments.cancel', $visit))
-        ->assertNotFound();
-
-    // The other client's booking is untouched.
-    expect($visit->fresh()->status->status_name)->toBe('Confirmed');
-});
-
-test('a completed visit cannot be cancelled', function () {
-    $owner = DogOwner::factory()->create();
-    $dog = Dog::factory()->create(['owner_id' => $owner->owner_id]);
-    $visit = bookPortalVisit($owner, $dog, today()->subDays(2)->toDateString(), 'Completed');
-
-    $this->actingAs($owner)
-        ->patch(route('owner.appointments.cancel', $visit))
-        ->assertSessionHasErrors('appointment');
-
-    expect($visit->fresh()->status->status_name)->toBe('Completed');
-});
+/*
+ * Cancelling a visit is not something the portal offers at all — the desk owns
+ * it, and with it the refund. `OwnerPaymentTest` pins that division of labour;
+ * the admin-side rules for it live in `OperationsDashboardTest`.
+ */
 
 test('the FAQ endpoint returns only published questions, grouped by category', function () {
     $bookings = FaqCategory::create(['category_name' => 'Bookings']);

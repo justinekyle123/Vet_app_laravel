@@ -35,6 +35,7 @@ class UpdateOwnerAccountRequest extends FormRequest
             ],
             'phone_number' => ['required', 'string', 'max:20'],
             'address' => ['nullable', 'string', 'max:255'],
+            'profile_photo' => ['nullable', 'image', 'mimes:jpeg,jpg,png,gif', 'max:2048'],
         ];
     }
 }

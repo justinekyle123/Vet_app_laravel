@@ -1,13 +1,9 @@
 import StarRating from '@/Components/StarRating';
-import {
-    primaryButtonClass,
-    secondaryButtonClass,
-} from '@/Components/buttonStyles';
+import { secondaryButtonClass } from '@/Components/buttonStyles';
 import OwnerLayout from '@/Layouts/OwnerLayout';
 import {
     PageProps,
     Paginated,
-    PortalDog,
     PortalReview,
     PortalService,
     PortalServiceDetail,
@@ -17,20 +13,19 @@ import { currency, initials, longDate } from '@/utils/format';
 import { Link, router } from '@inertiajs/react';
 import {
     ArrowLeft,
-    ArrowRight,
     CalendarCheck,
     Check,
     Clock,
     PawPrint,
 } from 'lucide-react';
 import { useState } from 'react';
-import BookingModal from './Partials/BookingModal';
 import { SectionLabel } from './Partials/OwnerHero';
 
 /**
  * One service in full, the way a shop item page reads.
  *
- * The menu card is a summary; this is what a client reads before they commit.
+ * The menu card is a summary; this is what a client reads before they call the
+ * clinic about a visit.
  * The rating is broken down rather than smoothed into a single number — a 4.5
  * from two reviews and a 4.5 from fifty are different promises — and every
  * published review behind it is listed, with the visit each one came from so a
@@ -51,17 +46,12 @@ export default function ServiceShow({
     reviews,
     related,
     team,
-    dogs,
-    bookingWindowDays,
 }: PageProps<{
     service: PortalServiceDetail;
     reviews: Paginated<PortalReview>;
     related: PortalService[];
     team: PublicTeamMember[];
-    dogs: PortalDog[];
-    bookingWindowDays: number;
 }>) {
-    const [bookingOpen, setBookingOpen] = useState(false);
     const [loadingMore, setLoadingMore] = useState(false);
 
     const hasReviews = service.count > 0;
@@ -436,18 +426,9 @@ export default function ServiceShow({
                             </p>
                         )}
 
-                        <button
-                            type="button"
-                            onClick={() => setBookingOpen(true)}
-                            className={`${primaryButtonClass} mt-5 w-full`}
-                        >
-                            Book this service
-                            <ArrowRight className="h-4 w-4" />
-                        </button>
-
-                        <p className="mt-3 text-xs leading-relaxed text-[#1a3d1a]/50">
-                            The front desk confirms every request, and you can
-                            follow its status on your appointments page.
+                        <p className="mt-5 rounded-xl bg-[#EFFDF0] px-3.5 py-3 text-xs leading-relaxed text-[#1a3d1a]/70">
+                            Visits are booked through the front desk — call the
+                            clinic and they will find you a time.
                         </p>
 
                         <ul className="mt-5 space-y-2 border-t border-[#1a3d1a]/10 pt-4 text-xs text-[#1a3d1a]/60">
@@ -461,7 +442,7 @@ export default function ServiceShow({
                             </li>
                             <li className="flex items-start gap-2">
                                 <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#E86A10]" />
-                                Pay at the desk once the visit is done
+                                Settled at the clinic when you come in
                             </li>
                         </ul>
                     </div>
@@ -507,21 +488,6 @@ export default function ServiceShow({
                     )}
                 </aside>
             </div>
-
-            <BookingModal
-                service={service}
-                dogs={dogs}
-                team={team}
-                show={bookingOpen}
-                onClose={() => setBookingOpen(false)}
-            />
-
-            {bookingWindowDays > 0 && (
-                <p className="mt-12 text-center text-xs text-[#1a3d1a]/40">
-                    Online booking is open for the next {bookingWindowDays}{' '}
-                    days. Need something sooner? Call the clinic.
-                </p>
-            )}
         </OwnerLayout>
     );
 }

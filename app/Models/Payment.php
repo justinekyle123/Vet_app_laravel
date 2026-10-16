@@ -35,6 +35,7 @@ class Payment extends Model
         'amount',
         'payment_status',
         'reference',
+        'payment_proof_path',
         'paid_at',
     ];
 
@@ -69,5 +70,20 @@ class Payment extends Model
     public function isPaid(): bool
     {
         return $this->payment_status === self::STATUS_PAID;
+    }
+
+    /**
+     * The screenshot of this payment, as the desk opens it, or null when the
+     * client did not upload one.
+     *
+     * Relative, like every other image the clinic renders, so it follows
+     * whichever host the page is served from rather than the value baked into
+     * APP_URL at the time the row was written.
+     */
+    public function proofUrl(): ?string
+    {
+        return $this->payment_proof_path === null
+            ? null
+            : '/storage/'.ltrim($this->payment_proof_path, '/');
     }
 }

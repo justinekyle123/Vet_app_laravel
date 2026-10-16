@@ -5,8 +5,8 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Appointment;
 use App\Models\AppointmentStatus;
-use App\Models\Payment;
 use App\Services\AppointmentNotifications;
+use App\Services\Payments\PortalPayments;
 use Closure;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Carbon;
@@ -45,25 +45,34 @@ class OperationsAppointmentController extends Controller
     public function cancel(
         Appointment $appointment,
         AppointmentNotifications $notifications,
+        PortalPayments $payments,
     ): RedirectResponse {
         // Read the state before it is changed, so the message can tell a
         // declined request apart from a cancelled confirmed visit.
         $previous = $appointment->status?->status_name;
 
-        $response = $this->transition($appointment, 'Cancelled', self::CANCELLABLE, function () use ($appointment) {
-            /*
-             * A visit with money on it is the client's to call off. The clinic
-             * cannot cancel it behind their back: somebody has paid for it — in
-             * part or in full — and the refund is a conversation, not a click.
-             */
-            if (! $this->hasPayment($appointment)) {
-                return;
+        $response = $this->transition($appointment, 'Cancelled', self::CANCELLABLE);
+
+        /*
+         * Anything the client has already sent goes back to them. The clinic
+         * refunds at the desk, so calling the visit off marks its payments
+         * refunded here and the owner's message carries the amount and where
+         * to collect it: nobody should have to chase money for a visit the
+         * clinic decided not to keep.
+         */
+        $appointment->loadMissing('owner', 'service');
+
+        $refunded = $payments->refund($appointment);
+
+        if ($refunded > 0) {
+            if ($previous === 'Confirmed') {
+                $notifications->cancelledWithRefund($appointment, $refunded);
+            } else {
+                $notifications->declinedWithRefund($appointment, $refunded);
             }
 
-            throw ValidationException::withMessages([
-                'appointment' => 'This visit has already been paid for, so the clinic cannot cancel it. Ask the client to cancel it from their portal, then handle the refund at the desk.',
-            ]);
-        });
+            return $response;
+        }
 
         if ($previous === 'Confirmed') {
             $notifications->cancelled($appointment);
@@ -129,16 +138,6 @@ class OperationsAppointmentController extends Controller
         $appointment->update(['status_id' => $this->statusId($to)]);
 
         return back()->with('status', 'appointment-'.strtolower($to));
-    }
-
-    /**
-     * Whether the clinic has taken any money for a visit, part or full.
-     */
-    private function hasPayment(Appointment $appointment): bool
-    {
-        return $appointment->payments()
-            ->where('payment_status', Payment::STATUS_PAID)
-            ->exists();
     }
 
     /**

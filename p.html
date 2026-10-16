@@ -1,0 +1,1804 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Book a Visit — MyVet</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      fontFamily: {
+        sans: ['Inter', 'system-ui', 'sans-serif'],
+        display: ['Fraunces', 'Georgia', 'serif'],
+      },
+      colors: {
+        forest: { 50:'#EFFDF0',100:'#dcf7de',200:'#b9e9bd',600:'#2a5a2a',700:'#1f4a1f',800:'#1a3d1a',900:'#122b12' },
+        ember:  { 50:'#FEF3E7',400:'#f08a3c',500:'#E86A10',600:'#d45e0d' },
+      },
+      boxShadow: {
+        card: '0 1px 2px rgba(26,61,26,0.04), 0 8px 24px -12px rgba(26,61,26,0.12)',
+        lift: '0 4px 12px rgba(26,61,26,0.06), 0 24px 48px -24px rgba(26,61,26,0.18)',
+      },
+    },
+  },
+};
+</script>
+
+<style>
+  html { scroll-behavior: smooth; }
+  body { font-family: 'Inter', system-ui, sans-serif; }
+  .font-display { font-family: 'Fraunces', Georgia, serif; }
+
+  /* ══ Option cards ══════════════════════════════════════ */
+  .option {
+    position: relative; display: flex; gap: 0.875rem;
+    border-radius: 0.875rem; border: 1px solid rgba(26,61,26,0.12);
+    background: #fff; padding: 1rem; cursor: pointer; text-align: left;
+    transition: border-color .2s cubic-bezier(.2,.7,.3,1),
+                background .2s cubic-bezier(.2,.7,.3,1),
+                box-shadow .25s cubic-bezier(.2,.7,.3,1),
+                transform .2s cubic-bezier(.2,.7,.3,1);
+  }
+  .option:hover { border-color: rgba(26,61,26,0.3); transform: translateY(-1px); }
+  .option:active { transform: translateY(0) scale(.995); }
+  .option:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(26,61,26,0.18); }
+  .option[aria-checked="true"] {
+    border-color: #1a3d1a; background: #EFFDF0;
+    box-shadow: 0 0 0 3px rgba(26,61,26,0.07), 0 6px 20px -10px rgba(26,61,26,0.25);
+  }
+  .option-check {
+    position: absolute; top: .6rem; right: .6rem;
+    display: flex; height: 1.25rem; width: 1.25rem;
+    align-items: center; justify-content: center;
+    border-radius: 9999px; background: #1a3d1a; color: #fff;
+    font-size: .65rem; font-weight: 700;
+    opacity: 0; transform: scale(.5) rotate(-30deg);
+    transition: opacity .25s cubic-bezier(.2,.7,.3,1),
+                transform .35s cubic-bezier(.34,1.56,.64,1);
+  }
+  .option[aria-checked="true"] .option-check { opacity: 1; transform: scale(1) rotate(0); }
+
+  /* ══ Service carousel cards ════════════════════════════ */
+  .service-card {
+    position: relative; display: flex; flex-direction: column;
+    overflow: hidden; border-radius: 1rem;
+    border: 1px solid rgba(26,61,26,0.12);
+    background: #fff; cursor: pointer; text-align: left;
+    transition: border-color .2s cubic-bezier(.2,.7,.3,1),
+                box-shadow .3s cubic-bezier(.2,.7,.3,1),
+                transform .25s cubic-bezier(.2,.7,.3,1);
+  }
+  .service-card:hover {
+    transform: translateY(-3px);
+    border-color: rgba(26,61,26,0.28);
+    box-shadow: 0 4px 12px rgba(26,61,26,0.06), 0 24px 48px -24px rgba(26,61,26,0.2);
+  }
+  .service-card:active { transform: translateY(-1px); }
+  .service-card:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(26,61,26,0.2); }
+  .service-card[aria-checked="true"] {
+    border-color: #1a3d1a;
+    box-shadow: 0 0 0 3px rgba(26,61,26,0.08), 0 6px 20px -10px rgba(26,61,26,0.25);
+  }
+
+  .carousel-slide > * { animation: slideIn .38s cubic-bezier(.2,.7,.3,1) both; }
+  .carousel-slide > *:nth-child(1) { animation-delay: .02s; }
+  .carousel-slide > *:nth-child(2) { animation-delay: .08s; }
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateX(8px) scale(.98); }
+    to   { opacity: 1; transform: none; }
+  }
+
+  /* ══ Modal ═════════════════════════════════════════════ */
+  .modal-backdrop {
+    animation: backdropIn .25s ease both;
+  }
+  @keyframes backdropIn { from { opacity: 0; } to { opacity: 1; } }
+  .modal-panel {
+    animation: modalIn .38s cubic-bezier(.34,1.56,.64,1) both;
+  }
+  @keyframes modalIn {
+    from { opacity: 0; transform: translateY(16px) scale(.96); }
+    to   { opacity: 1; transform: none; }
+  }
+
+  /* ══ Step panel entrance ═══════════════════════════════ */
+  .step-panel { animation: stepIn .42s cubic-bezier(.2,.7,.3,1) both; }
+  @keyframes stepIn {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: none; }
+  }
+
+  .stagger > * { animation: fadeUp .48s cubic-bezier(.2,.7,.3,1) both; }
+  .stagger > *:nth-child(1) { animation-delay: .04s; }
+  .stagger > *:nth-child(2) { animation-delay: .09s; }
+  .stagger > *:nth-child(3) { animation-delay: .14s; }
+  .stagger > *:nth-child(4) { animation-delay: .19s; }
+  .stagger > *:nth-child(5) { animation-delay: .24s; }
+  .stagger > *:nth-child(6) { animation-delay: .29s; }
+  .stagger > *:nth-child(7) { animation-delay: .34s; }
+  .stagger > *:nth-child(8) { animation-delay: .39s; }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: none; }
+  }
+
+  /* ══ Success reveal ════════════════════════════════════ */
+  .success-badge { animation: badgePop .6s cubic-bezier(.34,1.56,.64,1) both; }
+  @keyframes badgePop {
+    0%   { opacity: 0; transform: scale(.4); }
+    60%  { opacity: 1; transform: scale(1.08); }
+    100% { transform: scale(1); }
+  }
+  .success-ring { animation: ringPulse 1.4s cubic-bezier(.2,.7,.3,1) .15s both; }
+  @keyframes ringPulse {
+    0%   { opacity: .7; transform: scale(.6); }
+    100% { opacity: 0; transform: scale(1.9); }
+  }
+  .success-check path {
+    stroke-dasharray: 30; stroke-dashoffset: 30;
+    animation: drawCheck .55s cubic-bezier(.65,0,.35,1) .35s both;
+  }
+  @keyframes drawCheck { to { stroke-dashoffset: 0; } }
+
+  .receipt-line { animation: lineIn .4s cubic-bezier(.2,.7,.3,1) both; }
+  @keyframes lineIn {
+    from { opacity: 0; transform: translateX(-6px); }
+    to   { opacity: 1; transform: none; }
+  }
+
+  /* ══ Upload zone ═══════════════════════════════════════ */
+  .upload-zone { transition: border-color .2s ease, background .2s ease, transform .2s ease; }
+  .upload-zone:hover, .upload-zone.is-dragging {
+    border-color: #1a3d1a; background: #EFFDF0; transform: translateY(-1px);
+  }
+
+  /* ══ Stepper ═══════════════════════════════════════════ */
+  .step-node { transition: transform .35s cubic-bezier(.34,1.56,.64,1),
+                           background .3s ease, color .3s ease,
+                           box-shadow .35s ease, border-color .3s ease; }
+  .step-node.is-active { transform: scale(1.08); }
+  .step-connector { transition: background .5s cubic-bezier(.2,.7,.3,1); }
+
+  .value-flash { animation: valueFlash .5s cubic-bezier(.2,.7,.3,1); }
+  @keyframes valueFlash {
+    0%   { background: rgba(232,106,16,0.14); }
+    100% { background: transparent; }
+  }
+
+  /* ══ Date picker ═══════════════════════════════════════ */
+  .date-cell {
+    transition: background .18s ease, color .18s ease,
+                box-shadow .22s ease, transform .18s ease;
+  }
+  .date-cell:not(:disabled):hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px -4px rgba(26,61,26,0.25);
+  }
+  .date-cell:not(:disabled):active { transform: translateY(0) scale(.96); }
+  .date-cell[aria-checked="true"] {
+    background: #1a3d1a; color: white;
+    box-shadow: 0 6px 14px -6px rgba(26,61,26,0.5);
+  }
+  .date-cell:disabled { cursor: not-allowed; }
+
+  .month-transition { animation: monthSlide .35s cubic-bezier(.2,.7,.3,1) both; }
+  @keyframes monthSlide {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: none; }
+  }
+
+  /* ══ Misc ══════════════════════════════════════════════ */
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  .fade-in { animation: fadeIn .35s ease both; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  .line-clamp-2 {
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  body.modal-open { overflow: hidden; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: .01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: .01ms !important;
+    }
+  }
+</style>
+</head>
+
+<body class="min-h-screen bg-forest-50 text-forest-900 antialiased">
+
+<main class="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:py-14">
+
+  <!-- Title -->
+  <div class="mb-8 fade-in">
+    <div class="flex items-center gap-2.5">
+      <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-forest-800 text-forest-50">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5">
+          <circle cx="11" cy="4" r="2"/><circle cx="18" cy="8" r="2"/><circle cx="4" cy="8" r="2"/>
+          <circle cx="7" cy="13" r="2"/>
+          <path d="M11 22c-3 0-5-2-5-4.5 0-2 1.5-4.5 5-4.5s5 2.5 5 4.5c0 2.5-2 4.5-5 4.5Z"/>
+        </svg>
+      </span>
+      <span class="font-display text-xl leading-none text-forest-800">My<span class="text-ember-500">Vet</span></span>
+    </div>
+
+    <p class="mt-6 flex items-center gap-3 text-[0.68rem] font-bold uppercase tracking-[0.16em] text-forest-800/45">
+      <span aria-hidden="true" class="h-px w-8 bg-ember-500"></span>
+      Book a visit
+    </p>
+    <h1 class="mt-3 font-display text-3xl leading-tight text-forest-800 sm:text-4xl">
+      Reserve a time for your dog
+    </h1>
+    <p class="mt-2 max-w-xl text-sm leading-relaxed text-forest-800/60">
+      Four short steps. The clinic confirms your slot once payment is verified —
+      no online checkout, just send and upload your proof.
+    </p>
+  </div>
+
+  <!-- Stepper -->
+  <div class="rounded-2xl border border-forest-800/10 bg-white px-4 py-4 shadow-card sm:px-6 fade-in">
+    <ol id="stepper" class="no-scrollbar flex items-center gap-2 overflow-x-auto sm:justify-center sm:gap-0"></ol>
+    <p id="mobileStepLabel" class="mt-3 text-center text-xs font-semibold text-forest-800/55 sm:hidden"></p>
+  </div>
+
+  <div class="mt-7 grid grid-cols-1 items-start gap-6 lg:grid-cols-12">
+
+    <!-- LEFT -->
+    <div class="space-y-6 lg:col-span-8">
+
+      <!-- ═══ STEP 1 ═══ -->
+      <section data-panel="1" class="step-panel space-y-6">
+
+        <!-- Services + category tabs + carousel -->
+        <div class="rounded-2xl border border-forest-800/10 bg-white shadow-card">
+          <div class="p-6 pb-0 sm:p-7 sm:pb-0">
+            <div class="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <h2 class="font-display text-xl text-forest-800">Which services do you need?</h2>
+                <p class="mt-1 text-sm text-forest-800/60">
+                  Pick one or more from the clinic's live menu. Tap a card to add it.
+                </p>
+              </div>
+
+              <div class="flex items-center gap-2">
+                <button type="button" id="carouselPrev" aria-label="Previous services"
+                        class="flex h-9 w-9 items-center justify-center rounded-full border border-forest-800/15 bg-white text-forest-800 transition-all duration-200 hover:-translate-y-0.5 hover:bg-forest-50 hover:shadow-sm disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:translate-y-0 disabled:hover:bg-white disabled:hover:shadow-none focus:outline-none focus-visible:ring-2 focus-visible:ring-forest-800">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4"><path d="M15 18l-6-6 6-6"/></svg>
+                </button>
+                <button type="button" id="carouselNext" aria-label="Next services"
+                        class="flex h-9 w-9 items-center justify-center rounded-full border border-forest-800/15 bg-white text-forest-800 transition-all duration-200 hover:-translate-y-0.5 hover:bg-forest-50 hover:shadow-sm disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:translate-y-0 disabled:hover:bg-white disabled:hover:shadow-none focus:outline-none focus-visible:ring-2 focus-visible:ring-forest-800">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4"><path d="M9 18l6-6-6-6"/></svg>
+                </button>
+              </div>
+            </div>
+
+            <div id="categoryTabs" class="no-scrollbar mt-5 flex gap-2 overflow-x-auto pb-1"></div>
+          </div>
+
+          <div class="p-6 pt-5 sm:p-7 sm:pt-5">
+            <div id="serviceCarousel" class="grid gap-3 sm:grid-cols-2"></div>
+
+            <div class="mt-5 flex items-center justify-between gap-4 border-t border-forest-800/8 pt-4">
+              <div id="carouselDots" class="flex items-center gap-1.5"></div>
+              <p id="selectedServicesLabel" class="text-xs font-semibold text-forest-800/55"></p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Schedule -->
+        <div class="rounded-2xl border border-forest-800/10 bg-white p-6 shadow-card sm:p-7">
+          <h2 class="font-display text-xl text-forest-800">When should we expect you?</h2>
+          <p class="mt-1 text-sm text-forest-800/60">
+            Open Monday to Saturday, 8:00 AM – 6:00 PM. Book up to a year ahead.
+          </p>
+
+          <!-- ── Date calendar with month navigation ── -->
+          <div class="mt-6">
+            <div class="flex items-center justify-between gap-3">
+              <p class="text-[0.68rem] font-bold uppercase tracking-[0.12em] text-forest-800/50">
+                Preferred date
+              </p>
+              <p id="dateHint" class="text-xs text-forest-800/45"></p>
+            </div>
+
+            <!-- Month navigator -->
+            <div class="mt-3 flex items-center justify-between gap-3 rounded-2xl border border-forest-800/10 bg-forest-50/40 px-3 py-2.5">
+              <button type="button" id="monthPrev" aria-label="Previous month"
+                      class="flex h-8 w-8 items-center justify-center rounded-full text-forest-800 transition-all duration-200 hover:-translate-y-0.5 hover:bg-white hover:shadow-sm disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:translate-y-0 disabled:hover:bg-transparent disabled:hover:shadow-none focus:outline-none focus-visible:ring-2 focus-visible:ring-forest-800">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4"><path d="M15 18l-6-6 6-6"/></svg>
+              </button>
+
+              <p id="monthLabel" class="font-display text-base font-semibold text-forest-800"></p>
+
+              <button type="button" id="monthNext" aria-label="Next month"
+                      class="flex h-8 w-8 items-center justify-center rounded-full text-forest-800 transition-all duration-200 hover:-translate-y-0.5 hover:bg-white hover:shadow-sm disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:translate-y-0 disabled:hover:bg-transparent disabled:hover:shadow-none focus:outline-none focus-visible:ring-2 focus-visible:ring-forest-800">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4"><path d="M9 18l6-6-6-6"/></svg>
+              </button>
+            </div>
+
+            <!-- Weekday header + calendar grid -->
+            <div id="calendarWrap" class="mt-3">
+              <div id="dateHeader" class="grid grid-cols-7 gap-1"></div>
+              <div id="dateList" class="mt-1 grid grid-cols-7 gap-1"></div>
+            </div>
+
+            <p id="closedNote" class="mt-3 text-[0.68rem] leading-relaxed text-forest-800/40">
+              Greyed dates are past or fall on a Sunday, when the clinic is closed.
+            </p>
+          </div>
+
+          <!-- ── Time pills ── -->
+          <div class="mt-6">
+            <p class="text-[0.68rem] font-bold uppercase tracking-[0.12em] text-forest-800/50">
+              Preferred time
+            </p>
+            <div id="timeList" class="mt-2.5 grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-6"></div>
+          </div>
+
+          <!-- Pet -->
+          <div class="mt-6">
+            <label for="petSelect" class="block text-[0.68rem] font-bold uppercase tracking-[0.12em] text-forest-800/50">
+              Which dog?
+            </label>
+            <select id="petSelect"
+              class="mt-2 w-full rounded-xl border border-forest-800/15 bg-forest-50/40 px-3.5 py-2.5 text-sm text-forest-800 transition-all duration-200 focus:border-forest-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-forest-800/15">
+              <option value="">Select a dog…</option>
+              <option value="Bella">Bella · Golden Retriever</option>
+              <option value="Milo">Milo · French Bulldog</option>
+              <option value="Charlie">Charlie · Poodle</option>
+              <option value="__new">+ Add a new dog</option>
+            </select>
+          </div>
+        </div>
+      </section>
+
+
+      <!-- ═══ STEP 2 · Extras ═══ -->
+      <section data-panel="2" class="step-panel hidden space-y-6">
+        <div class="rounded-2xl border border-forest-800/10 bg-white p-6 shadow-card sm:p-7">
+          <h2 class="font-display text-xl text-forest-800">Anything to add?</h2>
+          <p class="mt-1 text-sm text-forest-800/60">
+            Optional add-ons the clinic can do in the same visit. Skip anything you don't need.
+          </p>
+          <div id="extrasList" class="mt-5 grid gap-3 sm:grid-cols-2"></div>
+        </div>
+
+        <div class="rounded-2xl border border-forest-800/10 bg-forest-50 p-5 sm:p-6">
+          <div class="flex gap-3">
+            <span class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-forest-800/8 text-forest-800">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
+                <circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>
+              </svg>
+            </span>
+            <p class="text-sm leading-relaxed text-forest-800/65">
+              Add-ons are done in the same visit where possible. If the vet thinks
+              one isn't suitable today, the desk will refund it or move it to your
+              next appointment.
+            </p>
+          </div>
+        </div>
+      </section>
+
+
+      <!-- ═══ STEP 3 · Payment ═══ -->
+      <section data-panel="3" class="step-panel hidden space-y-6">
+        <div class="rounded-2xl border border-forest-800/10 bg-white p-6 shadow-card sm:p-7">
+          <h2 class="font-display text-xl text-forest-800">How would you like to pay?</h2>
+          <p class="mt-1 text-sm text-forest-800/60">
+            Send the payment using any method below, then upload your proof and
+            reference number. The clinic verifies it before your slot is locked in.
+          </p>
+          <div id="methodList" class="mt-5 grid gap-3 sm:grid-cols-2"></div>
+        </div>
+        <div id="paymentDetail"></div>
+      </section>
+
+
+      <!-- ═══ STEP 4 · Success ═══ -->
+      <section data-panel="4" class="step-panel hidden space-y-6">
+        <div class="relative overflow-hidden rounded-3xl border border-forest-800/10 bg-white p-8 text-center shadow-card sm:p-10">
+          <div aria-hidden="true"
+               class="pointer-events-none absolute inset-0 bg-[radial-gradient(60%_70%_at_50%_0%,rgba(42,90,42,0.10),transparent_70%)]"></div>
+
+          <div class="relative">
+            <div class="mx-auto flex h-20 w-20 items-center justify-center">
+              <span class="success-ring absolute h-20 w-20 rounded-full bg-forest-600/25"></span>
+              <span class="success-badge relative flex h-20 w-20 items-center justify-center rounded-full bg-forest-600 text-white shadow-lg shadow-forest-600/30">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" class="success-check h-9 w-9">
+                  <path d="M20 6 9 17l-5-5"/>
+                </svg>
+              </span>
+            </div>
+
+            <p class="mt-6 text-[0.62rem] font-bold uppercase tracking-[0.18em] text-forest-800/40">Payment submitted</p>
+            <h2 class="mt-2 font-display text-3xl leading-tight text-forest-800 sm:text-4xl">Booking received</h2>
+            <p class="mx-auto mt-3 max-w-md text-sm leading-relaxed text-forest-800/60">
+              We've received your payment details. The clinic will verify your
+              proof of payment and send a confirmation — usually within a few hours.
+            </p>
+
+            <div class="mt-6 inline-flex items-center gap-2.5 rounded-full border border-forest-800/10 bg-forest-50 px-4 py-2">
+              <span class="text-[0.62rem] font-bold uppercase tracking-[0.14em] text-forest-800/45">Booking</span>
+              <span id="heroBookingNo" class="font-mono text-sm font-semibold tracking-wide text-forest-800">—</span>
+            </div>
+
+            <div class="mt-6 flex justify-center">
+              <span class="inline-flex items-center gap-2 rounded-full bg-ember-50 px-3.5 py-1.5 text-[0.68rem] font-bold uppercase tracking-[0.1em] text-ember-600 ring-1 ring-inset ring-ember-500/15">
+                <span class="relative flex h-1.5 w-1.5">
+                  <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-ember-500 opacity-75"></span>
+                  <span class="relative inline-flex h-1.5 w-1.5 rounded-full bg-ember-500"></span>
+                </span>
+                Awaiting verification
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid gap-6 lg:grid-cols-2">
+          <div class="rounded-2xl border border-forest-800/10 bg-white p-6 shadow-card sm:p-7">
+            <div class="flex items-center gap-3">
+              <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-forest-50 text-forest-800">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
+                  <rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>
+                </svg>
+              </span>
+              <h3 class="font-display text-lg text-forest-800">Booking details</h3>
+            </div>
+            <div id="confirmationDetails" class="mt-5 space-y-4"></div>
+            <div id="confirmationExtras"></div>
+          </div>
+
+          <div class="rounded-2xl border border-forest-800/10 bg-white p-6 shadow-card sm:p-7">
+            <div class="flex items-center gap-3">
+              <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-forest-50 text-forest-800">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
+                  <rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/>
+                </svg>
+              </span>
+              <h3 class="font-display text-lg text-forest-800">Payment summary</h3>
+            </div>
+            <div id="confirmationPayment" class="mt-5"></div>
+          </div>
+        </div>
+
+        <div class="rounded-2xl border border-forest-800/10 bg-forest-50 p-6 sm:p-7">
+          <h3 class="font-display text-lg text-forest-800">What happens next</h3>
+          <ol class="mt-5 grid gap-4 sm:grid-cols-3">
+            <li class="flex gap-3">
+              <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-sm font-semibold text-forest-800 shadow-sm">1</span>
+              <span class="text-sm leading-relaxed text-forest-800/65">
+                <strong class="block font-semibold text-forest-800">We verify</strong>
+                The desk checks your reference number and receipt.
+              </span>
+            </li>
+            <li class="flex gap-3">
+              <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-sm font-semibold text-forest-800 shadow-sm">2</span>
+              <span class="text-sm leading-relaxed text-forest-800/65">
+                <strong class="block font-semibold text-forest-800">You get a message</strong>
+                A confirmation lands in your portal inbox.
+              </span>
+            </li>
+            <li class="flex gap-3">
+              <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-sm font-semibold text-forest-800 shadow-sm">3</span>
+              <span class="text-sm leading-relaxed text-forest-800/65">
+                <strong class="block font-semibold text-forest-800">We see your dog</strong>
+                Come in at the booked time — the record is ready.
+              </span>
+            </li>
+          </ol>
+
+          <div class="mt-6 flex flex-wrap gap-3 border-t border-forest-800/10 pt-5">
+            <button type="button"
+              class="inline-flex items-center gap-2 rounded-full border border-forest-800/15 bg-white px-5 py-2.5 text-sm font-semibold text-forest-800 transition-all duration-200 hover:-translate-y-0.5 hover:bg-forest-50 hover:shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-forest-800">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/>
+              </svg>
+              Download receipt
+            </button>
+            <a href="#"
+               class="inline-flex items-center gap-2 rounded-full bg-forest-800 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-forest-800/20 transition-all duration-200 hover:-translate-y-0.5 hover:bg-forest-600 hover:shadow-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-forest-800 focus-visible:ring-offset-2">
+              Go to my portal
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </a>
+          </div>
+        </div>
+      </section>
+
+
+      <!-- Nav bar -->
+      <div id="navBar" class="flex flex-wrap items-center justify-between gap-3 pt-1">
+        <button id="backBtn" type="button"
+          class="inline-flex items-center gap-2 rounded-full border border-forest-800/15 bg-white px-5 py-2.5 text-sm font-semibold text-forest-800 transition-all duration-200 hover:-translate-y-0.5 hover:bg-forest-50 hover:shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-forest-800">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          Back
+        </button>
+
+        <div class="flex items-center gap-3">
+          <p id="errorMsg" class="hidden text-sm font-medium text-ember-600"></p>
+          <button id="nextBtn" type="button"
+            class="inline-flex items-center gap-2 rounded-full bg-forest-800 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-forest-800/20 transition-all duration-200 hover:-translate-y-0.5 hover:bg-forest-600 hover:shadow-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-forest-800 focus-visible:ring-offset-2">
+            <span id="nextLabel">Continue</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- RIGHT: sticky summary -->
+    <aside class="lg:col-span-4">
+      <div class="lg:sticky lg:top-6 space-y-4">
+        <div class="rounded-2xl border border-forest-800/10 bg-white p-6 shadow-card transition-shadow duration-300 hover:shadow-lift">
+          <h2 class="font-display text-lg text-forest-800">Reservation summary</h2>
+          <div id="summaryTop" class="mt-5 space-y-4"></div>
+
+          <div class="mt-6 border-t border-forest-800/10 pt-5">
+            <h3 class="text-[0.68rem] font-bold uppercase tracking-[0.12em] text-forest-800/45">Your price summary</h3>
+            <div id="summaryPrice" class="mt-3.5 space-y-2.5 text-sm"></div>
+          </div>
+
+          <div id="summaryTotal" class="mt-5 border-t border-forest-800/10 pt-4"></div>
+        </div>
+
+        <div class="rounded-2xl border border-forest-800/10 bg-forest-50 p-5">
+          <p class="flex items-center gap-2 text-[0.62rem] font-bold uppercase tracking-[0.14em] text-forest-800/45">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="h-3.5 w-3.5 text-ember-500">
+              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92Z"/>
+            </svg>
+            Need a hand?
+          </p>
+          <p class="mt-2.5 text-sm leading-relaxed text-forest-800/65">
+            Call the front desk on
+            <a href="tel:+639171234567" class="font-semibold text-forest-800 underline decoration-forest-800/20 underline-offset-2 transition-colors hover:text-ember-500">0917 123 4567</a>
+            and we'll walk you through the booking.
+          </p>
+        </div>
+      </div>
+    </aside>
+  </div>
+</main>
+
+
+<footer class="mt-16 border-t border-forest-800/10 bg-white/60">
+  <div class="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-8 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+    <div class="flex items-center gap-2.5">
+      <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-forest-800 text-forest-50">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
+          <circle cx="11" cy="4" r="2"/><circle cx="18" cy="8" r="2"/><circle cx="4" cy="8" r="2"/>
+          <circle cx="7" cy="13" r="2"/>
+          <path d="M11 22c-3 0-5-2-5-4.5 0-2 1.5-4.5 5-4.5s5 2.5 5 4.5c0 2.5-2 4.5-5 4.5Z"/>
+        </svg>
+      </span>
+      <span class="font-display text-lg leading-none text-forest-800">My<span class="text-ember-500">Vet</span></span>
+    </div>
+    <p class="text-xs text-forest-800/45">© <span id="year"></span> MyVet Animal Clinic · Quezon City, Philippines</p>
+  </div>
+</footer>
+
+
+<!-- ══════════════════════════════════════════════════════════════
+     SERVICE DETAIL MODAL
+════════════════════════════════════════════════════════════════ -->
+<div id="serviceModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 sm:p-6" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+  <div id="modalBackdrop" class="modal-backdrop absolute inset-0 bg-forest-900/50 backdrop-blur-sm"></div>
+  <div id="modalPanel" class="modal-panel relative flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-3xl border border-forest-800/10 bg-white shadow-2xl shadow-forest-900/25"></div>
+</div>
+
+
+<script>
+/* ══════════════════════════════════════════════════════════════
+   DATA — mirrors the `services` table
+════════════════════════════════════════════════════════════════ */
+const CATEGORIES = [
+  { category_id: 1, name: 'Wellness',    icon: '🩺', gradient: 'from-emerald-400 to-emerald-600' },
+  { category_id: 2, name: 'Vaccination', icon: '💉', gradient: 'from-sky-400 to-sky-600' },
+  { category_id: 3, name: 'Dental',      icon: '🦷', gradient: 'from-teal-400 to-teal-600' },
+  { category_id: 4, name: 'Grooming',    icon: '✂️', gradient: 'from-amber-400 to-amber-600' },
+  { category_id: 5, name: 'Diagnostics', icon: '🔬', gradient: 'from-violet-400 to-violet-600' },
+];
+
+const SERVICES = [
+  { service_id: 1,  category_id: 1, service_name: 'Wellness Exam',        description: 'A full nose-to-tail physical check-up covering eyes, ears, mouth, coat, heart, lungs, abdomen, and joints. Ideal as a yearly baseline for adult dogs.', price: 850,  duration_minutes: 30, is_active: 1, image_path: null },
+  { service_id: 2,  category_id: 1, service_name: 'Senior Wellness',      description: 'An extended check tuned for dogs seven and older, with additional screening for mobility, vision, dental wear, and age-related conditions.', price: 1200, duration_minutes: 45, is_active: 1, image_path: null },
+  { service_id: 3,  category_id: 1, service_name: 'Puppy Check-up',       description: 'First-year growth and development assessment. We weigh, deworm, and start the vaccination schedule so your pup gets off to the right start.', price: 700,  duration_minutes: 30, is_active: 1, image_path: null },
+  { service_id: 4,  category_id: 1, service_name: 'Pre-Anesthetic Screen',description: 'Blood work and physical checks that confirm your dog is safe to go under anesthesia before any surgery or dental work.', price: 950,  duration_minutes: 20, is_active: 1, image_path: null },
+
+  { service_id: 5,  category_id: 2, service_name: 'Core Vaccination',     description: 'The DHPP (or FVRCP for cats) core shots that protect against the most common and dangerous diseases. Includes a health check and updated record.', price: 1200, duration_minutes: 20, is_active: 1, image_path: null },
+  { service_id: 6,  category_id: 2, service_name: 'Rabies Vaccine',       description: 'Annual rabies booster with an official certificate and record entry — required for travel and licensing in most municipalities.', price: 450,  duration_minutes: 15, is_active: 1, image_path: null },
+  { service_id: 7,  category_id: 2, service_name: 'Bordetella Vaccine',   description: 'Kennel cough protection for dogs who visit parks, day care, groomers, or boarding facilities. Given intranasally or by injection.', price: 850,  duration_minutes: 15, is_active: 1, image_path: null },
+
+  { service_id: 8,  category_id: 3, service_name: 'Dental Cleaning',      description: 'Ultrasonic scaling and polishing under light anesthesia. Removes tartar and plaque above and below the gumline, then a fluoride polish finishes the job.', price: 2500, duration_minutes: 60, is_active: 1, image_path: null },
+  { service_id: 9,  category_id: 3, service_name: 'Tooth Extraction',     description: 'Simple or surgical removal of a damaged or diseased tooth. Includes local anesthesia, a pain plan, and take-home aftercare instructions.', price: 1800, duration_minutes: 45, is_active: 1, image_path: null },
+
+  { service_id: 10, category_id: 4, service_name: 'Grooming Spa',         description: 'Full groom: warm bath, breed-standard cut, blow-dry, nail trim, ear cleaning, and a finishing spritz. Only gentle, pet-safe products used.', price: 1500, duration_minutes: 90, is_active: 1, image_path: null },
+  { service_id: 11, category_id: 4, service_name: 'Bath & Brush',         description: 'A warm bath, blow-dry, and thorough de-shedding brush. Great for double-coated breeds between full grooms.', price: 800,  duration_minutes: 45, is_active: 1, image_path: null },
+
+  { service_id: 12, category_id: 5, service_name: 'Blood Panel',          description: 'In-house complete blood count and chemistry panel. Results usually ready the same day, with a follow-up call from the attending vet.', price: 1800, duration_minutes: 20, is_active: 1, image_path: null },
+  { service_id: 13, category_id: 5, service_name: 'Digital X-Ray',        description: 'Two-view radiograph reviewed by the attending vet the same day. Useful for lameness, injury, or pre-surgical planning.', price: 2200, duration_minutes: 30, is_active: 1, image_path: null },
+];
+
+const EXTRAS = [
+  { id: 'nail',   name: 'Nail Trim',      price: 250,  desc: 'Claw clipping and filing' },
+  { id: 'ear',    name: 'Ear Cleaning',   price: 200,  desc: 'Gentle flush and check' },
+  { id: 'deworm', name: 'Deworming',      price: 450,  desc: 'Weight-based dose' },
+  { id: 'flea',   name: 'Flea Treatment', price: 600,  desc: 'Topical spot-on' },
+  { id: 'blood',  name: 'Blood Panel',    price: 1800, desc: 'In-house lab work' },
+  { id: 'micro',  name: 'Microchipping',  price: 950,  desc: 'Includes registration' },
+];
+
+const TIMES = ['09:00','09:30','10:00','10:30','11:00','11:30',
+               '13:00','13:30','14:00','14:30','15:00','15:30'];
+
+const METHODS = [
+  { id: 'gcash', name: 'GCash',           tag: 'Instant · most popular', color: '#007DFE', letter: 'G', needsProof: true },
+  { id: 'maya',  name: 'Maya (PayMaya)',  tag: 'Instant transfer',       color: '#11B36B', letter: 'M', needsProof: true },
+  { id: 'bank',  name: 'Bank Transfer',   tag: '1–2 banking days',       color: '#475569', letter: 'B', needsProof: true },
+  { id: 'cash',  name: 'Cash on Arrival', tag: 'Pay at the counter',     color: '#E86A10', letter: '₱', needsProof: false },
+];
+
+const ACCOUNT = {
+  gcash: { number: '0917 123 4567', holder: 'MyVet Animal Clinic' },
+  maya:  { number: '0917 123 4567', holder: 'MyVet Animal Clinic' },
+  bank:  { bank: 'BDO Savings', account: '0056 1234 5678', holder: 'MyVet Animal Clinic Inc.' },
+};
+
+const STEPS = [
+  { n: 1, label: 'Service & Schedule' },
+  { n: 2, label: 'Extras' },
+  { n: 3, label: 'Payment' },
+  { n: 4, label: 'Confirmation' },
+];
+
+const MONTH_NAMES = ['January','February','March','April','May','June',
+                     'July','August','September','October','November','December'];
+const WEEKDAY_LABELS = ['Mo','Tu','We','Th','Fr','Sa','Su'];
+
+
+/* ══════════════════════════════════════════════════════════════
+   STATE
+════════════════════════════════════════════════════════════════ */
+const today = (() => { const d = new Date(); d.setHours(0,0,0,0); return d; })();
+const maxBookableDate = (() => {
+  const d = new Date(today);
+  d.setFullYear(d.getFullYear() + 1);   // one year ahead
+  return d;
+})();
+
+const state = {
+  step: 1,
+  /* Services */
+  categoryId: CATEGORIES[0].category_id,
+  slideIndex: 0,
+  selectedServices: new Set(),
+  /* Date picker */
+  viewYear: today.getFullYear(),
+  viewMonth: today.getMonth(),
+  date: '',
+  time: '',
+  pet: '',
+  /* Extras */
+  extras: new Set(),
+  /* Payment */
+  method: null, reference: '', proof: null,
+  /* Modal */
+  modalServiceId: null,
+  /* Confirmation */
+  bookingNo: null, paidAt: null,
+};
+
+let itemsPerView = window.innerWidth >= 640 ? 2 : 1;
+window.addEventListener('resize', () => {
+  const next = window.innerWidth >= 640 ? 2 : 1;
+  if (next !== itemsPerView) {
+    itemsPerView = next;
+    state.slideIndex = 0;
+    renderServiceCarousel();
+  }
+});
+
+
+/* ══════════════════════════════════════════════════════════════
+   HELPERS
+════════════════════════════════════════════════════════════════ */
+const money = (n) => '₱' + Number(n).toLocaleString('en-PH');
+
+const servicesInCategory = (id) =>
+  SERVICES.filter(s => s.category_id === id && s.is_active === 1);
+
+const getService = (id) => SERVICES.find(s => s.service_id === id);
+
+const selectedServicesList = () =>
+  [...state.selectedServices].map(getService).filter(Boolean);
+
+const servicesTotal = () =>
+  selectedServicesList().reduce((sum, s) => sum + Number(s.price), 0);
+
+const extrasTotal = () =>
+  [...state.extras].reduce((sum, id) => sum + (EXTRAS.find(e => e.id === id)?.price ?? 0), 0);
+
+const serviceTotal = () => servicesTotal() + extrasTotal();
+
+const totalDuration = () =>
+  selectedServicesList().reduce((sum, s) => sum + Number(s.duration_minutes), 0);
+
+const methodNeedsProof = () =>
+  METHODS.find(m => m.id === state.method)?.needsProof ?? false;
+
+const categoryOf = (service) => CATEGORIES.find(c => c.category_id === service.category_id);
+
+function prettyDate(iso) {
+  if (!iso) return '';
+  const d = new Date(iso + 'T00:00:00');
+  return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+}
+function prettyDateLong(iso) {
+  if (!iso) return '';
+  const d = new Date(iso + 'T00:00:00');
+  return d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+}
+function prettyTime(t) {
+  if (!t) return '';
+  const [h, m] = t.split(':').map(Number);
+  const suffix = h < 12 ? 'AM' : 'PM';
+  const hour = h % 12 === 0 ? 12 : h % 12;
+  return `${hour}:${String(m).padStart(2, '0')} ${suffix}`;
+}
+function formatStamp(d) {
+  return d.toLocaleString('en-GB', {
+    day: 'numeric', month: 'short', year: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+  });
+}
+
+
+/* ══════════════════════════════════════════════════════════════
+   QR PATTERN
+════════════════════════════════════════════════════════════════ */
+function qrSvg(seed = 42) {
+  const N = 21;
+  let s = seed;
+  const rnd = () => { s = (s * 9301 + 49297) % 233280; return s / 233280; };
+  const grid = Array.from({ length: N }, () => Array(N).fill(false));
+  const finder = (r, c) => {
+    for (let i = 0; i < 7; i++)
+      for (let j = 0; j < 7; j++)
+        grid[r + i][c + j] = (i === 0 || i === 6 || j === 0 || j === 6 ||
+                              (i >= 2 && i <= 4 && j >= 2 && j <= 4));
+  };
+  finder(0,0); finder(0,N-7); finder(N-7,0);
+  for (let i = 0; i < N; i++)
+    for (let j = 0; j < N; j++) {
+      const inF = (i<7&&j<7)||(i<7&&j>N-8)||(i>N-8&&j<7);
+      if (!inF) grid[i][j] = rnd() > 0.5;
+    }
+  let rects = '';
+  for (let i = 0; i < N; i++)
+    for (let j = 0; j < N; j++)
+      if (grid[i][j]) rects += `<rect x="${j}" y="${i}" width="1" height="1"/>`;
+  return `<svg viewBox="0 0 ${N} ${N}" shape-rendering="crispEdges" class="h-full w-full">
+    <rect width="${N}" height="${N}" fill="#fff"/><g fill="#1a3d1a">${rects}</g></svg>`;
+}
+
+
+/* ══════════════════════════════════════════════════════════════
+   STEPPER
+════════════════════════════════════════════════════════════════ */
+function renderStepper() {
+  const el = document.getElementById('stepper');
+  let html = '';
+  STEPS.forEach((s, i) => {
+    if (i > 0) {
+      const done = state.step > i;
+      html += `<li aria-hidden="true" class="step-connector h-[2px] w-5 shrink-0 rounded-full sm:w-14 ${done ? 'bg-forest-600' : 'bg-forest-800/15'}"></li>`;
+    }
+    const done = state.step > s.n;
+    const active = state.step === s.n;
+    const nodeClass = 'step-node ' + (active ? 'is-active' : '');
+    const circle = done
+      ? `<span class="${nodeClass} flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-forest-600 text-white">
+           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4"><path d="M20 6 9 17l-5-5"/></svg>
+         </span>`
+      : active
+        ? `<span class="${nodeClass} flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-ember-500 text-sm font-bold text-white ring-4 ring-ember-500/15">${s.n}</span>`
+        : `<span class="${nodeClass} flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-forest-800/20 bg-white text-sm font-semibold text-forest-800/40">${s.n}</span>`;
+    const label = (done || active) ? 'text-forest-800' : 'text-forest-800/40';
+    html += `<li class="flex shrink-0 items-center gap-2.5">
+      ${circle}
+      <span class="hidden text-sm font-semibold transition-colors duration-300 sm:block ${label}">${s.label}</span>
+    </li>`;
+  });
+  el.innerHTML = html;
+  document.getElementById('mobileStepLabel').textContent =
+    `Step ${state.step} of 4 · ${STEPS[state.step - 1].label}`;
+}
+
+
+/* ══════════════════════════════════════════════════════════════
+   CATEGORY TABS
+════════════════════════════════════════════════════════════════ */
+function renderCategoryTabs() {
+  const el = document.getElementById('categoryTabs');
+  el.innerHTML = CATEGORIES.map(cat => {
+    const active = state.categoryId === cat.category_id;
+    const count = servicesInCategory(cat.category_id).length;
+    return `
+      <button type="button" data-category="${cat.category_id}" aria-pressed="${active}"
+        class="inline-flex shrink-0 items-center gap-2 rounded-full border px-3.5 py-2 text-sm font-semibold transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-forest-800 ${
+          active
+            ? 'border-forest-800 bg-forest-800 text-white shadow-md shadow-forest-800/15'
+            : 'border-forest-800/12 bg-white text-forest-800/65 hover:-translate-y-0.5 hover:border-forest-800/30 hover:text-forest-800'
+        }">
+        <span class="text-sm">${cat.icon}</span>
+        ${cat.name}
+        <span class="rounded-full px-1.5 py-0.5 text-[0.6rem] font-bold tabular-nums ${
+          active ? 'bg-white/20 text-white' : 'bg-forest-800/8 text-forest-800/55'
+        }">${count}</span>
+      </button>`;
+  }).join('');
+
+  el.querySelectorAll('[data-category]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      state.categoryId = Number(btn.dataset.category);
+      state.slideIndex = 0;
+      renderCategoryTabs();
+      renderServiceCarousel();
+    });
+  });
+}
+
+
+/* ══════════════════════════════════════════════════════════════
+   SERVICE CAROUSEL
+════════════════════════════════════════════════════════════════ */
+function renderServiceCarousel() {
+  const carousel = document.getElementById('serviceCarousel');
+  const dots = document.getElementById('carouselDots');
+  const prev = document.getElementById('carouselPrev');
+  const next = document.getElementById('carouselNext');
+  const label = document.getElementById('selectedServicesLabel');
+
+  const services = servicesInCategory(state.categoryId);
+  const category = CATEGORIES.find(c => c.category_id === state.categoryId);
+  const totalSlides = Math.max(1, Math.ceil(services.length / itemsPerView));
+
+  state.slideIndex = Math.min(state.slideIndex, totalSlides - 1);
+  const start = state.slideIndex * itemsPerView;
+  const visible = services.slice(start, start + itemsPerView);
+
+  carousel.className = `carousel-slide grid gap-3 ${itemsPerView === 2 ? 'sm:grid-cols-2' : ''}`;
+
+  if (services.length === 0) {
+    carousel.innerHTML = `
+      <div class="col-span-full rounded-2xl border border-dashed border-forest-800/20 bg-forest-50/60 p-8 text-center">
+        <p class="text-sm text-forest-800/55">No services are available in this category right now.</p>
+      </div>`;
+  } else {
+    carousel.innerHTML = visible.map(s => {
+      const selected = state.selectedServices.has(s.service_id);
+      const gradient = category?.gradient ?? 'from-forest-400 to-forest-600';
+      const icon = category?.icon ?? '🐾';
+
+      const header = s.image_path
+        ? `<img src="${s.image_path}" alt="" class="absolute inset-0 h-full w-full object-cover">`
+        : `<div class="absolute inset-0 bg-gradient-to-br ${gradient}">
+             <div class="absolute inset-0 flex items-center justify-center">
+               <span class="text-5xl opacity-90 drop-shadow-sm">${icon}</span>
+             </div>
+           </div>`;
+
+      return `
+        <div role="checkbox" tabindex="0" aria-checked="${selected}"
+             data-service-id="${s.service_id}" class="service-card">
+          <!-- Header -->
+          <div class="relative h-28 overflow-hidden">
+            ${header}
+            <span aria-hidden="true" class="absolute inset-0 bg-gradient-to-t from-forest-900/65 via-forest-900/10 to-transparent"></span>
+
+            <span class="absolute right-3 top-3 rounded-full bg-white/95 px-2.5 py-1 text-xs font-bold text-forest-800 shadow-sm backdrop-blur">
+              ${money(s.price)}
+            </span>
+
+            <span class="absolute left-3 top-3 flex h-7 w-7 items-center justify-center rounded-full shadow-sm transition-all duration-300 ease-out ${
+              selected
+                ? 'bg-forest-800 text-white opacity-100 scale-100'
+                : 'bg-white/85 text-forest-800/30 opacity-0 scale-75'
+            }">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="h-3.5 w-3.5">
+                <path d="M20 6 9 17l-5-5"/>
+              </svg>
+            </span>
+          </div>
+
+          <!-- Body -->
+          <div class="flex flex-1 flex-col p-4">
+            <h3 class="font-display text-base font-semibold leading-tight text-forest-800">
+              ${s.service_name}
+            </h3>
+            <p class="mt-1 line-clamp-2 text-xs leading-relaxed text-forest-800/55">
+              ${s.description ?? 'Ask the clinic for details.'}
+            </p>
+
+            <div class="mt-3 flex items-center justify-between gap-2 border-t border-forest-800/8 pt-3">
+              <span class="inline-flex items-center gap-1.5 text-xs font-semibold text-forest-800/60">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="h-3.5 w-3.5">
+                  <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
+                </svg>
+                ${s.duration_minutes} min
+              </span>
+
+              <div class="flex items-center gap-2">
+                <button type="button" data-details="${s.service_id}"
+                  class="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[0.68rem] font-semibold text-forest-800/55 transition-colors duration-150 hover:bg-forest-50 hover:text-forest-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-forest-800"
+                  aria-label="View details for ${s.service_name}">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-3 w-3">
+                    <circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>
+                  </svg>
+                  Details
+                </button>
+                <span class="text-xs font-bold uppercase tracking-wider transition-colors duration-200 ${
+                  selected ? 'text-forest-600' : 'text-forest-800/40'
+                }">
+                  ${selected ? 'Added' : 'Add'}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>`;
+    }).join('');
+
+    /* Card toggle */
+    carousel.querySelectorAll('[data-service-id]').forEach(card => {
+      const toggle = () => {
+        const id = Number(card.dataset.serviceId);
+        state.selectedServices.has(id)
+          ? state.selectedServices.delete(id)
+          : state.selectedServices.add(id);
+        hideError();
+        renderServiceCarousel();
+        renderSummary();
+      };
+      card.addEventListener('click', toggle);
+      card.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          toggle();
+        }
+      });
+    });
+
+    /* Details buttons — stop propagation so the card doesn't toggle */
+    carousel.querySelectorAll('[data-details]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openServiceModal(Number(btn.dataset.details));
+      });
+    });
+  }
+
+  /* Arrows */
+  prev.disabled = state.slideIndex === 0;
+  next.disabled = state.slideIndex >= totalSlides - 1;
+
+  /* Dots */
+  if (totalSlides > 1) {
+    dots.innerHTML = Array.from({ length: totalSlides }).map((_, i) => `
+      <button type="button" data-dot="${i}" aria-label="Go to slide ${i + 1}"
+        class="h-1.5 rounded-full transition-all duration-300 ${
+          i === state.slideIndex ? 'w-6 bg-forest-800' : 'w-1.5 bg-forest-800/20 hover:bg-forest-800/40'
+        }"></button>
+    `).join('');
+    dots.querySelectorAll('[data-dot]').forEach(dot => {
+      dot.addEventListener('click', () => {
+        state.slideIndex = Number(dot.dataset.dot);
+        renderServiceCarousel();
+      });
+    });
+  } else {
+    dots.innerHTML = '';
+  }
+
+  /* Count */
+  const count = state.selectedServices.size;
+  const total = totalDuration();
+  label.textContent = count === 0
+    ? 'No services selected yet'
+    : `${count} service${count === 1 ? '' : 's'} · ${total} min total`;
+}
+
+
+/* ══════════════════════════════════════════════════════════════
+   SERVICE DETAIL MODAL
+════════════════════════════════════════════════════════════════ */
+function openServiceModal(serviceId) {
+  state.modalServiceId = serviceId;
+  renderServiceModal();
+
+  const modal = document.getElementById('serviceModal');
+  modal.classList.remove('hidden');
+  modal.classList.add('flex');
+  document.body.classList.add('modal-open');
+}
+
+function closeServiceModal() {
+  state.modalServiceId = null;
+  const modal = document.getElementById('serviceModal');
+  modal.classList.add('hidden');
+  modal.classList.remove('flex');
+  document.body.classList.remove('modal-open');
+}
+
+function renderServiceModal() {
+  const panel = document.getElementById('modalPanel');
+  const s = getService(state.modalServiceId);
+
+  if (!s) { closeServiceModal(); return; }
+
+  const cat = categoryOf(s);
+  const selected = state.selectedServices.has(s.service_id);
+  const gradient = cat?.gradient ?? 'from-forest-400 to-forest-600';
+  const icon = cat?.icon ?? '🐾';
+
+  const header = s.image_path
+    ? `<img src="${s.image_path}" alt="" class="absolute inset-0 h-full w-full object-cover">`
+    : `<div class="absolute inset-0 bg-gradient-to-br ${gradient}">
+         <div class="absolute inset-0 flex items-center justify-center">
+           <span class="text-7xl opacity-90 drop-shadow-sm">${icon}</span>
+         </div>
+       </div>`;
+
+  panel.innerHTML = `
+    <!-- Header image -->
+    <div class="relative h-40 shrink-0 overflow-hidden">
+      ${header}
+      <span aria-hidden="true" class="absolute inset-0 bg-gradient-to-t from-forest-900/70 via-forest-900/20 to-transparent"></span>
+
+      <!-- Category pill -->
+      <span class="absolute left-5 top-5 inline-flex items-center gap-1.5 rounded-full bg-white/95 px-3 py-1 text-[0.62rem] font-bold uppercase tracking-[0.12em] text-forest-800 shadow-sm backdrop-blur">
+        <span>${icon}</span>
+        ${cat?.name ?? 'Service'}
+      </span>
+
+      <!-- Close -->
+      <button type="button" id="modalClose" aria-label="Close"
+        class="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full bg-white/95 text-forest-800 shadow-sm backdrop-blur transition-all duration-200 hover:-translate-y-0.5 hover:bg-white hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-white">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
+          <path d="M18 6 6 18M6 6l12 12"/>
+        </svg>
+      </button>
+
+      <!-- Service name on image -->
+      <h2 id="modalTitle" class="absolute inset-x-5 bottom-4 font-display text-2xl leading-tight text-white drop-shadow-md">
+        ${s.service_name}
+      </h2>
+    </div>
+
+    <!-- Body -->
+    <div class="flex-1 overflow-y-auto p-6 sm:p-7">
+      <p class="text-sm leading-relaxed text-forest-800/70">
+        ${s.description ?? 'Ask the clinic for details about this service.'}
+      </p>
+
+      <!-- Meta grid -->
+      <dl class="mt-6 grid grid-cols-3 gap-3">
+        <div class="rounded-xl border border-forest-800/10 bg-forest-50/60 p-3.5">
+          <dt class="text-[0.58rem] font-bold uppercase tracking-[0.12em] text-forest-800/45">Price</dt>
+          <dd class="mt-1.5 font-display text-lg leading-none text-forest-800">${money(s.price)}</dd>
+        </div>
+        <div class="rounded-xl border border-forest-800/10 bg-forest-50/60 p-3.5">
+          <dt class="text-[0.58rem] font-bold uppercase tracking-[0.12em] text-forest-800/45">Duration</dt>
+          <dd class="mt-1.5 font-display text-lg leading-none text-forest-800">${s.duration_minutes}<span class="ml-0.5 text-xs font-sans font-semibold text-forest-800/50">min</span></dd>
+        </div>
+        <div class="rounded-xl border border-forest-800/10 bg-forest-50/60 p-3.5">
+          <dt class="text-[0.58rem] font-bold uppercase tracking-[0.12em] text-forest-800/45">Code</dt>
+          <dd class="mt-1.5 font-mono text-sm font-semibold tracking-wide text-forest-800">#${String(s.service_id).padStart(4, '0')}</dd>
+        </div>
+      </dl>
+
+      <!-- Category row -->
+      <div class="mt-4 flex items-center justify-between gap-3 rounded-xl border border-forest-800/10 bg-white px-4 py-3">
+        <span class="text-[0.62rem] font-bold uppercase tracking-[0.12em] text-forest-800/45">Filed under</span>
+        <span class="inline-flex items-center gap-1.5 text-sm font-semibold text-forest-800">
+          <span>${icon}</span>
+          ${cat?.name ?? '—'}
+        </span>
+      </div>
+
+      <!-- Availability note -->
+      <div class="mt-4 flex items-start gap-3 rounded-xl bg-forest-50 px-4 py-3.5">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="mt-0.5 h-4 w-4 shrink-0 text-forest-600">
+          <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
+        </svg>
+        <p class="text-xs leading-relaxed text-forest-800/65">
+          Carried out in a single visit. If the vet needs more time than booked, the
+          desk will let you know before you arrive.
+        </p>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="flex flex-wrap items-center justify-end gap-3 border-t border-forest-800/10 bg-forest-50/40 p-5 sm:p-6">
+      <button type="button" id="modalCloseFooter"
+        class="inline-flex items-center gap-2 rounded-full border border-forest-800/15 bg-white px-5 py-2.5 text-sm font-semibold text-forest-800 transition-all duration-200 hover:-translate-y-0.5 hover:bg-white hover:shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-forest-800">
+        Close
+      </button>
+      <button type="button" id="modalToggle"
+        class="inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold shadow-lg transition-all duration-200 hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${
+          selected
+            ? 'border border-forest-800/15 bg-white text-forest-800 hover:shadow-md focus-visible:ring-forest-800'
+            : 'bg-forest-800 text-white shadow-forest-800/20 hover:bg-forest-600 hover:shadow-xl focus-visible:ring-forest-800'
+        }">
+        ${selected ? `
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
+            <path d="M18 6 6 18M6 6l12 12"/>
+          </svg>
+          Remove from booking
+        ` : `
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
+            <path d="M12 5v14M5 12h14"/>
+          </svg>
+          Add to booking
+        `}
+      </button>
+    </div>
+  `;
+
+  /* Wire up */
+  document.getElementById('modalClose')?.addEventListener('click', closeServiceModal);
+  document.getElementById('modalCloseFooter')?.addEventListener('click', closeServiceModal);
+  document.getElementById('modalToggle')?.addEventListener('click', () => {
+    const id = state.modalServiceId;
+    if (id == null) return;
+    state.selectedServices.has(id)
+      ? state.selectedServices.delete(id)
+      : state.selectedServices.add(id);
+    hideError();
+    renderServiceCarousel();
+    renderSummary();
+    renderServiceModal();
+  });
+}
+
+/* Close on backdrop click + Esc */
+document.getElementById('modalBackdrop')?.addEventListener('click', closeServiceModal);
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && state.modalServiceId != null) closeServiceModal();
+});
+
+
+/* ══════════════════════════════════════════════════════════════
+   DATE PICKER — full-year with month navigation
+════════════════════════════════════════════════════════════════ */
+function canGoPrevMonth() {
+  const viewFirst = new Date(state.viewYear, state.viewMonth, 1);
+  const currentFirst = new Date(today.getFullYear(), today.getMonth(), 1);
+  return viewFirst > currentFirst;
+}
+function canGoNextMonth() {
+  const viewLast = new Date(state.viewYear, state.viewMonth + 1, 0);
+  return viewLast < maxBookableDate;
+}
+
+function renderDates() {
+  const header = document.getElementById('dateHeader');
+  const list = document.getElementById('dateList');
+  const label = document.getElementById('monthLabel');
+  const hint = document.getElementById('dateHint');
+  const prev = document.getElementById('monthPrev');
+  const next = document.getElementById('monthNext');
+
+  /* Month label & arrow states */
+  label.textContent = `${MONTH_NAMES[state.viewMonth]} ${state.viewYear}`;
+  prev.disabled = !canGoPrevMonth();
+  next.disabled = !canGoNextMonth();
+
+  /* Weekday headers (Mon-first) */
+  header.innerHTML = WEEKDAY_LABELS.map(d => `
+    <span class="text-center text-[0.58rem] font-bold uppercase tracking-wider ${d === 'Su' ? 'text-forest-800/25' : 'text-forest-800/40'}">${d}</span>
+  `).join('');
+
+  /* Compute calendar cells */
+  const firstOfMonth = new Date(state.viewYear, state.viewMonth, 1);
+  const lastOfMonth = new Date(state.viewYear, state.viewMonth + 1, 0);
+
+  /* Mon-based offset: Mon=0, Tue=1, ..., Sat=5, Sun=6 */
+  const startDow = firstOfMonth.getDay();
+  const offset = startDow === 0 ? 6 : startDow - 1;
+
+  let html = '';
+
+  /* Empty lead-in cells */
+  for (let i = 0; i < offset; i++) html += `<span aria-hidden="true"></span>`;
+
+  /* Day cells */
+  for (let d = 1; d <= lastOfMonth.getDate(); d++) {
+    const date = new Date(state.viewYear, state.viewMonth, d);
+    const dow = date.getDay();
+    const iso = `${state.viewYear}-${String(state.viewMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    const isPast = date < today;
+    const isSunday = dow === 0;
+    const isBeyond = date > maxBookableDate;
+    const isSelected = state.date === iso;
+    const isToday = date.getTime() === today.getTime();
+
+    const disabled = isPast || isSunday || isBeyond;
+
+    if (disabled) {
+      html += `<span aria-hidden="true"
+        class="date-cell flex aspect-square items-center justify-center rounded-xl text-sm font-semibold text-forest-800/20"
+        title="${isSunday ? 'Closed on Sundays' : isPast ? 'Past date' : 'Too far ahead'}">${d}</span>`;
+    } else {
+      html += `
+        <button type="button" role="radio" aria-checked="${isSelected}" data-date="${iso}"
+          class="date-cell relative flex aspect-square items-center justify-center rounded-xl border text-sm font-semibold transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-forest-800 ${
+            isSelected
+              ? 'border-forest-800 bg-forest-800 text-white shadow-md shadow-forest-800/25'
+              : isToday
+                ? 'border-ember-500/40 bg-white text-ember-600 hover:border-ember-500 hover:shadow-sm'
+                : 'border-forest-800/10 bg-white text-forest-800/75 hover:border-forest-800/30 hover:text-forest-800'
+          }">
+          ${d}
+          ${isToday && !isSelected ? `<span class="absolute bottom-1 h-1 w-1 rounded-full bg-ember-500"></span>` : ''}
+        </button>`;
+    }
+  }
+
+  list.innerHTML = html;
+  list.classList.remove('month-transition');
+  void list.offsetWidth;
+  list.classList.add('month-transition');
+
+  /* Hint */
+  hint.textContent = state.date
+    ? prettyDateLong(state.date)
+    : 'Book up to a year ahead';
+
+  /* Wire up day buttons */
+  list.querySelectorAll('[data-date]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      state.date = btn.dataset.date;
+      hideError();
+      renderDates();
+      renderSummary();
+    });
+  });
+}
+
+
+/* ══════════════════════════════════════════════════════════════
+   TIME PICKER
+════════════════════════════════════════════════════════════════ */
+function renderTimes() {
+  const el = document.getElementById('timeList');
+  el.innerHTML = TIMES.map(t => `
+    <button type="button" role="radio" aria-checked="${state.time === t}" data-time="${t}"
+      class="rounded-xl border px-2 py-2 text-sm font-semibold transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-forest-800 ${
+        state.time === t
+          ? 'border-forest-800 bg-forest-800 text-white shadow-md shadow-forest-800/20'
+          : 'border-forest-800/12 bg-white text-forest-800/70 hover:-translate-y-0.5 hover:border-forest-800/30 hover:text-forest-800 hover:shadow-sm'
+      }">
+      ${prettyTime(t)}
+    </button>
+  `).join('');
+
+  el.querySelectorAll('[data-time]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      state.time = btn.dataset.time;
+      hideError(); renderTimes(); renderSummary();
+    });
+  });
+}
+
+
+/* ══════════════════════════════════════════════════════════════
+   EXTRAS
+════════════════════════════════════════════════════════════════ */
+function renderExtras() {
+  const el = document.getElementById('extrasList');
+  el.innerHTML = EXTRAS.map(x => {
+    const on = state.extras.has(x.id);
+    return `
+      <button type="button" role="checkbox" aria-checked="${on}" data-extra="${x.id}" class="option items-start">
+        <span class="option-check">✓</span>
+        <span class="min-w-0 flex-1">
+          <span class="block text-sm font-semibold text-forest-800">${x.name}</span>
+          <span class="mt-0.5 block text-xs text-forest-800/55">${x.desc}</span>
+        </span>
+        <span class="shrink-0 font-semibold text-forest-800">${money(x.price)}</span>
+      </button>`;
+  }).join('');
+
+  el.querySelectorAll('[data-extra]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.extra;
+      state.extras.has(id) ? state.extras.delete(id) : state.extras.add(id);
+      renderExtras(); renderSummary();
+    });
+  });
+}
+
+
+/* ══════════════════════════════════════════════════════════════
+   PAYMENT METHODS
+════════════════════════════════════════════════════════════════ */
+function renderMethods() {
+  const el = document.getElementById('methodList');
+  el.innerHTML = METHODS.map(m => `
+    <button type="button" role="radio" aria-checked="${state.method === m.id}"
+            data-method="${m.id}" class="option items-center">
+      <span class="option-check">✓</span>
+      <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl font-display text-lg font-semibold text-white" style="background:${m.color}">${m.letter}</span>
+      <span class="min-w-0 flex-1">
+        <span class="block text-sm font-semibold text-forest-800">${m.name}</span>
+        <span class="mt-0.5 block text-xs text-forest-800/55">${m.tag}</span>
+      </span>
+    </button>
+  `).join('');
+
+  el.querySelectorAll('[data-method]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      state.method = btn.dataset.method;
+      state.reference = ''; state.proof = null;
+      hideError(); renderMethods(); renderPaymentDetail(); renderSummary();
+    });
+  });
+}
+
+function renderPaymentDetail() {
+  const el = document.getElementById('paymentDetail');
+  if (!state.method) {
+    el.innerHTML = `
+      <div class="rounded-2xl border border-dashed border-forest-800/20 bg-white/60 p-8 text-center fade-in">
+        <p class="text-sm text-forest-800/55">Choose a payment method above to see the next steps.</p>
+      </div>`;
+    return;
+  }
+
+  const m = METHODS.find(x => x.id === state.method);
+
+  if (!m.needsProof) {
+    el.innerHTML = `
+      <div class="rounded-2xl border border-forest-800/10 bg-white p-6 shadow-card sm:p-7 fade-in">
+        <div class="flex items-start gap-4">
+          <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-lg font-semibold text-white" style="background:${m.color}">₱</span>
+          <div class="min-w-0">
+            <h3 class="font-display text-lg text-forest-800">Pay at the counter</h3>
+            <p class="mt-1.5 text-sm leading-relaxed text-forest-800/60">
+              No payment needed now. Just arrive a few minutes early on the day and
+              settle the total at the front desk — cash, card, or GCash on site.
+            </p>
+            <div class="mt-4 flex items-center gap-2 rounded-xl bg-forest-50 px-4 py-3 text-sm text-forest-800/70">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 shrink-0 text-forest-600"><path d="M20 6 9 17l-5-5"/></svg>
+              Your slot is held for 30 minutes past the booked time.
+            </div>
+          </div>
+        </div>
+      </div>`;
+    return;
+  }
+
+  const acct = ACCOUNT[m.id] ?? ACCOUNT.gcash;
+  const accountBlock = m.id === 'bank'
+    ? `<dl class="mt-4 space-y-2.5 text-sm">
+         <div class="flex justify-between gap-4"><dt class="text-forest-800/50">Bank</dt><dd class="font-semibold text-forest-800">${acct.bank}</dd></div>
+         <div class="flex justify-between gap-4"><dt class="text-forest-800/50">Account name</dt><dd class="font-semibold text-forest-800 text-right">${acct.holder}</dd></div>
+         <div class="flex justify-between gap-4"><dt class="text-forest-800/50">Account number</dt><dd class="font-mono font-semibold tracking-wide text-forest-800">${acct.account}</dd></div>
+       </dl>`
+    : `<dl class="mt-4 space-y-2.5 text-sm">
+         <div class="flex justify-between gap-4"><dt class="text-forest-800/50">Send to</dt><dd class="font-mono font-semibold tracking-wide text-forest-800">${acct.number}</dd></div>
+         <div class="flex justify-between gap-4"><dt class="text-forest-800/50">Account name</dt><dd class="font-semibold text-forest-800">${acct.holder}</dd></div>
+       </dl>`;
+
+  const qrBlock = m.id === 'bank' ? '' : `
+    <div class="flex flex-col items-center rounded-2xl border border-forest-800/10 bg-white p-4">
+      <div class="h-32 w-32 rounded-lg ring-1 ring-forest-800/10">${qrSvg(m.id === 'gcash' ? 42 : 77)}</div>
+      <p class="mt-3 text-[0.62rem] font-bold uppercase tracking-[0.12em] text-forest-800/40">Scan to pay</p>
+    </div>`;
+
+  el.innerHTML = `
+    <div class="rounded-2xl border border-forest-800/10 bg-white p-6 shadow-card sm:p-7 fade-in">
+      <div class="flex items-center gap-3">
+        <span class="flex h-9 w-9 items-center justify-center rounded-lg text-sm font-semibold text-white" style="background:${m.color}">${m.letter}</span>
+        <h3 class="font-display text-lg text-forest-800">Pay with ${m.name}</h3>
+      </div>
+
+      <div class="mt-5 grid gap-5 sm:grid-cols-[auto,1fr]">
+        ${qrBlock}
+        <div class="${m.id === 'bank' ? 'sm:col-span-2' : ''}">
+          <p class="text-sm leading-relaxed text-forest-800/60">
+            Send exactly <strong class="font-semibold text-forest-800">${money(serviceTotal())}</strong>
+            to the account below, then upload a screenshot or photo of the receipt.
+          </p>
+          ${accountBlock}
+        </div>
+      </div>
+
+      <div class="mt-7 grid gap-5 border-t border-forest-800/10 pt-6 sm:grid-cols-2">
+        <div>
+          <label for="refInput" class="block text-[0.68rem] font-bold uppercase tracking-[0.12em] text-forest-800/50">Reference number</label>
+          <input id="refInput" type="text" inputmode="numeric" autocomplete="off"
+            placeholder="e.g. 0123 456 789012" value="${state.reference}"
+            class="mt-2 w-full rounded-xl border border-forest-800/15 bg-forest-50/40 px-3.5 py-2.5 font-mono text-sm tracking-wide text-forest-800 placeholder:font-sans placeholder:tracking-normal placeholder:text-forest-800/35 transition-all duration-200 focus:border-forest-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-forest-800/15">
+          <p class="mt-1.5 text-xs text-forest-800/45">Found on your ${m.name} receipt — usually 13 digits.</p>
+        </div>
+
+        <div>
+          <p class="text-[0.68rem] font-bold uppercase tracking-[0.12em] text-forest-800/50">Proof of payment</p>
+          ${state.proof ? `
+            <div class="mt-2 flex items-center gap-3 rounded-xl border border-forest-800/15 bg-forest-50 p-3 fade-in">
+              <img src="${state.proof.dataUrl}" alt="" class="h-14 w-14 shrink-0 rounded-lg object-cover ring-1 ring-forest-800/10">
+              <div class="min-w-0 flex-1">
+                <p class="truncate text-sm font-semibold text-forest-800">${state.proof.name}</p>
+                <p class="text-xs text-forest-800/50">Ready to upload</p>
+              </div>
+              <button type="button" id="removeProof"
+                class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-forest-800/50 transition-colors hover:bg-white hover:text-forest-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-forest-800"
+                aria-label="Remove proof">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4"><path d="M18 6 6 18M6 6l12 12"/></svg>
+              </button>
+            </div>
+          ` : `
+            <label id="dropZone" class="upload-zone mt-2 flex cursor-pointer flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-forest-800/20 bg-forest-50/40 px-4 py-6 text-center">
+              <input id="proofInput" type="file" accept="image/*" class="sr-only">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" class="h-6 w-6 text-forest-800/40">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/>
+              </svg>
+              <span class="text-sm font-semibold text-forest-800">Upload receipt</span>
+              <span class="text-xs text-forest-800/45">PNG or JPG · max 5MB</span>
+            </label>
+          `}
+        </div>
+      </div>
+
+      <div class="mt-6 flex items-start gap-3 rounded-xl bg-ember-50 px-4 py-3.5">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="mt-0.5 h-4 w-4 shrink-0 text-ember-500">
+          <circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>
+        </svg>
+        <p class="text-xs leading-relaxed text-ember-600">
+          The clinic checks each payment by hand. You'll get a confirmation message
+          once it's verified — usually within a few hours during opening times.
+        </p>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('refInput')?.addEventListener('input', (e) => {
+    state.reference = e.target.value;
+    hideError();
+  });
+  document.getElementById('removeProof')?.addEventListener('click', () => {
+    state.proof = null; renderPaymentDetail();
+  });
+  document.getElementById('proofInput')?.addEventListener('change', (e) => handleFile(e.target.files?.[0]));
+
+  const zone = document.getElementById('dropZone');
+  if (zone) {
+    ['dragenter','dragover'].forEach(evt => zone.addEventListener(evt, e => { e.preventDefault(); zone.classList.add('is-dragging'); }));
+    ['dragleave','drop'].forEach(evt => zone.addEventListener(evt, e => { e.preventDefault(); zone.classList.remove('is-dragging'); }));
+    zone.addEventListener('drop', e => {
+      const file = e.dataTransfer?.files?.[0];
+      if (file) handleFile(file);
+    });
+  }
+}
+
+function handleFile(file) {
+  if (!file) return;
+  if (!file.type.startsWith('image/')) { showError('Please upload an image file (PNG or JPG).'); return; }
+  if (file.size > 5 * 1024 * 1024) { showError('That image is over 5MB. Please upload a smaller one.'); return; }
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    state.proof = { name: file.name, dataUrl: e.target.result };
+    hideError(); renderPaymentDetail();
+  };
+  reader.readAsDataURL(file);
+}
+
+
+/* ══════════════════════════════════════════════════════════════
+   CONFIRMATION
+════════════════════════════════════════════════════════════════ */
+function renderConfirmation() {
+  if (!state.bookingNo) state.bookingNo = 'MV-' + Math.floor(100000 + Math.random() * 899999);
+  if (!state.paidAt) state.paidAt = new Date();
+  document.getElementById('heroBookingNo').textContent = state.bookingNo;
+
+  const services = selectedServicesList();
+  const serviceNames = services.map(s => s.service_name).join(', ') || '—';
+  const totalMinutes = services.reduce((sum, s) => sum + Number(s.duration_minutes), 0);
+
+  const details = document.getElementById('confirmationDetails');
+  const rows = [
+    { label: 'Pet',        value: state.pet || '—' },
+    { label: 'Services',   value: serviceNames, wrap: true },
+    { label: 'Total time', value: totalMinutes ? `${totalMinutes} min` : '—' },
+    { label: 'Date',       value: prettyDate(state.date) || '—' },
+    { label: 'Time',       value: prettyTime(state.time) || '—' },
+    { label: 'Submitted',  value: formatStamp(state.paidAt) },
+  ];
+  details.innerHTML = rows.map(r => `
+    <div class="receipt-line flex items-start justify-between gap-4">
+      <p class="shrink-0 text-[0.62rem] font-bold uppercase tracking-[0.12em] text-forest-800/40">${r.label}</p>
+      <p class="text-right text-sm font-semibold text-forest-800 ${r.wrap ? '' : 'whitespace-nowrap'}">${r.value}</p>
+    </div>
+  `).join('');
+
+  const extrasEl = document.getElementById('confirmationExtras');
+  if (state.extras.size > 0) {
+    extrasEl.innerHTML = `
+      <div class="mt-5 border-t border-forest-800/10 pt-5">
+        <p class="text-[0.62rem] font-bold uppercase tracking-[0.12em] text-forest-800/40">Add-ons</p>
+        <ul class="mt-2.5 flex flex-wrap gap-2 stagger">
+          ${[...state.extras].map(id => {
+            const x = EXTRAS.find(e => e.id === id);
+            return `<li class="rounded-full bg-forest-50 px-3 py-1 text-xs font-semibold text-forest-800/75">${x.name}</li>`;
+          }).join('')}
+        </ul>
+      </div>`;
+  } else extrasEl.innerHTML = '';
+
+  const m = METHODS.find(x => x.id === state.method);
+  const needsProof = m?.needsProof ?? false;
+  const payment = document.getElementById('confirmationPayment');
+
+  const lineItems = [];
+  services.forEach(s => lineItems.push({ label: s.service_name, value: s.price }));
+  [...state.extras].forEach(id => {
+    const x = EXTRAS.find(e => e.id === id);
+    if (x) lineItems.push({ label: x.name, value: x.price });
+  });
+
+  payment.innerHTML = `
+    <div class="flex items-center justify-between gap-4 rounded-xl bg-forest-50 p-4 receipt-line">
+      <div class="flex items-center gap-3">
+        <span class="flex h-10 w-10 items-center justify-center rounded-lg text-sm font-bold text-white" style="background:${m?.color ?? '#1a3d1a'}">${m?.letter ?? '?'}</span>
+        <div>
+          <p class="text-[0.62rem] font-bold uppercase tracking-[0.12em] text-forest-800/40">Paid via</p>
+          <p class="text-sm font-semibold text-forest-800">${m?.name ?? '—'}</p>
+        </div>
+      </div>
+      <span class="inline-flex items-center gap-1.5 rounded-full bg-ember-500/10 px-3 py-1 text-[0.62rem] font-bold uppercase tracking-[0.08em] text-ember-600">
+        <span class="relative flex h-1.5 w-1.5">
+          <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-ember-500 opacity-75"></span>
+          <span class="relative inline-flex h-1.5 w-1.5 rounded-full bg-ember-500"></span>
+        </span>
+        Pending
+      </span>
+    </div>
+
+    ${needsProof ? `
+      <div class="mt-4 space-y-3 receipt-line">
+        <div class="flex items-center justify-between gap-4">
+          <span class="text-[0.62rem] font-bold uppercase tracking-[0.12em] text-forest-800/40">Reference</span>
+          <span class="font-mono text-sm font-semibold tracking-wide text-forest-800">${state.reference || '—'}</span>
+        </div>
+        ${state.proof ? `
+          <div class="flex items-center gap-3 rounded-xl border border-forest-800/10 bg-white p-2.5">
+            <img src="${state.proof.dataUrl}" alt="" class="h-12 w-12 shrink-0 rounded-lg object-cover ring-1 ring-forest-800/10">
+            <div class="min-w-0 flex-1">
+              <p class="truncate text-xs font-semibold text-forest-800">${state.proof.name}</p>
+              <p class="text-[0.68rem] text-forest-800/50">Attached</p>
+            </div>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 shrink-0 text-forest-600"><path d="M20 6 9 17l-5-5"/></svg>
+          </div>
+        ` : ''}
+      </div>
+    ` : `
+      <div class="mt-4 flex items-start gap-3 rounded-xl bg-forest-50/60 px-4 py-3 receipt-line">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="mt-0.5 h-4 w-4 shrink-0 text-forest-600"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+        <p class="text-xs leading-relaxed text-forest-800/60">You'll settle this at the front desk when you arrive.</p>
+      </div>
+    `}
+
+    <div class="mt-5 space-y-2.5 border-t border-forest-800/10 pt-5 text-sm">
+      ${lineItems.map(l => `
+        <div class="flex items-center justify-between gap-4 receipt-line">
+          <span class="text-forest-800/60">${l.label}</span>
+          <span class="font-semibold text-forest-800">${money(l.value)}</span>
+        </div>
+      `).join('')}
+    </div>
+
+    <div class="mt-4 flex items-center justify-between gap-4 border-t border-forest-800/10 pt-4 receipt-line">
+      <span class="font-display text-lg text-forest-800">Total</span>
+      <span class="font-display text-2xl leading-none text-forest-800">${money(serviceTotal())}</span>
+    </div>
+  `;
+}
+
+
+/* ══════════════════════════════════════════════════════════════
+   SUMMARY SIDEBAR
+════════════════════════════════════════════════════════════════ */
+function renderSummary() {
+  const top = document.getElementById('summaryTop');
+  const price = document.getElementById('summaryPrice');
+  const total = document.getElementById('summaryTotal');
+
+  const services = selectedServicesList();
+  const serviceNames = services.length ? services.map(s => s.service_name).join(', ') : 'Not selected yet';
+  const totalMinutes = totalDuration();
+
+  const items = [
+    { label: 'Services', value: serviceNames, empty: services.length === 0 },
+    { label: 'Total time', value: totalMinutes ? `${totalMinutes} min` : 'Not set', empty: !totalMinutes },
+    { label: 'Date',     value: prettyDate(state.date) || 'Not chosen yet', empty: !state.date },
+    { label: 'Time',     value: prettyTime(state.time) || 'Not chosen yet', empty: !state.time },
+    { label: 'Pet',      value: state.pet || 'Not chosen yet', empty: !state.pet },
+  ];
+  top.innerHTML = items.map(i => `
+    <div class="flex items-start justify-between gap-4">
+      <p class="shrink-0 text-[0.62rem] font-bold uppercase tracking-[0.12em] text-forest-800/40">${i.label}</p>
+      <p class="max-w-[62%] text-right text-sm ${i.empty ? 'text-forest-800/35 font-normal' : 'value-flash font-semibold text-forest-800 rounded px-1.5'}">${i.value}</p>
+    </div>
+  `).join('');
+
+  const lines = [];
+  services.forEach(s => lines.push({ label: s.service_name, value: s.price }));
+  [...state.extras].forEach(id => {
+    const x = EXTRAS.find(e => e.id === id);
+    if (x) lines.push({ label: x.name, value: x.price });
+  });
+  price.innerHTML = lines.length
+    ? lines.map(l => `
+        <div class="flex items-center justify-between gap-4 fade-in">
+          <span class="truncate text-forest-800/60" title="${l.label}">${l.label}</span>
+          <span class="shrink-0 font-semibold text-forest-800">${money(l.value)}</span>
+        </div>`).join('')
+    : `<p class="text-sm text-forest-800/40">Pick at least one service to see pricing.</p>`;
+
+  total.innerHTML = `
+    <div class="flex items-center justify-between gap-4">
+      <span class="font-display text-lg text-forest-800">Total</span>
+      <span class="value-flash rounded px-1.5 font-display text-2xl leading-none text-forest-800">${money(serviceTotal())}</span>
+    </div>
+    <p class="mt-2 text-xs text-forest-800/45">No booking fees. Pay only for what's done.</p>
+  `;
+}
+
+
+/* ══════════════════════════════════════════════════════════════
+   STEP NAVIGATION
+════════════════════════════════════════════════════════════════ */
+function renderStep() {
+  document.querySelectorAll('[data-panel]').forEach(p => {
+    p.classList.toggle('hidden', Number(p.dataset.panel) !== state.step);
+  });
+
+  const active = document.querySelector(`[data-panel="${state.step}"]`);
+  if (active) {
+    active.classList.remove('step-panel');
+    void active.offsetWidth;
+    active.classList.add('step-panel');
+  }
+
+  const backBtn = document.getElementById('backBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  const nextLabel = document.getElementById('nextLabel');
+  const navBar = document.getElementById('navBar');
+
+  backBtn.style.visibility = state.step === 1 ? 'hidden' : 'visible';
+
+  if (state.step === 4) {
+    navBar.style.display = 'none';
+  } else {
+    navBar.style.display = '';
+    nextBtn.classList.remove('hidden');
+    nextLabel.textContent = state.step === 3 ? 'Confirm payment' : 'Continue';
+  }
+
+  renderStepper();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function validateStep() {
+  if (state.step === 1) {
+    if (state.selectedServices.size === 0) return 'Please choose at least one service.';
+    if (!state.date) return 'Please pick a date.';
+    if (!state.time) return 'Please pick a time slot.';
+    if (!state.pet)  return 'Please choose which dog is coming.';
+  }
+  if (state.step === 3) {
+    if (!state.method) return 'Please choose a payment method.';
+    if (methodNeedsProof()) {
+      if (!state.reference.trim()) return 'Please enter the payment reference number.';
+      if (!state.proof)            return 'Please upload a photo of your receipt.';
+    }
+  }
+  return null;
+}
+
+function showError(msg) {
+  const el = document.getElementById('errorMsg');
+  el.textContent = msg;
+  el.classList.remove('hidden');
+  el.classList.add('fade-in');
+}
+function hideError() {
+  document.getElementById('errorMsg').classList.add('hidden');
+}
+
+
+/* ══════════════════════════════════════════════════════════════
+   EVENT WIRING
+════════════════════════════════════════════════════════════════ */
+document.getElementById('nextBtn').addEventListener('click', () => {
+  const error = validateStep();
+  if (error) { showError(error); return; }
+  hideError();
+  if (state.step < 4) {
+    state.step += 1;
+    renderStep();
+    if (state.step === 3) renderMethods();
+    if (state.step === 4) renderConfirmation();
+  }
+});
+
+document.getElementById('backBtn').addEventListener('click', () => {
+  if (state.step > 1) {
+    state.step -= 1;
+    hideError();
+    renderStep();
+    if (state.step === 3) { renderMethods(); renderPaymentDetail(); }
+  }
+});
+
+/* Carousel arrows */
+document.getElementById('carouselPrev').addEventListener('click', () => {
+  if (state.slideIndex > 0) { state.slideIndex--; renderServiceCarousel(); }
+});
+document.getElementById('carouselNext').addEventListener('click', () => {
+  const totalSlides = Math.ceil(servicesInCategory(state.categoryId).length / itemsPerView);
+  if (state.slideIndex < totalSlides - 1) { state.slideIndex++; renderServiceCarousel(); }
+});
+
+/* Month navigation */
+document.getElementById('monthPrev').addEventListener('click', () => {
+  if (!canGoPrevMonth()) return;
+  state.viewMonth -= 1;
+  if (state.viewMonth < 0) { state.viewMonth = 11; state.viewYear -= 1; }
+  renderDates();
+});
+document.getElementById('monthNext').addEventListener('click', () => {
+  if (!canGoNextMonth()) return;
+  state.viewMonth += 1;
+  if (state.viewMonth > 11) { state.viewMonth = 0; state.viewYear += 1; }
+  renderDates();
+});
+
+/* Pet */
+document.getElementById('petSelect').addEventListener('change', (e) => {
+  state.pet = e.target.value === '__new' ? '' : e.target.value;
+  if (e.target.value === '__new') {
+    showError('Adding a new dog happens in your portal — choose an existing dog for now.');
+  } else hideError();
+  renderSummary();
+});
+
+
+/* ══════════════════════════════════════════════════════════════
+   INIT
+════════════════════════════════════════════════════════════════ */
+(function init() {
+  document.getElementById('year').textContent = new Date().getFullYear();
+  renderCategoryTabs();
+  renderServiceCarousel();
+  renderDates();
+  renderTimes();
+  renderExtras();
+  renderSummary();
+  renderStep();
+})();
+</script>
+</body>
+</html>

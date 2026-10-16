@@ -301,3 +301,397 @@
         transform: translateY(0);
     }
 }
+
+/* -------------------------------------------------------------------
+   Booking wizard — the owner portal's four-step booking flow.
+
+   Option toggles, service carousel cards, the stepper, the service
+   detail modal, and the success reveal, with the same easing the
+   booking mock-up uses so every state change eases rather than jumps.
+   Only the booking page and its calendar use these class names.
+   ------------------------------------------------------------------- */
+
+@layer utilities {
+    /* Selectable option cards: extras and payment methods. */
+    .option {
+        position: relative;
+        display: flex;
+        gap: 0.875rem;
+        border-radius: 0.875rem;
+        border: 1px solid rgba(26, 61, 26, 0.12);
+        background: #fff;
+        padding: 1rem;
+        cursor: pointer;
+        text-align: left;
+        transition:
+            border-color 0.2s cubic-bezier(0.2, 0.7, 0.3, 1),
+            background 0.2s cubic-bezier(0.2, 0.7, 0.3, 1),
+            box-shadow 0.25s cubic-bezier(0.2, 0.7, 0.3, 1),
+            transform 0.2s cubic-bezier(0.2, 0.7, 0.3, 1);
+    }
+
+    .option:hover {
+        border-color: rgba(26, 61, 26, 0.3);
+        transform: translateY(-1px);
+    }
+
+    .option:active {
+        transform:
+            translateY(0) scale(0.995);
+    }
+
+    .option:focus-visible {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(26, 61, 26, 0.18);
+    }
+
+    .option[aria-checked='true'],
+    .option[aria-pressed='true'] {
+        border-color: #1a3d1a;
+        background: #effdf0;
+        box-shadow:
+            0 0 0 3px rgba(26, 61, 26, 0.07),
+            0 6px 20px -10px rgba(26, 61, 26, 0.25);
+    }
+
+    /* The tick that springs into the corner of a chosen option. */
+    .option-check {
+        position: absolute;
+        top: 0.6rem;
+        right: 0.6rem;
+        display: flex;
+        height: 1.25rem;
+        width: 1.25rem;
+        align-items: center;
+        justify-content: center;
+        border-radius: 9999px;
+        background: #1a3d1a;
+        color: #fff;
+        opacity: 0;
+        transform: scale(0.5) rotate(-30deg);
+        transition:
+            opacity 0.25s cubic-bezier(0.2, 0.7, 0.3, 1),
+            transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .option[aria-checked='true'] .option-check,
+    .option[aria-pressed='true'] .option-check {
+        opacity: 1;
+        transform: scale(1) rotate(0);
+    }
+
+    /* Service cards in the step-one carousel. */
+    .service-card {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        border-radius: 1rem;
+        border: 1px solid rgba(26, 61, 26, 0.12);
+        background: #fff;
+        cursor: pointer;
+        text-align: left;
+        transition:
+            border-color 0.2s cubic-bezier(0.2, 0.7, 0.3, 1),
+            box-shadow 0.3s cubic-bezier(0.2, 0.7, 0.3, 1),
+            transform 0.25s cubic-bezier(0.2, 0.7, 0.3, 1);
+    }
+
+    .service-card:hover {
+        transform: translateY(-3px);
+        border-color: rgba(26, 61, 26, 0.28);
+        box-shadow:
+            0 4px 12px rgba(26, 61, 26, 0.06),
+            0 24px 48px -24px rgba(26, 61, 26, 0.2);
+    }
+
+    .service-card:active {
+        transform: translateY(-1px);
+    }
+
+    .service-card:focus-visible {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(26, 61, 26, 0.2);
+    }
+
+    .service-card[aria-checked='true'],
+    .service-card[aria-pressed='true'] {
+        border-color: #1a3d1a;
+        box-shadow:
+            0 0 0 3px rgba(26, 61, 26, 0.08),
+            0 6px 20px -10px rgba(26, 61, 26, 0.25);
+    }
+
+    /* Cards glide in from the right whenever the carousel page changes;
+       remounting the container (via a React key) replays the entrance. */
+    .carousel-slide > * {
+        animation: carousel-in 0.38s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+    }
+
+    .carousel-slide > *:nth-child(1) {
+        animation-delay: 0.02s;
+    }
+
+    .carousel-slide > *:nth-child(2) {
+        animation-delay: 0.08s;
+    }
+
+    /* Service detail modal. */
+    .modal-backdrop {
+        animation: backdrop-in 0.25s ease both;
+    }
+
+    .modal-panel {
+        animation: modal-in 0.38s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    }
+
+    /* A step panel rises into place when the wizard moves on. */
+    .step-panel {
+        animation: step-in 0.42s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+    }
+
+    .stagger > * {
+        animation: fade-up-short 0.48s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+    }
+
+    .stagger > *:nth-child(1) {
+        animation-delay: 0.04s;
+    }
+
+    .stagger > *:nth-child(2) {
+        animation-delay: 0.09s;
+    }
+
+    .stagger > *:nth-child(3) {
+        animation-delay: 0.14s;
+    }
+
+    .stagger > *:nth-child(4) {
+        animation-delay: 0.19s;
+    }
+
+    .stagger > *:nth-child(5) {
+        animation-delay: 0.24s;
+    }
+
+    .stagger > *:nth-child(6) {
+        animation-delay: 0.29s;
+    }
+
+    .stagger > *:nth-child(7) {
+        animation-delay: 0.34s;
+    }
+
+    .stagger > *:nth-child(8) {
+        animation-delay: 0.39s;
+    }
+
+    /* Success reveal: the badge pops, a ring pulses out, the tick draws. */
+    .success-badge {
+        animation: badge-pop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    }
+
+    .success-ring {
+        animation: ring-pulse 1.4s cubic-bezier(0.2, 0.7, 0.3, 1) 0.15s both;
+    }
+
+    .success-check path {
+        stroke-dasharray: 30;
+        stroke-dashoffset: 30;
+        animation: draw-check 0.55s cubic-bezier(0.65, 0, 0.35, 1) 0.35s both;
+    }
+
+    /* The proof-of-payment drop target. */
+    .upload-zone {
+        transition:
+            border-color 0.2s ease,
+            background 0.2s ease,
+            transform 0.2s ease;
+    }
+
+    .upload-zone:hover,
+    .upload-zone.is-dragging {
+        border-color: #1a3d1a;
+        background: #effdf0;
+        transform: translateY(-1px);
+    }
+
+    /* Stepper nodes scale up when active and colour in as steps complete. */
+    .step-node {
+        transition:
+            transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1),
+            background 0.3s ease,
+            color 0.3s ease,
+            box-shadow 0.35s ease,
+            border-color 0.3s ease;
+    }
+
+    .step-node.is-active {
+        transform: scale(1.08);
+    }
+
+    .step-connector {
+        transition: background 0.5s cubic-bezier(0.2, 0.7, 0.3, 1);
+    }
+
+    /* A summary value flushes warm for half a second when it changes. */
+    .value-flash {
+        animation: value-flash 0.5s cubic-bezier(0.2, 0.7, 0.3, 1);
+    }
+
+    /* Calendar days lift on hover and settle when picked. */
+    .date-cell {
+        transition:
+            background 0.18s ease,
+            color 0.18s ease,
+            box-shadow 0.22s ease,
+            transform 0.18s ease;
+    }
+
+    .date-cell:not(:disabled):hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 10px -4px rgba(26, 61, 26, 0.25);
+    }
+
+    .date-cell:not(:disabled):active {
+        transform:
+            translateY(0) scale(0.96);
+    }
+
+    .date-cell[aria-checked='true'] {
+        background: #1a3d1a;
+        color: #fff;
+        box-shadow: 0 6px 14px -6px rgba(26, 61, 26, 0.5);
+    }
+
+    .date-cell:disabled {
+        cursor: not-allowed;
+    }
+
+    .month-transition {
+        animation: month-slide 0.35s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+    }
+
+    .fade-in {
+        animation: fade-in-quick 0.35s ease both;
+    }
+}
+
+@keyframes carousel-in {
+    from {
+        opacity: 0;
+        transform: translateX(8px) scale(0.98);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+@keyframes backdrop-in {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes modal-in {
+    from {
+        opacity: 0;
+        transform:
+            translateY(16px) scale(0.96);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+@keyframes step-in {
+    from {
+        opacity: 0;
+        transform: translateY(14px);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+@keyframes fade-up-short {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+@keyframes badge-pop {
+    0% {
+        opacity: 0;
+        transform: scale(0.4);
+    }
+    60% {
+        opacity: 1;
+        transform: scale(1.08);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+@keyframes ring-pulse {
+    0% {
+        opacity: 0.7;
+        transform: scale(0.6);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(1.9);
+    }
+}
+
+@keyframes draw-check {
+    to {
+        stroke-dashoffset: 0;
+    }
+}
+
+@keyframes value-flash {
+    0% {
+        background: rgba(232, 106, 16, 0.14);
+    }
+    100% {
+        background: transparent;
+    }
+}
+
+@keyframes month-slide {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+@keyframes fade-in-quick {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+/* The modal holds the page still behind it. */
+body.modal-open {
+    overflow: hidden;
+}

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Appointment;
 use App\Models\AppointmentStatus;
 use App\Models\Payment;
+use App\Services\Appointments\BookingActions;
 use App\Services\Payments\PortalPayments;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -63,7 +64,10 @@ class OperationsDashboardController extends Controller
      * The payment bookkeeping, shared with the owner portal so a visit's
      * balance means the same thing on both sides of the desk.
      */
-    public function __construct(private PortalPayments $payments) {}
+    public function __construct(
+        private PortalPayments $payments,
+        private BookingActions $actions,
+    ) {}
 
     public function __invoke(Request $request): Response
     {
@@ -338,9 +342,9 @@ class OperationsDashboardController extends Controller
         $status = $appointment->status?->status_name;
         $settlement = $this->payments->settlement($appointment);
 
-        // Any money on a visit makes it the client's to call off: the clinic
-        // does not cancel something somebody has already paid for.
-        $hasPayment = $settlement['state'] !== 'unpaid';
+        // A visit the client has already paid for can still be called off from
+        // the desk; the money simply goes back, so the row says so up front.
+        $hasMoney = (float) $settlement['paid'] > 0;
 
         return [
             'id' => $appointment->appointment_id,
@@ -362,28 +366,11 @@ class OperationsDashboardController extends Controller
             // be part-paid (paying ahead) or is due in full (after the visit).
             'settlement' => $settlement,
             // What the desk is allowed to do next, so the page does not have to
-            // re-derive the state machine.
-            'can_confirm' => $status === 'Requested',
-            // A visit can only be closed out once it is actually due, so a
-            // future booking does not offer the action at all.
-            'can_complete' => $status === 'Confirmed' && ! $this->isScheduledInFuture($appointment),
-            'can_no_show' => $status === 'Confirmed',
-            'can_cancel' => in_array($status, ['Requested', 'Confirmed'], true) && ! $hasPayment,
-            // Why cancel is out of reach, for the page to say instead of
-            // silently hiding the button.
-            'cancel_blocked_by_payment' => $hasPayment,
+            // re-derive the state machine. Shared with the client's own record.
+            ...$this->actions->for($appointment),
+            // Cancelling a visit with money on it hands that money back at the
+            // desk, so the confirmation says so before it is confirmed.
+            'refund_on_cancel' => $status !== 'Cancelled' && $hasMoney,
         ];
-    }
-
-    /** True when the visit's date and time are still ahead of now. */
-    private function isScheduledInFuture(Appointment $appointment): bool
-    {
-        if ($appointment->appointment_date === null) {
-            return false;
-        }
-
-        $time = (string) ($appointment->appointment_time ?: '00:00:00');
-
-        return $appointment->appointment_date->copy()->setTimeFromTimeString($time)->isFuture();
     }
 }

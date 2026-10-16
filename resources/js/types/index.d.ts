@@ -12,6 +12,7 @@ export interface User {
     name: string;
     email: string;
     role: UserRole;
+    profile_photo_url: string | null;
 }
 
 /**
@@ -77,6 +78,7 @@ export interface AdminPayment {
     amount: string;
     method: string | null;
     reference: string | null;
+    proof_url: string | null;
     paid_at: string | null;
     /** True when the money arrived before the visit was due. */
     advance: boolean;
@@ -134,8 +136,8 @@ export interface PortalAppointment {
     price: string | null;
     staff: string | null;
     notes: string | null;
-    /** True while the visit can still be cancelled (requested or confirmed). */
-    cancellable: boolean;
+    /** True while the owner may move the visit (requested or confirmed). */
+    reschedulable: boolean;
     /** True while the portal should still offer to take a payment. */
     payable: boolean;
     /** The money on this visit: price, paid, balance, and what may be paid. */
@@ -160,6 +162,8 @@ export interface PortalSettlement {
     price: string;
     paid: string;
     balance: string;
+    /** Money handed back on a visit the clinic called off. */
+    refunded: string;
     state: SettlementState;
     /** True while the visit is still ahead, so part of it may be paid now. */
     advance: boolean;

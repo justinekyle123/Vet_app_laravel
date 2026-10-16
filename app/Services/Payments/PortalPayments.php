@@ -31,7 +31,7 @@ use Illuminate\Validation\ValidationException;
 class PortalPayments
 {
     /** The visit states the portal will take a payment for. */
-    public const PAYABLE_STATUSES = ['Confirmed', 'Completed'];
+    public const PAYABLE_STATUSES = ['Requested', 'Confirmed', 'Completed'];
 
     /** A cent, as a fudge factor when comparing money. */
     private const CENT = 0.005;
@@ -81,7 +81,7 @@ class PortalPayments
      */
     public function mayPayInPart(Appointment $appointment): bool
     {
-        if ($appointment->status?->status_name !== 'Confirmed') {
+        if (! in_array($appointment->status?->status_name, ['Requested', 'Confirmed'], true)) {
             return false;
         }
 
@@ -132,6 +132,7 @@ class PortalPayments
      *     paid: string,
      *     balance: string,
      *     state: 'unpaid'|'part'|'paid',
+     *     refunded: string,
      *     advance: bool,
      *     last_payment: array{method: string|null, amount: string, reference: string|null, paid_at: string|null}|null
      * }
@@ -154,6 +155,10 @@ class PortalPayments
             'paid' => $this->amount($paid),
             'balance' => $this->amount($balance),
             'state' => $balance <= 0 && $paid > 0 ? 'paid' : ($paid > 0 ? 'part' : 'unpaid'),
+            // Money handed back on a visit the clinic called off. A refunded
+            // visit therefore reads as owing its price, which is why every
+            // page that shows a balance shows this next to it.
+            'refunded' => $this->amount($this->refundedTotal($appointment)),
             'advance' => $this->mayPayInPart($appointment),
             'last_payment' => $last === null ? null : [
                 'method' => $last->method?->method_name,
@@ -184,6 +189,7 @@ class PortalPayments
             'amount' => $this->amount((float) $payment->amount),
             'method' => $payment->method?->method_name,
             'reference' => $payment->reference,
+            'proof_url' => $payment->proofUrl(),
             'paid_at' => $payment->paid_at?->toIso8601String(),
             // Money that arrived before the visit was due is what the desk
             // means by an advance payment.
@@ -220,6 +226,7 @@ class PortalPayments
         string $method,
         ?float $amount = null,
         ?string $reference = null,
+        ?string $proofPath = null,
     ): ?Payment {
         $balance = $this->balance($appointment);
 
@@ -254,6 +261,7 @@ class PortalPayments
             'amount' => $requested,
             'payment_status' => Payment::STATUS_PAID,
             'reference' => $reference === null || trim($reference) === '' ? null : trim($reference),
+            'payment_proof_path' => $proofPath,
             'paid_at' => now(),
         ]);
 
@@ -264,6 +272,48 @@ class PortalPayments
         $this->notifications->paid($appointment, $requested, $this->money($balance - $requested), $settled);
 
         return $payment;
+    }
+
+    /**
+     * What the clinic has already handed back on a visit.
+     */
+    public function refundedTotal(Appointment $appointment): float
+    {
+        $payments = $appointment->relationLoaded('payments')
+            ? $appointment->payments
+            : $appointment->payments()->get();
+
+        return $this->money(
+            $payments->where('payment_status', Payment::STATUS_REFUNDED)->sum('amount')
+        );
+    }
+
+    /**
+     * Hand the money back on a visit the clinic is calling off.
+     *
+     * The clinic refunds at the desk, so this records what is owed back rather
+     * than moving money: every payment still standing is marked refunded and
+     * the total comes back for the owner's message. Returns 0.00 when nothing
+     * was ever taken, and never touches a payment that has already been
+     * refunded.
+     */
+    public function refund(Appointment $appointment): float
+    {
+        $payments = $appointment->relationLoaded('payments')
+            ? $appointment->payments
+            : $appointment->payments()->get();
+
+        $standing = $this->paidPayments($payments);
+
+        if ($standing->isEmpty()) {
+            return 0.0;
+        }
+
+        foreach ($standing as $payment) {
+            $payment->update(['payment_status' => Payment::STATUS_REFUNDED]);
+        }
+
+        return $this->money($standing->sum('amount'));
     }
 
     /**

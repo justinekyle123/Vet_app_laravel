@@ -8,6 +8,8 @@ use App\Models\Notification;
 use App\Models\Payment;
 use App\Models\PaymentMethod;
 use App\Models\Service;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Route;
 use Inertia\Testing\AssertableInertia as Assert;
 
 /*
@@ -25,6 +27,19 @@ use Inertia\Testing\AssertableInertia as Assert;
 | files declare in the same global namespace.
 |
 */
+
+/**
+ * The screenshot of a successful payment every payment now has to carry: the
+ * clinic matches it against its own wallet or bank statement.
+ *
+ * @return array<string, mixed>
+ */
+function paymentProof(): array
+{
+    return [
+        'payment_proof' => UploadedFile::fake()->create('gcash-receipt.jpg', 120, 'image/jpeg'),
+    ];
+}
 
 /** A visit for a fresh owner and dog, in the given state. */
 function payableVisit(string $status = 'Confirmed', ?string $date = null, string $price = '500.00'): Appointment
@@ -84,6 +99,7 @@ test('an owner can pay for a confirmed visit in any channel the clinic offers', 
         ->post(route('owner.payments.store', $visit), [
             'method' => $method,
             'reference' => '0123 456 789123',
+            ...paymentProof(),
         ])
         ->assertRedirect(route('owner.appointments.index'))
         ->assertSessionHasNoErrors()
@@ -108,6 +124,7 @@ test('a client can pay part of a visit that is still ahead', function () {
             'method' => 'GCash',
             'amount' => 200,
             'reference' => 'DEP-1',
+            ...paymentProof(),
         ])
         ->assertSessionHasNoErrors();
 
@@ -135,6 +152,7 @@ test('a part payment tells the client what is still owed', function () {
         ->post(route('owner.payments.store', $visit), [
             'method' => 'Maya',
             'amount' => 200,
+            ...paymentProof(),
         ])
         ->assertSessionHasNoErrors();
 
@@ -152,11 +170,11 @@ test('the rest of an advance payment can be settled later', function () {
     $visit = payableVisit();
 
     $this->actingAs($visit->owner)
-        ->post(route('owner.payments.store', $visit), ['method' => 'GCash', 'amount' => 200])
+        ->post(route('owner.payments.store', $visit), ['method' => 'GCash', 'amount' => 200, ...paymentProof()])
         ->assertSessionHasNoErrors();
 
     $this->actingAs($visit->owner)
-        ->post(route('owner.payments.store', $visit), ['method' => 'Card', 'amount' => 300])
+        ->post(route('owner.payments.store', $visit), ['method' => 'Card', 'amount' => 300, ...paymentProof()])
         ->assertSessionHasNoErrors();
 
     expect($visit->payments()->count())->toBe(2)
@@ -175,7 +193,7 @@ test('a completed visit can be settled in full after the fact', function () {
     $visit = payableVisit('Completed', today()->subDay()->toDateString());
 
     $this->actingAs($visit->owner)
-        ->post(route('owner.payments.store', $visit), ['method' => 'GCash'])
+        ->post(route('owner.payments.store', $visit), ['method' => 'GCash', ...paymentProof()])
         ->assertSessionHasNoErrors();
 
     expect((float) $visit->payments()->sole()->amount)->toBe(500.0);
@@ -188,6 +206,7 @@ test('a visit that has already taken place cannot be part paid', function () {
         ->post(route('owner.payments.store', $visit), [
             'method' => 'GCash',
             'amount' => 200,
+            ...paymentProof(),
         ])
         ->assertSessionHasErrors('amount');
 
@@ -200,13 +219,13 @@ test('a visit that was part paid ahead can only be settled in full afterwards', 
     paidPayment($visit, amount: '200.00');
 
     $this->actingAs($visit->owner)
-        ->post(route('owner.payments.store', $visit), ['method' => 'GCash', 'amount' => 100])
+        ->post(route('owner.payments.store', $visit), ['method' => 'GCash', 'amount' => 100, ...paymentProof()])
         ->assertSessionHasErrors('amount');
 
     expect($visit->payments()->count())->toBe(1);
 
     $this->actingAs($visit->owner)
-        ->post(route('owner.payments.store', $visit), ['method' => 'GCash', 'amount' => 300])
+        ->post(route('owner.payments.store', $visit), ['method' => 'GCash', 'amount' => 300, ...paymentProof()])
         ->assertSessionHasNoErrors();
 
     expect($visit->payments()->where('payment_status', 'Paid')->sum('amount'))->toEqual(500);
@@ -216,14 +235,14 @@ test('paying more than the visit costs is refused', function () {
     $visit = payableVisit();
 
     $this->actingAs($visit->owner)
-        ->post(route('owner.payments.store', $visit), ['method' => 'GCash', 'amount' => 600])
+        ->post(route('owner.payments.store', $visit), ['method' => 'GCash', 'amount' => 600, ...paymentProof()])
         ->assertSessionHasErrors('amount');
 
     // And again once part of it has been paid: only the 300 left may follow.
     paidPayment($visit, amount: '200.00');
 
     $this->actingAs($visit->owner)
-        ->post(route('owner.payments.store', $visit), ['method' => 'GCash', 'amount' => 400])
+        ->post(route('owner.payments.store', $visit), ['method' => 'GCash', 'amount' => 400, ...paymentProof()])
         ->assertSessionHasErrors('amount');
 
     expect($visit->payments()->count())->toBe(1);
@@ -236,6 +255,7 @@ test('the amount has to be a number above nothing', function (string|int $amount
         ->post(route('owner.payments.store', $visit), [
             'method' => 'GCash',
             'amount' => $amount,
+            ...paymentProof(),
         ])
         ->assertSessionHasErrors('amount');
 
@@ -246,7 +266,7 @@ test('the reference number is optional', function () {
     $visit = payableVisit();
 
     $this->actingAs($visit->owner)
-        ->post(route('owner.payments.store', $visit), ['method' => 'Maya'])
+        ->post(route('owner.payments.store', $visit), ['method' => 'Maya', ...paymentProof()])
         ->assertSessionHasNoErrors();
 
     $payment = Payment::query()->sole();
@@ -255,11 +275,21 @@ test('the reference number is optional', function () {
         ->and($payment->payment_status)->toBe('Paid');
 });
 
+test('a payment cannot be recorded without a screenshot of it', function () {
+    $visit = payableVisit();
+
+    $this->actingAs($visit->owner)
+        ->post(route('owner.payments.store', $visit), ['method' => 'GCash'])
+        ->assertSessionHasErrors('payment_proof');
+
+    expect(Payment::query()->count())->toBe(0);
+});
+
 test('paying tells the owner it went through', function () {
     $visit = payableVisit();
 
     $this->actingAs($visit->owner)
-        ->post(route('owner.payments.store', $visit), ['method' => 'GCash']);
+        ->post(route('owner.payments.store', $visit), ['method' => 'GCash', ...paymentProof()]);
 
     $message = Notification::query()
         ->where('appointment_id', $visit->appointment_id)
@@ -274,11 +304,24 @@ test('a visit the clinic has not confirmed cannot be paid', function (string $st
     $visit = payableVisit($status);
 
     $this->actingAs($visit->owner)
-        ->post(route('owner.payments.store', $visit), ['method' => 'GCash'])
+        ->post(route('owner.payments.store', $visit), ['method' => 'GCash', ...paymentProof()])
         ->assertSessionHasErrors('payment');
 
     expect(Payment::query()->count())->toBe(0);
-})->with(['Requested', 'Cancelled', 'No-show']);
+})->with(['Cancelled', 'No-show']);
+
+test('a visit just requested can be settled because the booking took a deposit', function () {
+    // The booking page collects the deposit as the request is sent, so the
+    // visit is payable from the moment it exists — the client may settle the
+    // rest while the desk is still confirming the time.
+    $visit = payableVisit('Requested');
+
+    $this->actingAs($visit->owner)
+        ->post(route('owner.payments.store', $visit), ['method' => 'GCash', ...paymentProof()])
+        ->assertSessionHasNoErrors();
+
+    expect((float) Payment::query()->sole()->amount)->toBe(500.0);
+});
 
 test('a visit with nothing to pay is refused', function () {
     $visit = payableVisit(price: '0.00');
@@ -316,7 +359,7 @@ test('a channel the clinic does not offer is refused', function () {
     $visit = payableVisit();
 
     $this->actingAs($visit->owner)
-        ->post(route('owner.payments.store', $visit), ['method' => 'Bitcoin'])
+        ->post(route('owner.payments.store', $visit), ['method' => 'Bitcoin', ...paymentProof()])
         ->assertSessionHasErrors('method');
 
     expect(Payment::query()->count())->toBe(0);
@@ -340,6 +383,7 @@ test('a visit reads back as paid, with how it was paid for', function () {
         ->post(route('owner.payments.store', $visit), [
             'method' => 'Maya',
             'reference' => '0123 456 789123',
+            ...paymentProof(),
         ])
         ->assertSessionHasNoErrors();
 
@@ -356,16 +400,10 @@ test('a visit reads back as paid, with how it was paid for', function () {
         );
 });
 
-test('the client can still call off a visit they have paid for', function () {
-    // The clinic cannot cancel a paid visit, so this is the only way out of
-    // one — and the money is then refunded at the desk.
-    $visit = payableVisit();
-    paidPayment($visit, amount: '200.00');
-
-    $this->actingAs($visit->owner)
-        ->patch(route('owner.appointments.cancel', $visit))
-        ->assertSessionHasNoErrors();
-
-    expect($visit->fresh()->status->status_name)->toBe('Cancelled')
-        ->and($visit->payments()->where('payment_status', 'Paid')->exists())->toBeTrue();
+test('calling a visit off belongs to the desk, not the portal', function () {
+    // A client can move an upcoming visit, but cancelling one — and with it
+    // deciding how the money goes back — is the clinic's call from the
+    // console, where the refund is recorded and the owner is told.
+    expect(Route::has('owner.appointments.cancel'))->toBeFalse()
+        ->and(Route::has('admin.operations.appointments.cancel'))->toBeTrue();
 });

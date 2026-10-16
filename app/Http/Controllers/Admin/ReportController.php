@@ -2,99 +2,116 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Enums\StaffRole;
 use App\Http\Controllers\Controller;
-use App\Models\Dog;
-use App\Models\DogBreed;
-use App\Models\DogOwner;
-use App\Models\Staff;
-use Illuminate\Support\Carbon;
+use App\Models\ClinicInfo;
+use App\Services\Reports\ClinicReport;
+use App\Services\Reports\ClinicReportWorkbook;
+use App\Services\Reports\ReportRange;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Http\Request;
+use Illuminate\Http\Response as HttpResponse;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * Read-only clinic figures, all derived from records that already exist.
+ * Reports and analytics: the clinic's own figures for any window, on screen and
+ * as a file the clinic can keep.
  *
- * Money and appointment reporting join this page once scheduling and payments
- * ship; until then the page reports accounts, clients, and dogs so the numbers
- * on screen are always real.
+ * All three entry points — the page, the PDF, and the spreadsheet — read the
+ * window from the same query string and build their numbers through
+ * {@see ClinicReport}, so what the administrator sees is exactly what the
+ * download contains. That is the whole reason the window lives in the URL
+ * rather than in the page's state.
+ *
+ * The page shows the figures for the requested window *and* the window before
+ * it, so a number always has a direction. Exports carry the window in their
+ * filename, which is what makes an archived report identifiable months later.
  */
 class ReportController extends Controller
 {
-    /** How many months of sign-up history the chart shows. */
-    private const SIGNUP_MONTHS = 6;
+    /** What each window in the picker is called. */
+    private const PRESET_LABELS = [
+        'today' => 'Today',
+        'last_7' => 'Last 7 days',
+        'last_30' => 'Last 30 days',
+        'this_month' => 'This month',
+        'last_month' => 'Last month',
+        'this_year' => 'This year',
+        'custom' => 'Custom',
+    ];
 
-    public function __invoke(): Response
+    public function index(Request $request, ClinicReport $report): Response
     {
+        $range = ReportRange::fromRequest($request);
+
         return Inertia::render('Admin/Reports', [
-            'accounts' => [
-                'total' => Staff::count() + DogOwner::count(),
-                'admins' => Staff::where('role', StaffRole::Admin)->count(),
-                'owners' => DogOwner::count(),
-            ],
-            'clients' => [
-                'total' => DogOwner::count(),
-                'active' => DogOwner::where('is_active', true)->count(),
-                'inactive' => DogOwner::where('is_active', false)->count(),
-            ],
-            'dogs' => [
-                'total' => Dog::count(),
-                'active' => Dog::where('is_active', true)->count(),
-            ],
-            'signups' => $this->signupsByMonth(),
-            'breeds' => $this->dogsByBreed(),
+            'figures' => $report->build($range),
+            'presets' => collect(ReportRange::PRESETS)
+                ->map(fn (string $preset): array => [
+                    'value' => $preset,
+                    'label' => self::PRESET_LABELS[$preset] ?? Str::headline($preset),
+                ])
+                ->all(),
+            'clinic' => ClinicInfo::current()->clinic_name,
         ]);
     }
 
     /**
-     * New dog owner registrations for each of the last six months, oldest
-     * first — including the months with none, so the chart keeps an even time
-     * axis.
-     *
-     * @return list<array{label: string, count: int}>
+     * The report as a printable PDF, ready to hand to a client or file away.
      */
-    private function signupsByMonth(): array
+    public function pdf(Request $request, ClinicReport $report): HttpResponse
     {
-        $start = Carbon::now()->startOfMonth()->subMonths(self::SIGNUP_MONTHS - 1);
+        $range = ReportRange::fromRequest($request);
+        $clinic = ClinicInfo::current()->clinic_name;
 
-        $counts = DogOwner::query()
-            ->where('created_at', '>=', $start)
-            ->get(['created_at'])
-            ->countBy(fn (DogOwner $owner) => $owner->created_at->format('Y-m'));
+        $document = Pdf::loadView('reports.clinic', [
+            'report' => $report->build($range),
+            'clinic' => $clinic,
+        ])
+            ->setPaper('a4')
+            ->output();
 
-        return collect(range(0, self::SIGNUP_MONTHS - 1))
-            ->map(function (int $offset) use ($start, $counts): array {
-                $month = $start->copy()->addMonths($offset);
-
-                return [
-                    'label' => $month->format('M'),
-                    'count' => (int) $counts->get($month->format('Y-m'), 0),
-                ];
-            })
-            ->all();
+        return $this->download($document, $this->filename($clinic, $range, 'pdf'), 'application/pdf');
     }
 
     /**
-     * Registered dogs grouped by breed, most common first. Dogs without a
-     * breed on file are reported as "Unspecified" rather than dropped.
-     *
-     * @return list<array{label: string, count: int}>
+     * The report as a spreadsheet: the summary first, then the visits and
+     * payments behind it, as rows the clinic can sort and total itself.
      */
-    private function dogsByBreed(): array
+    public function excel(Request $request, ClinicReportWorkbook $workbook): HttpResponse
     {
-        $names = DogBreed::query()->pluck('breed_name', 'breed_id');
+        $range = ReportRange::fromRequest($request);
+        $clinic = ClinicInfo::current()->clinic_name;
 
-        return Dog::query()
-            ->selectRaw('breed_id, COUNT(*) as aggregate')
-            ->groupBy('breed_id')
-            ->orderByDesc('aggregate')
-            ->get()
-            ->map(fn (Dog $dog): array => [
-                'label' => $dog->breed_id === null
-                    ? 'Unspecified'
-                    : (string) ($names[$dog->breed_id] ?? 'Unspecified'),
-                'count' => (int) $dog->aggregate,
-            ])
-            ->all();
+        $bytes = $workbook->contents($range, $clinic);
+
+        return $this->download(
+            $bytes,
+            $this->filename($clinic, $range, 'xlsx'),
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        );
+    }
+
+    /** A file the browser saves rather than renders, built in memory. */
+    private function download(string $contents, string $filename, string $contentType): HttpResponse
+    {
+        return response($contents, 200, [
+            'Content-Type' => $contentType,
+            'Content-Length' => (string) strlen($contents),
+            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
+            'Cache-Control' => 'no-store, max-age=0',
+        ]);
+    }
+
+    /**
+     * `myvet-animal-clinic-report-2026-09-01-to-2026-10-17.pdf` — the window is
+     * in the name because that is the one thing an archived copy has to say.
+     */
+    private function filename(string $clinic, ReportRange $range, string $extension): string
+    {
+        $slug = Str::slug($clinic) ?: 'clinic';
+
+        return "{$slug}-report-{$range->from->toDateString()}-to-{$range->to->toDateString()}.{$extension}";
     }
 }

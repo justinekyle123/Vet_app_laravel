@@ -16,6 +16,13 @@ export default {
                 sans: ['Figtree', ...defaultTheme.fontFamily.sans],
             },
 
+            boxShadow: {
+                /* Soft green-tinted elevation, shared by the owner portal's
+                   booking wizard. */
+                card: '0 1px 2px rgba(26, 61, 26, 0.04), 0 8px 24px -12px rgba(26, 61, 26, 0.12)',
+                lift: '0 4px 12px rgba(26, 61, 26, 0.06), 0 24px 48px -24px rgba(26, 61, 26, 0.18)',
+            },
+
             colors: {
                 brand: {
                     50: '#f0fdfa',

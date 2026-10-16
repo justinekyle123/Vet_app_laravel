@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Owner;
 
 use App\Http\Controllers\Controller;
+use App\Models\Appointment;
 use App\Models\DogOwner;
 use App\Models\Service;
 use App\Services\Portal\BookingAvailability;
@@ -17,22 +18,46 @@ use Inertia\Response;
 
 /**
  * The clinic's service menu, as the client sees it.
- *
- * Retired services are left out: the portal is for what the clinic currently
- * offers, and past visits keep their own record of what was billed. The page
- * also carries the owner's dogs and the live booking calendar, so a service can
- * be booked without leaving the menu.
- */
+     *
+     * Retired services are left out: the portal is for what the clinic currently
+     * offers, and past visits keep their own record of what was billed. The menu
+     * and each service's page are for reading — booking is handled by the front
+     * desk while the online process is being reworked.
+     */
 class ServiceController extends Controller
 {
-    public function index(
-        Request $request,
-        CareTeam $careTeam,
-        ServiceReviews $reviews,
-    ): Response {
+    /**
+     * The p.html-style booking wizard: services, schedule, extras, and payment
+     * all live on one owner-facing page.
+     */
+    public function booking(Request $request): Response
+    {
         /** @var DogOwner $owner */
         $owner = $request->user();
 
+        abort_unless(config('booking.online'), 404);
+
+        $services = Service::query()
+            ->where('is_active', true)
+            ->with('category:category_id,category_name')
+            ->orderBy('service_name')
+            ->get();
+
+        return Inertia::render('Owner/BookingPage', [
+            'services' => $services->map(fn (Service $service): array => [
+                ...$this->present($service, []),
+                'category' => $service->category?->category_name,
+            ])->values()->all(),
+            'dogs' => $this->dogsFor($owner),
+            'bookingWindowDays' => BookingAvailability::HORIZON_DAYS,
+            'bookingSubmitted' => (bool) $request->session()->pull('booking-requested'),
+        ]);
+    }
+
+    public function index(
+        CareTeam $careTeam,
+        ServiceReviews $reviews,
+    ): Response {
         $services = Service::query()
             ->where('is_active', true)
             ->with('category:category_id,category_name')
@@ -61,27 +86,9 @@ class ServiceController extends Controller
                 ])
                 ->values()
                 ->all(),
-            // The care team, so an owner can see who could take their booking
-            // and read each member's details before they choose.
+            // The care team, so an owner can see who looks after their dog and
+            // read each member's details before they call the desk.
             'team' => $careTeam->presentAll()->all(),
-            // Only dogs the booking form can actually pick: an inactive dog
-            // has been retired from the account and should not be scheduled.
-            'dogs' => $owner->dogs()
-                ->where('is_active', true)
-                ->with('breed:breed_id,breed_name')
-                ->orderBy('dog_name')
-                ->get()
-                ->map(fn ($dog): array => [
-                    'id' => $dog->dog_id,
-                    'dog_name' => $dog->dog_name,
-                    'breed' => $dog->breed?->breed_name,
-                    'sex' => $dog->sex,
-                    'birth_date' => $dog->birth_date?->toDateString(),
-                    'is_vaccinated' => $dog->is_vaccinated,
-                    'is_active' => $dog->is_active,
-                ])
-                ->all(),
-            'bookingWindowDays' => BookingAvailability::HORIZON_DAYS,
         ]);
     }
 
@@ -127,33 +134,59 @@ class ServiceController extends Controller
             // two services without going back to the menu.
             'related' => $this->relatedTo($service, $ratings),
             'team' => $careTeam->presentAll()->all(),
-            'dogs' => $owner->dogs()
-                ->where('is_active', true)
-                ->with('breed:breed_id,breed_name')
-                ->orderBy('dog_name')
-                ->get()
-                ->map(fn ($dog): array => [
-                    'id' => $dog->dog_id,
-                    'dog_name' => $dog->dog_name,
-                    'breed' => $dog->breed?->breed_name,
-                    'sex' => $dog->sex,
-                    'birth_date' => $dog->birth_date?->toDateString(),
-                    'is_vaccinated' => $dog->is_vaccinated,
-                    'is_active' => $dog->is_active,
-                ])
-                ->all(),
-            'bookingWindowDays' => BookingAvailability::HORIZON_DAYS,
         ]);
     }
 
     /**
-     * The days and times one service can be booked, for the calendar modal.
+     * The days and times one service can be booked, for the booking calendar.
+     *
+     * `?ignore={appointment}` leaves one of the owner's own visits out of the
+     * clash check, so the reschedule sheet can show the client's current slot
+     * as free while they are moving it. Another client's visit is not something
+     * one owner may free up, so an id that is not theirs is simply ignored.
      */
-    public function availability(Service $service, BookingAvailability $availability): JsonResponse
-    {
+    public function availability(
+        Request $request,
+        Service $service,
+        BookingAvailability $availability,
+    ): JsonResponse {
         abort_unless($service->is_active, 404);
 
-        return response()->json($availability->calendar($service));
+        $ignore = $request->integer('ignore');
+
+        $ignoreId = $ignore > 0 && Appointment::query()
+            ->whereKey($ignore)
+            ->where('owner_id', $request->user()->owner_id)
+            ->exists()
+                ? $ignore
+                : null;
+
+        return response()->json($availability->calendar($service, $ignoreId));
+    }
+
+    /**
+     * The dogs a booking may be made for: an inactive dog has been retired from
+     * the account and should not be scheduled.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function dogsFor(DogOwner $owner): array
+    {
+        return $owner->dogs()
+            ->where('is_active', true)
+            ->with('breed:breed_id,breed_name')
+            ->orderBy('dog_name')
+            ->get()
+            ->map(fn ($dog): array => [
+                'id' => $dog->dog_id,
+                'dog_name' => $dog->dog_name,
+                'breed' => $dog->breed?->breed_name,
+                'sex' => $dog->sex,
+                'birth_date' => $dog->birth_date?->toDateString(),
+                'is_vaccinated' => $dog->is_vaccinated,
+                'is_active' => $dog->is_active,
+            ])
+            ->all();
     }
 
     /**

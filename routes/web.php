@@ -116,7 +116,14 @@ Route::middleware(['auth:owner,staff', 'role:admin'])
         Route::post('complaints/{complaint}/messages', [AdminComplaintController::class, 'reply'])->name('complaints.reply');
         Route::patch('complaints/{complaint}', [AdminComplaintController::class, 'update'])->name('complaints.update');
 
-        Route::get('reports', AdminReportController::class)->name('reports.index');
+        /*
+         * Reports and analytics for a window of the clinic's choosing. The
+         * window is a query string on all three routes, so an export always
+         * matches the page it was taken from.
+         */
+        Route::get('reports', [AdminReportController::class, 'index'])->name('reports.index');
+        Route::get('reports/export/pdf', [AdminReportController::class, 'pdf'])->name('reports.pdf');
+        Route::get('reports/export/excel', [AdminReportController::class, 'excel'])->name('reports.excel');
 
         Route::get('settings', [AdminSettingController::class, 'edit'])->name('settings.edit');
         Route::patch('settings', [AdminSettingController::class, 'update'])->name('settings.update');
@@ -162,9 +169,11 @@ Route::middleware(['auth:owner,staff', 'role:owner'])
     ->group(function () {
         Route::get('/', OwnerDashboardController::class)->name('dashboard');
 
+        Route::get('booking', [OwnerServiceController::class, 'booking'])->name('booking');
+
         Route::get('services', [OwnerServiceController::class, 'index'])->name('services.index');
 
-        // Feeds the booking modal's calendar for one service; returns JSON.
+        // Feeds the booking calendar for one service; returns JSON.
         Route::get('services/{service}/availability', [OwnerServiceController::class, 'availability'])
             ->name('services.availability');
 
@@ -176,9 +185,9 @@ Route::middleware(['auth:owner,staff', 'role:owner'])
         Route::get('appointments', [OwnerAppointmentController::class, 'index'])->name('appointments.index');
         Route::post('appointments', [OwnerAppointmentController::class, 'store'])->name('appointments.store');
 
-        // Cancels one of the owner's own upcoming visits.
-        Route::patch('appointments/{appointment}/cancel', [OwnerAppointmentController::class, 'cancel'])
-            ->name('appointments.cancel');
+        // Owners may move an upcoming visit, but only the admin can cancel it.
+        Route::patch('appointments/{appointment}/reschedule', [OwnerAppointmentController::class, 'reschedule'])
+            ->name('appointments.reschedule');
 
         // Rates a visit the clinic has already carried out.
         Route::post('appointments/{appointment}/review', [OwnerAppointmentController::class, 'review'])
@@ -222,6 +231,8 @@ Route::middleware(['auth:owner,staff', 'role:owner'])
 
         Route::post('dogs', [OwnerDogController::class, 'store'])->name('dogs.store');
         Route::patch('dogs/{dog}', [OwnerDogController::class, 'update'])->name('dogs.update');
+        Route::patch('dogs/{dog}/deactivate', [OwnerDogController::class, 'deactivate'])->name('dogs.deactivate');
+        Route::patch('dogs/{dog}/activate', [OwnerDogController::class, 'activate'])->name('dogs.activate');
     });
 
 require __DIR__.'/auth.php';

@@ -76,7 +76,6 @@ test('a client can read a service in full', function () {
             ->where('service.duration_minutes', 90)
             ->has('service.image')
             ->has('team')
-            ->has('dogs')
             ->has('reviews.data', 0)
             ->where('service.rating', null)
             ->where('service.satisfied', null)

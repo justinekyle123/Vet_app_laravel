@@ -7,7 +7,6 @@ import {
 import OwnerLayout from '@/Layouts/OwnerLayout';
 import {
     PageProps,
-    PortalDog,
     PortalService,
     PortalServiceCategory,
     PublicTeamMember,
@@ -15,8 +14,7 @@ import {
 import { currency } from '@/utils/format';
 import { Link } from '@inertiajs/react';
 import { ArrowRight, ChevronDown, Clock, Search, X } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import BookingModal from './Partials/BookingModal';
+import { useMemo, useState } from 'react';
 import CareTeamSection from './Partials/CareTeamSection';
 import { OwnerHero, SectionLabel } from './Partials/OwnerHero';
 
@@ -101,60 +99,22 @@ function ServiceReputation({ service }: { service: PortalService }) {
  * The clinic's service menu, as a client sees it.
  *
  * Each card carries an `id` so the navbar search can deep-link straight to a
- * match, a Book action that opens the calendar-backed booking modal, and a way
- * through to the service's own page, which breaks its rating down and lists
- * every review behind it. Retired services never reach this page — the
- * controller filters them out before the props are built.
+ * match and a way through to the service's own page, which breaks its rating
+ * down and lists every review behind it. Retired services never reach this
+ * page — the controller filters them out before the props are built.
+ *
+ * The menu is for reading: booking is handled by the front desk while the
+ * clinic reworks how a visit is arranged, so no card carries a Book action.
  */
 export default function Services({
     categories,
-    dogs,
     team,
-    bookingWindowDays,
 }: PageProps<{
     categories: PortalServiceCategory[];
-    dogs: PortalDog[];
     team: PublicTeamMember[];
-    bookingWindowDays: number;
 }>) {
     const [query, setQuery] = useState('');
     const [activeCategory, setActiveCategory] = useState<string>('all');
-    const [bookingService, setBookingService] = useState<PortalService | null>(
-        null,
-    );
-    const [bookingOpen, setBookingOpen] = useState(false);
-    const openedFromLink = useRef(false);
-
-    /*
-     * "Book again" on a past visit arrives as ?book=<service id>, so the menu
-     * opens that service's calendar straight away instead of making the client
-     * find it again in the grid.
-     */
-    useEffect(() => {
-        if (openedFromLink.current) {
-            return;
-        }
-
-        openedFromLink.current = true;
-
-        const requested = Number.parseInt(
-            new URLSearchParams(window.location.search).get('book') ?? '',
-            10,
-        );
-
-        if (Number.isNaN(requested)) {
-            return;
-        }
-
-        const match = categories
-            .flatMap((category) => category.services)
-            .find((service) => service.id === requested);
-
-        if (match) {
-            setBookingService(match);
-            setBookingOpen(true);
-        }
-    }, [categories]);
 
     const term = query.trim().toLowerCase();
 
@@ -194,15 +154,6 @@ export default function Services({
         0,
     );
 
-    const openBooking = (service: PortalService) => {
-        setBookingService(service);
-        setBookingOpen(true);
-    };
-
-    /*
-     * The hero's backing photograph comes from the menu itself, so the portal
-     * reuses the clinic's own artwork instead of shipping a second set.
-     */
     const heroImage =
         categories
             .flatMap((category) => category.services)
@@ -220,7 +171,7 @@ export default function Services({
             <OwnerHero
                 eyebrow="Services"
                 title="Find the right care"
-                description="Pick a service to see the clinic's open days and request a visit. The front desk confirms every request, and you can watch its status on your appointments page."
+                description="Every service the clinic offers, with its price, how long it takes, and what other clients said about it. Call the front desk to arrange a visit."
                 image={heroImage}
                 actions={
                     <Link
@@ -414,31 +365,20 @@ export default function Services({
                                                         </div>
                                                     </dl>
 
-                                                    {/* Two ways on: read the service in
-                                                        full, or go straight to its
-                                                        calendar. */}
-                                                    <div className="flex items-center gap-2 border-t border-[#1a3d1a]/10 pt-4">
+                                                    {/* One way on: the service
+                                                        read in full, which is what
+                                                        the menu is here for. */}
+                                                    <div className="border-t border-[#1a3d1a]/10 pt-4">
                                                         <Link
                                                             href={route(
                                                                 'owner.services.show',
                                                                 service.id,
                                                             )}
-                                                            className={`${secondaryButtonClass} flex-1 px-3 py-2 text-xs`}
+                                                            className={`${secondaryButtonClass} w-full px-3 py-2 text-xs`}
                                                         >
                                                             View details
-                                                        </Link>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() =>
-                                                                openBooking(
-                                                                    service,
-                                                                )
-                                                            }
-                                                            className={`${primaryButtonClass} flex-1 px-3 py-2 text-xs`}
-                                                        >
-                                                            Book
                                                             <ArrowRight className="h-4 w-4" />
-                                                        </button>
+                                                        </Link>
                                                     </div>
                                                 </div>
                                             </article>
@@ -451,24 +391,14 @@ export default function Services({
                 </>
             )}
 
-            <BookingModal
-                service={bookingService}
-                dogs={dogs}
-                team={team}
-                show={bookingOpen}
-                onClose={() => setBookingOpen(false)}
-            />
-
             <div className="mt-12">
                 <CareTeamSection team={team} />
             </div>
 
-            {bookingWindowDays > 0 && (
-                <p className="mt-10 text-center text-xs text-[#1a3d1a]/40">
-                    Online booking is open for the next {bookingWindowDays}{' '}
-                    days. Need something sooner? Call the clinic.
-                </p>
-            )}
+            <p className="mt-10 text-center text-xs text-[#1a3d1a]/40">
+                Visits are booked through the front desk — call the clinic and
+                they will find you a time.
+            </p>
         </OwnerLayout>
     );
 }

@@ -14,6 +14,11 @@ use Carbon\CarbonImmutable;
  * install, so availability is derived instead: the clinic's own opening hours
  * decide the grid and existing visits decide which cells are still free. That
  * keeps the portal bookable from day one and needs no extra seeding.
+ *
+ * Opening hours are written on the clinic's clock, so every "is this still
+ * ahead of us?" question is answered on that clock too — see
+ * `config('booking.timezone')`. The server also runs in UTC, so a rule based
+ * on the server's own clock would still offer this morning's slots at dinner.
  */
 class BookingAvailability
 {
@@ -32,20 +37,23 @@ class BookingAvailability
     /**
      * The days and times a service can be booked, across the whole window.
      *
+     * `$ignoreAppointmentId` leaves one visit out of the clash check, which is
+     * what lets a client see their own slot as free while rescheduling it.
+     *
      * @return array{
      *     windowDays: int,
      *     dates: list<string>,
      *     times: array<string, list<array{value: string, label: string}>>
      * }
      */
-    public function calendar(Service $service): array
+    public function calendar(Service $service, ?int $ignoreAppointmentId = null): array
     {
         $clinic = ClinicInfo::current();
         $openWeekdays = $this->openWeekdays($clinic->days_open);
 
-        $first = CarbonImmutable::today();
+        $first = $this->today();
         $last = $first->addDays(self::HORIZON_DAYS);
-        $booked = $this->bookedBlocks($first, $last);
+        $booked = $this->bookedBlocks($first, $last, $ignoreAppointmentId);
 
         $dates = [];
         $times = [];
@@ -76,7 +84,7 @@ class BookingAvailability
     /**
      * Whether a date and time is still inside the booking window and free.
      */
-    public function isBookable(Service $service, string $date, string $time): bool
+    public function isBookable(Service $service, string $date, string $time, ?int $ignoreAppointmentId = null): bool
     {
         $clinic = ClinicInfo::current();
 
@@ -84,8 +92,8 @@ class BookingAvailability
             return false;
         }
 
-        $day = CarbonImmutable::parse($date);
-        $booked = $this->bookedBlocks($day, $day);
+        $day = CarbonImmutable::parse($date, $this->timezone());
+        $booked = $this->bookedBlocks($day, $day, $ignoreAppointmentId);
 
         $slots = $this->slots($service, $clinic, $day, $booked[$date] ?? []);
 
@@ -97,14 +105,14 @@ class BookingAvailability
      */
     private function isOpenForBooking(ClinicInfo $clinic, string $date): bool
     {
-        $day = CarbonImmutable::parse($date);
+        $day = CarbonImmutable::parse($date, $this->timezone());
 
         if (! in_array($day->isoWeekday(), $this->openWeekdays($clinic->days_open), true)) {
             return false;
         }
 
-        return $day->greaterThanOrEqualTo(CarbonImmutable::today())
-            && $day->lessThanOrEqualTo(CarbonImmutable::today()->addDays(self::HORIZON_DAYS));
+        return $day->greaterThanOrEqualTo($this->today())
+            && $day->lessThanOrEqualTo($this->today()->addDays(self::HORIZON_DAYS));
     }
 
     /**
@@ -123,7 +131,7 @@ class BookingAvailability
         $duration = max(5, (int) ($service->duration_minutes ?? 30));
         $opens = $this->minutes((string) $clinic->opening_time);
         $closes = $this->minutes((string) $clinic->closing_time);
-        $now = CarbonImmutable::now();
+        $now = $this->now();
 
         $slots = [];
 
@@ -157,9 +165,9 @@ class BookingAvailability
      *
      * @return array<string, list<array{start: int, end: int}>>
      */
-    private function bookedBlocks(CarbonImmutable $from, CarbonImmutable $to): array
+    private function bookedBlocks(CarbonImmutable $from, CarbonImmutable $to, ?int $ignoreAppointmentId = null): array
     {
-        return Appointment::query()
+        $query = Appointment::query()
             // DateTime bounds, so the comparison holds whether the column stores
             // a bare date or the datetime Eloquent writes for a date cast.
             ->whereBetween('appointment_date', [$from->startOfDay(), $to->endOfDay()])
@@ -167,7 +175,13 @@ class BookingAvailability
                 'status',
                 fn ($status) => $status->whereNotIn('status_name', self::RELEASED_STATUSES),
             )
-            ->with('service:service_id,duration_minutes')
+            ->with('service:service_id,duration_minutes');
+
+        if ($ignoreAppointmentId !== null) {
+            $query->where('appointment_id', '<>', $ignoreAppointmentId);
+        }
+
+        return $query
             ->get()
             ->groupBy(fn (Appointment $appointment) => $appointment->appointment_date?->toDateString() ?? '')
             ->map(fn ($group) => $group
@@ -182,6 +196,35 @@ class BookingAvailability
                 ->values()
                 ->all())
             ->all();
+    }
+
+    /**
+     * The clinic's own wall clock: what "now" means for opening hours.
+     */
+    private function now(): CarbonImmutable
+    {
+        return CarbonImmutable::now($this->timezone());
+    }
+
+    /**
+     * Today, on the clinic's clock.
+     */
+    private function today(): CarbonImmutable
+    {
+        return $this->now()->startOfDay();
+    }
+
+    /**
+     * The clinic's timezone, falling back to the clinic's own country rather
+     * than the server's UTC when the setting is missing.
+     */
+    private function timezone(): string
+    {
+        $timezone = (string) config('booking.timezone', 'Asia/Manila');
+
+        return in_array($timezone, timezone_identifiers_list(), true)
+            ? $timezone
+            : 'Asia/Manila';
     }
 
     /**
@@ -253,7 +296,7 @@ class BookingAvailability
     /** "9:00 AM" for a minute offset, as the slot button shows it. */
     private function clockLabel(int $minutes): string
     {
-        return CarbonImmutable::today()
+        return $this->today()
             ->setTime(intdiv($minutes, 60), $minutes % 60)
             ->format('g:i A');
     }
